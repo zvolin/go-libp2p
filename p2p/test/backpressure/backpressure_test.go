@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
-	host "github.com/ipfs/go-ipfs/p2p/host"
-	inet "github.com/ipfs/go-ipfs/p2p/net"
-	peer "github.com/ipfs/go-ipfs/p2p/peer"
-	protocol "github.com/ipfs/go-ipfs/p2p/protocol"
-	testutil "github.com/ipfs/go-ipfs/p2p/test/util"
 	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
+	host "github.com/ipfs/go-libp2p/p2p/host"
+	inet "github.com/ipfs/go-libp2p/p2p/net"
+	peer "github.com/ipfs/go-libp2p/p2p/peer"
+	protocol "github.com/ipfs/go-libp2p/p2p/protocol"
+	testutil "github.com/ipfs/go-libp2p/p2p/test/util"
 
 	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
 	u "github.com/ipfs/go-ipfs/util"

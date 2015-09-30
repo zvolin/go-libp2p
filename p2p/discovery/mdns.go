@@ -13,9 +13,9 @@ import (
 	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
 	manet "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
 
-	"github.com/ipfs/go-ipfs/p2p/host"
-	"github.com/ipfs/go-ipfs/p2p/peer"
 	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
+	"github.com/ipfs/go-libp2p/p2p/host"
+	"github.com/ipfs/go-libp2p/p2p/peer"
 )
 
 var log = logging.Logger("mdns")

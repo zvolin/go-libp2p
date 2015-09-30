@@ -6,11 +6,11 @@ import (
 
 	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 
-	host "github.com/ipfs/go-ipfs/p2p/host"
-	inet "github.com/ipfs/go-ipfs/p2p/net"
-	peer "github.com/ipfs/go-ipfs/p2p/peer"
-	protocol "github.com/ipfs/go-ipfs/p2p/protocol"
 	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
+	host "github.com/ipfs/go-libp2p/p2p/host"
+	inet "github.com/ipfs/go-libp2p/p2p/net"
+	peer "github.com/ipfs/go-libp2p/p2p/peer"
+	protocol "github.com/ipfs/go-libp2p/p2p/protocol"
 )
 
 var log = logging.Logger("p2p/protocol/relay")
