@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"io"
 
-	mh "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
+	mh "github.com/jbenet/go-multihash"
 
-	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 	host "github.com/ipfs/go-libp2p/p2p/host"
 	inet "github.com/ipfs/go-libp2p/p2p/net"
 	peer "github.com/ipfs/go-libp2p/p2p/peer"
 	protocol "github.com/ipfs/go-libp2p/p2p/protocol"
+	logging "QmWRypnfEwrgH4k93KEHN5hng7VjKYkWmzDYRuTZeh2Mgh/go-log"
 )
 
-var log = logging.Logger("p2p/protocol/relay")
+var log = logging.Logger("github.com/ipfs/go-libp2p/p2p/protocol/relay")
 
 // ID is the protocol.ID of the Relay Service.
 const ID protocol.ID = "/ipfs/relay"

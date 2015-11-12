@@ -4,13 +4,14 @@ import (
 	"io"
 	"testing"
 
-	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 	inet "github.com/ipfs/go-libp2p/p2p/net"
 	protocol "github.com/ipfs/go-libp2p/p2p/protocol"
 	relay "github.com/ipfs/go-libp2p/p2p/protocol/relay"
 	testutil "github.com/ipfs/go-libp2p/p2p/test/util"
+	logging "QmWRypnfEwrgH4k93KEHN5hng7VjKYkWmzDYRuTZeh2Mgh/go-log"
 
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
+	msmux "github.com/whyrusleeping/go-multistream"
+	context "golang.org/x/net/context"
 )
 
 var log = logging.Logger("relay_test")
@@ -62,7 +63,7 @@ func TestRelaySimple(t *testing.T) {
 
 	// ok now the header's there, we can write the next protocol header.
 	log.Debug("write testing header")
-	if err := protocol.WriteHeader(s, protocol.TestingID); err != nil {
+	if err := msmux.SelectProtoOrFail(string(protocol.TestingID), s); err != nil {
 		t.Fatal(err)
 	}
 
@@ -155,7 +156,7 @@ func TestRelayAcrossFour(t *testing.T) {
 	}
 
 	log.Debugf("write relay header n1->n4 (%s -> %s)", n1p, n4p)
-	if err := protocol.WriteHeader(s, relay.ID); err != nil {
+	if err := msmux.SelectProtoOrFail(string(relay.ID), s); err != nil {
 		t.Fatal(err)
 	}
 	if err := relay.WriteHeader(s, n1p, n4p); err != nil {
@@ -163,7 +164,7 @@ func TestRelayAcrossFour(t *testing.T) {
 	}
 
 	log.Debugf("write relay header n1->n5 (%s -> %s)", n1p, n5p)
-	if err := protocol.WriteHeader(s, relay.ID); err != nil {
+	if err := msmux.SelectProtoOrFail(string(relay.ID), s); err != nil {
 		t.Fatal(err)
 	}
 	if err := relay.WriteHeader(s, n1p, n5p); err != nil {
@@ -172,7 +173,7 @@ func TestRelayAcrossFour(t *testing.T) {
 
 	// ok now the header's there, we can write the next protocol header.
 	log.Debug("write testing header")
-	if err := protocol.WriteHeader(s, protocol.TestingID); err != nil {
+	if err := msmux.SelectProtoOrFail(string(protocol.TestingID), s); err != nil {
 		t.Fatal(err)
 	}
 
@@ -257,7 +258,7 @@ func TestRelayStress(t *testing.T) {
 
 	// ok now the header's there, we can write the next protocol header.
 	log.Debug("write testing header")
-	if err := protocol.WriteHeader(s, protocol.TestingID); err != nil {
+	if err := msmux.SelectProtoOrFail(string(protocol.TestingID), s); err != nil {
 		t.Fatal(err)
 	}
 

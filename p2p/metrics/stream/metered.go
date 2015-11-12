@@ -1,10 +1,10 @@
 package meterstream
 
 import (
+	metrics "github.com/ipfs/go-libp2p/p2p/metrics"
 	inet "github.com/ipfs/go-libp2p/p2p/net"
 	peer "github.com/ipfs/go-libp2p/p2p/peer"
 	protocol "github.com/ipfs/go-libp2p/p2p/protocol"
-	metrics "github.com/ipfs/go-libp2p/util/metrics"
 )
 
 type meteredStream struct {

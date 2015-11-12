@@ -9,9 +9,9 @@ package loggables
 import (
 	"net"
 
-	ma "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	ma "github.com/jbenet/go-multiaddr"
 
-	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
+	logging "QmWRypnfEwrgH4k93KEHN5hng7VjKYkWmzDYRuTZeh2Mgh/go-log"
 
 	peer "github.com/ipfs/go-libp2p/p2p/peer"
 )

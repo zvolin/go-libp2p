@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"testing"
 
-	u "github.com/ipfs/go-ipfs/util"
+	randbo "github.com/dustin/randbo"
 	inet "github.com/ipfs/go-libp2p/p2p/net"
 	peer "github.com/ipfs/go-libp2p/p2p/peer"
 	protocol "github.com/ipfs/go-libp2p/p2p/protocol"
@@ -43,8 +43,8 @@ func TestCallbacksWork(t *testing.T) {
 	toWrite := int64(100000)
 	toRead := int64(100000)
 
-	fake.ReadBuf = io.LimitReader(u.NewTimeSeededRand(), toRead)
-	writeData := io.LimitReader(u.NewTimeSeededRand(), toWrite)
+	fake.ReadBuf = io.LimitReader(randbo.New(), toRead)
+	writeData := io.LimitReader(randbo.New(), toWrite)
 
 	n, err := io.Copy(ms, writeData)
 	if err != nil {

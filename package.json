@@ -1,0 +1,18 @@
+{
+  "name": "go-libp2p",
+  "author": "joe",
+  "version": "1.0.0",
+  "gxDependencies": [
+    {
+      "name": "go-log",
+      "hash": "QmWRypnfEwrgH4k93KEHN5hng7VjKYkWmzDYRuTZeh2Mgh",
+      "version": "1.0.0"
+    },
+    {
+      "name": "go-keyspace",
+      "hash": "Qma4vHVBYKDiKS5VpvtLNJHHDbL7S6VRsvxxmBnBFfKP3k",
+      "version": "1.0.0"
+    }
+  ],
+  "language": "go"
+}

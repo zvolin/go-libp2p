@@ -6,15 +6,15 @@ import (
 	"testing"
 	"time"
 
-	logging "github.com/ipfs/go-ipfs/vendor/go-log-v1.0.0"
 	host "github.com/ipfs/go-libp2p/p2p/host"
 	inet "github.com/ipfs/go-libp2p/p2p/net"
 	peer "github.com/ipfs/go-libp2p/p2p/peer"
 	protocol "github.com/ipfs/go-libp2p/p2p/protocol"
 	testutil "github.com/ipfs/go-libp2p/p2p/test/util"
+	logging "QmWRypnfEwrgH4k93KEHN5hng7VjKYkWmzDYRuTZeh2Mgh/go-log"
 
-	context "github.com/ipfs/go-ipfs/Godeps/_workspace/src/golang.org/x/net/context"
-	u "github.com/ipfs/go-ipfs/util"
+	context "golang.org/x/net/context"
+	u "util"
 )
 
 var log = logging.Logger("backpressure")
@@ -297,6 +297,12 @@ func TestStBackpressureStreamWrite(t *testing.T) {
 		if bytesA != bytesE {
 			t.Errorf("numbers failed: %d =?= %d bytes, via %d writes", bytesA, bytesE, writesA)
 		}
+	}
+
+	// trigger lazy connection handshaking
+	_, err = s.Read(nil)
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	// 500ms rounds of lockstep write + drain
