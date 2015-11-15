@@ -3,9 +3,9 @@ package testutil
 import (
 	"testing"
 
+	ma "QmaA6aDzeHjZiuqBtgYRz8ZXb1qMCoyMHgyDjBEYQniUKF/go-multiaddr"
 	ci "github.com/ipfs/go-libp2p/p2p/crypto"
 	peer "github.com/ipfs/go-libp2p/p2p/peer"
-	ma "github.com/jbenet/go-multiaddr"
 )
 
 type Identity interface {

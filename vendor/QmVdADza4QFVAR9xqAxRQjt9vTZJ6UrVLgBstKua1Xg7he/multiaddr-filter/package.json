@@ -1,0 +1,16 @@
+{
+  "name": "multiaddr-filter",
+  "author": "whyrusleeping",
+  "version": "1.0.0",
+  "gxDependencies": [
+    {
+      "name": "go-multiaddr-net",
+      "hash": "QmanZCL6SXRfafiUEMCBLq2QR171uQSdXQ8YAdHXLd8Cwr",
+      "version": "1.0.0"
+    }
+  ],
+  "language": "go",
+  "gx": {
+    "dvcsimport": "github.com/whyrusleeping/multiaddr-filter"
+  }
+}

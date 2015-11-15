@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"io"
 
-	mh "github.com/jbenet/go-multihash"
+	mh "QmdeauTdyf38KDQB4Cc4CurPWRRb5pej27NCXPA7kbPTJy/go-multihash"
 
+	logging "QmWRypnfEwrgH4k93KEHN5hng7VjKYkWmzDYRuTZeh2Mgh/go-log"
 	host "github.com/ipfs/go-libp2p/p2p/host"
 	inet "github.com/ipfs/go-libp2p/p2p/net"
 	peer "github.com/ipfs/go-libp2p/p2p/peer"
 	protocol "github.com/ipfs/go-libp2p/p2p/protocol"
-	logging "QmWRypnfEwrgH4k93KEHN5hng7VjKYkWmzDYRuTZeh2Mgh/go-log"
 )
 
 var log = logging.Logger("github.com/ipfs/go-libp2p/p2p/protocol/relay")

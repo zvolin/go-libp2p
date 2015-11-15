@@ -12,6 +12,16 @@
       "name": "go-keyspace",
       "hash": "Qma4vHVBYKDiKS5VpvtLNJHHDbL7S6VRsvxxmBnBFfKP3k",
       "version": "1.0.0"
+    },
+    {
+      "name": "go-multiaddr-net",
+      "hash": "QmanZCL6SXRfafiUEMCBLq2QR171uQSdXQ8YAdHXLd8Cwr",
+      "version": "1.0.0"
+    },
+    {
+      "name": "multiaddr-filter",
+      "hash": "QmVdADza4QFVAR9xqAxRQjt9vTZJ6UrVLgBstKua1Xg7he",
+      "version": "1.0.0"
     }
   ],
   "language": "go"
