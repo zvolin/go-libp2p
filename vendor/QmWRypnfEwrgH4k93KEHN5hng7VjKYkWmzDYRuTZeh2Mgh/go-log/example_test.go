@@ -1,6 +1,6 @@
 package log
 
-import "golang.org/x/net/context"
+import "QmacZi9WygGK7Me8mH53pypyscHzU386aUZXpr28GZgUct/context"
 
 func ExampleEventLogger() {
 	{

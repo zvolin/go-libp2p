@@ -3,7 +3,7 @@ package log
 import (
 	"testing"
 
-	"golang.org/x/net/context"
+	"QmacZi9WygGK7Me8mH53pypyscHzU386aUZXpr28GZgUct/context"
 )
 
 func TestContextContainsMetadata(t *testing.T) {

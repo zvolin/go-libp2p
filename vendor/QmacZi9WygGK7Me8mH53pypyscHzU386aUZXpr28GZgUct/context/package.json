@@ -1,0 +1,9 @@
+{
+  "name": "context",
+  "author": "whyrusleeping",
+  "version": "1.0.0",
+  "language": "go",
+  "gx": {
+    "dvcsimport": "golang.org/x/net/context"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "goprocess",
+  "author": "whyrusleeping",
+  "version": "1.0.0",
+  "gxDependencies": [
+    {
+      "name": "context",
+      "hash": "QmacZi9WygGK7Me8mH53pypyscHzU386aUZXpr28GZgUct",
+      "version": "1.0.0"
+    }
+  ],
+  "language": "go",
+  "gx": {
+    "dvcsimport": "github.com/jbenet/goprocess"
+  }
+}

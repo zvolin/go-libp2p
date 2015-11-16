@@ -27,6 +27,11 @@
       "name": "gogo-protobuf",
       "hash": "QmfH4HuZyN1p2wQLWWkXC91Z76435xKrBVfLQ2MY8ayG5R",
       "version": "1.0.0"
+    },
+    {
+      "name": "go-notifier",
+      "hash": "QmUtEiB6DmXs7eLJiwS9YFyTAtptqzaWutxCsjHy7UKEgo",
+      "version": "1.0.0"
     }
   ],
   "language": "go"

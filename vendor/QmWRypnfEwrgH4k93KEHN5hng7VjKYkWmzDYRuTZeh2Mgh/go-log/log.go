@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	context "golang.org/x/net/context"
+	context "QmacZi9WygGK7Me8mH53pypyscHzU386aUZXpr28GZgUct/context"
 )
 
 // StandardLogger provides API compatibility with standard printf loggers

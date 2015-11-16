@@ -3,7 +3,7 @@ package log
 import (
 	"errors"
 
-	"golang.org/x/net/context"
+	"QmacZi9WygGK7Me8mH53pypyscHzU386aUZXpr28GZgUct/context"
 )
 
 type key int
