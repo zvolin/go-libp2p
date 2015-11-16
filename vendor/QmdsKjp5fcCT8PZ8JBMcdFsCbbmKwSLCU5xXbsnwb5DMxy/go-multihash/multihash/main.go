@@ -6,8 +6,8 @@ import (
 	"io"
 	"os"
 
-	mh "QmdeauTdyf38KDQB4Cc4CurPWRRb5pej27NCXPA7kbPTJy/go-multihash"
-	mhopts "QmdeauTdyf38KDQB4Cc4CurPWRRb5pej27NCXPA7kbPTJy/go-multihash/opts"
+	mh "QmdsKjp5fcCT8PZ8JBMcdFsCbbmKwSLCU5xXbsnwb5DMxy/go-multihash"
+	mhopts "QmdsKjp5fcCT8PZ8JBMcdFsCbbmKwSLCU5xXbsnwb5DMxy/go-multihash/opts"
 )
 
 var usage = `usage: %s [options] [FILE]
