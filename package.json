@@ -32,6 +32,11 @@
       "name": "go-notifier",
       "hash": "QmUtEiB6DmXs7eLJiwS9YFyTAtptqzaWutxCsjHy7UKEgo",
       "version": "1.0.0"
+    },
+    {
+      "name": "go-ipfs-util",
+      "hash": "Qmah3kfjwhVxBM4qGnrqJTqGzrF8svwByyhExPipA2U6LE",
+      "version": "1.0.0"
     }
   ],
   "language": "go"

@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	b58 "QmNsoHoCVhgXcv1Yg45jtkMgimxorTAN36fV9AQMFXHHAQ/go-base58"
-	mh "QmdsKjp5fcCT8PZ8JBMcdFsCbbmKwSLCU5xXbsnwb5DMxy/go-multihash"
+	b58 "github.com/jbenet/go-base58"
+	mh "github.com/jbenet/go-multihash"
 )
 
 // Debug is a global flag for debugging.

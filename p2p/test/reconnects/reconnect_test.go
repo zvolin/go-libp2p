@@ -13,7 +13,7 @@ import (
 	swarm "github.com/ipfs/go-libp2p/p2p/net/swarm"
 	protocol "github.com/ipfs/go-libp2p/p2p/protocol"
 	testutil "github.com/ipfs/go-libp2p/p2p/test/util"
-	u "util"
+	u "Qmah3kfjwhVxBM4qGnrqJTqGzrF8svwByyhExPipA2U6LE/go-ipfs-util"
 
 	context "QmacZi9WygGK7Me8mH53pypyscHzU386aUZXpr28GZgUct/context"
 	ps "github.com/jbenet/go-peerstream"
