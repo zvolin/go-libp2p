@@ -22,6 +22,11 @@
       "name": "multiaddr-filter",
       "hash": "QmVdADza4QFVAR9xqAxRQjt9vTZJ6UrVLgBstKua1Xg7he",
       "version": "1.0.0"
+    },
+    {
+      "name": "gogo-protobuf",
+      "hash": "QmfH4HuZyN1p2wQLWWkXC91Z76435xKrBVfLQ2MY8ayG5R",
+      "version": "1.0.0"
     }
   ],
   "language": "go"
