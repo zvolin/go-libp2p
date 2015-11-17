@@ -1,0 +1,9 @@
+{
+  "name": "muxado",
+  "author": "whyrusleeping",
+  "version": "1.0.0",
+  "language": "go",
+  "gx": {
+    "dvcsimport": "github.com/inconshreveable/muxado"
+  }
+}

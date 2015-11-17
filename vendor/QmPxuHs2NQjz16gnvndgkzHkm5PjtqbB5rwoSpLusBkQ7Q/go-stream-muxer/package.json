@@ -1,0 +1,36 @@
+{
+  "name": "go-stream-muxer",
+  "author": "whyrusleeping",
+  "version": "1.0.0",
+  "gxDependencies": [
+    {
+      "name": "go-multiplex",
+      "hash": "QmYzbHkUZgPQZknFq2UKsGfNQLFDbPw7Q7RPvxzzWGbJuv",
+      "version": "1.0.0"
+    },
+    {
+      "name": "muxado",
+      "hash": "QmfEm573cZeq3LpgccZMpngV6dXbm5gfU23F5nNUuhSxxJ",
+      "version": "1.0.0"
+    },
+    {
+      "name": "spdystream",
+      "hash": "QmYewWU9ZnQR7Gct9tNZd97i9tGnyCZfNVLM2GGfNEj5jP",
+      "version": "1.0.0"
+    },
+    {
+      "name": "yamux",
+      "hash": "QmT98GixWnJUj3vHfoURNQa5uk8FxxmZVF5nv3AicXp2R1",
+      "version": "1.0.0"
+    },
+    {
+      "name": "go-multistream",
+      "hash": "QmdrbcnPVM2FnZQQM7p2GU91XhpuyYyd1tzPouEyh1phyD",
+      "version": "1.0.0"
+    }
+  ],
+  "language": "go",
+  "gx": {
+    "dvcsimport": "github.com/jbenet/go-stream-muxer"
+  }
+}

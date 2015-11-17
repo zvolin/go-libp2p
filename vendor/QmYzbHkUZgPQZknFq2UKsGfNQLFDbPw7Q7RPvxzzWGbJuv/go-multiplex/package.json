@@ -1,0 +1,16 @@
+{
+  "name": "go-multiplex",
+  "author": "whyrusleeping",
+  "version": "1.0.0",
+  "gxDependencies": [
+    {
+      "name": "randbo",
+      "hash": "QmciEePSP8wpGYZp8fsPFi49Ya7xQMUFwFj2z5fDpfZnhC",
+      "version": "1.0.0"
+    }
+  ],
+  "language": "go",
+  "gx": {
+    "dvcsimport": "github.com/whyrusleeping/go-multiplex"
+  }
+}

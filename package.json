@@ -37,6 +37,11 @@
       "name": "go-ipfs-util",
       "hash": "Qmah3kfjwhVxBM4qGnrqJTqGzrF8svwByyhExPipA2U6LE",
       "version": "1.0.0"
+    },
+    {
+      "name": "go-peerstream",
+      "hash": "QmTgxFwS1nDK126fH5XPnLFcxcDFsxKbPPnCBwyRWNAjDX",
+      "version": "1.0.0"
     }
   ],
   "language": "go"

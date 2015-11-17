@@ -11,7 +11,7 @@ import (
 	testutil "github.com/ipfs/go-libp2p/p2p/test/util"
 
 	context "QmacZi9WygGK7Me8mH53pypyscHzU386aUZXpr28GZgUct/context"
-	msmux "github.com/whyrusleeping/go-multistream"
+	msmux "QmdrbcnPVM2FnZQQM7p2GU91XhpuyYyd1tzPouEyh1phyD/go-multistream"
 )
 
 var log = logging.Logger("relay_test")
