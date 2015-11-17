@@ -1,6 +1,6 @@
 {
   "name": "go-libp2p",
-  "author": "joe",
+  "author": "whyrusleeping",
   "version": "1.0.0",
   "gxDependencies": [
     {
@@ -44,5 +44,8 @@
       "version": "1.0.0"
     }
   ],
-  "language": "go"
+  "language": "go",
+  "gx":{
+	  "dvcsimport":"github.com/ipfs/go-libp2p"
+  }
 }
