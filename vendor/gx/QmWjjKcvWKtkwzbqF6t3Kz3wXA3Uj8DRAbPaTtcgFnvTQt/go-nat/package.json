@@ -1,0 +1,27 @@
+{
+  "name": "go-nat",
+  "author": "whyrusleeping",
+  "version": "0.0.0",
+  "gxDependencies": [
+    {
+      "name": "goupnp",
+      "hash": "QmQzr5XPAoSamewaq7HxL2W3fUXrA9gLCQJx4t9PBmdxmQ",
+      "version": "0.0.0"
+    },
+    {
+      "name": "gateway",
+      "hash": "Qma5KQppqMBmpdNeVUDuNtEkec1BRNWcS3dodUdiP9267q",
+      "version": "0.0.0"
+    },
+    {
+      "name": "go-nat-pmp",
+      "hash": "QmWLXARhyCVbGpAw6hqJF6zdux7WcTwJMQVBoRGK1433su",
+      "version": "0.0.0"
+    }
+  ],
+  "language": "go",
+  "issues_url": "",
+  "gx": {
+    "dvcsimport": "github.com/fd/go-nat"
+  }
+}

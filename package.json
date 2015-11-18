@@ -5,47 +5,83 @@
   "gxDependencies": [
     {
       "name": "go-log",
-      "hash": "QmWRypnfEwrgH4k93KEHN5hng7VjKYkWmzDYRuTZeh2Mgh",
+      "hash": "QmfZZB1aVXWA4kaR5R4e9NifERT366TTCSagkfhmAbYLsu",
       "version": "1.0.0"
     },
     {
       "name": "go-keyspace",
-      "hash": "Qma4vHVBYKDiKS5VpvtLNJHHDbL7S6VRsvxxmBnBFfKP3k",
+      "hash": "QmThbzo9oBE7FAVmgjp3xYv5Yra81uB7KXbrTei47gWT6o",
       "version": "1.0.0"
     },
     {
       "name": "go-multiaddr-net",
-      "hash": "QmRCPT5WRph8aWXmaT2Rfn6ac98YRUUJnNURpD3hNAWp4f",
+      "hash": "QmNT7d1e4Xcp3KcsvxyzUHVtqrR43uypoxLLzdKj6YZga2",
       "version": "1.0.0"
     },
     {
       "name": "multiaddr-filter",
-      "hash": "QmYhewVqJhkgEsm3AYVUbpT14q2P9V4Xb7np9JXKua6y7A",
+      "hash": "QmVCmuhgDFer5MW5737Z8GtBEGpUyEkFnLUv4ASDWnLZdC",
       "version": "1.0.0"
     },
     {
       "name": "gogo-protobuf",
-      "hash": "QmfH4HuZyN1p2wQLWWkXC91Z76435xKrBVfLQ2MY8ayG5R",
+      "hash": "QmchriuyWMcqHha3dG86rQyxoswSUpmLUBjuJ2kotB65qR",
       "version": "1.0.0"
     },
     {
       "name": "go-notifier",
-      "hash": "QmUtEiB6DmXs7eLJiwS9YFyTAtptqzaWutxCsjHy7UKEgo",
+      "hash": "QmRV5aE4LZ4Kw9g2VAMpbEcaT7uz3Z3WxgdW8mzRPLL7g8",
       "version": "1.0.0"
     },
     {
       "name": "go-ipfs-util",
-      "hash": "Qmah3kfjwhVxBM4qGnrqJTqGzrF8svwByyhExPipA2U6LE",
+      "hash": "QmQA79FfVsUnGkH3TgKDqcDkupfjqLSJ6EYwDuDDZK8nhD",
       "version": "1.0.0"
     },
     {
       "name": "go-peerstream",
-      "hash": "QmTgxFwS1nDK126fH5XPnLFcxcDFsxKbPPnCBwyRWNAjDX",
+      "hash": "QmQMkNFMuh1UJbdaggASZpLtCroTnAYcWNenYL5hrzLJrT",
       "version": "1.0.0"
+    },
+    {
+      "name": "go-msgio",
+      "hash": "QmXMkWRYvXJ2NTzHMEz5794997kNPGsVX8EhFiXXpoKDZr",
+      "version": "0.0.0"
+    },
+    {
+      "name": "randbo",
+      "hash": "QmciEePSP8wpGYZp8fsPFi49Ya7xQMUFwFj2z5fDpfZnhC",
+      "version": "1.0.0"
+    },
+    {
+      "name": "mdns",
+      "hash": "QmdkSkALqzKfXnuMTsbBVS26U4XGS9kCffRpSTWvVbkRSi",
+      "version": "0.0.0"
+    },
+    {
+      "name": "go-reuseport",
+      "hash": "QmfDF93E1PjQUqFM4rKyFs85feJdMR9AaVm1axVZ4qdFU1",
+      "version": "0.0.0"
+    },
+    {
+      "name": "go-semver",
+      "hash": "QmcrrEpx3VMUbrbgVroH3YiYyUS5c4YAykzyPJWKspUYLa",
+      "version": "0.0.0"
+    },
+    {
+      "name": "go-nat",
+      "hash": "QmWjjKcvWKtkwzbqF6t3Kz3wXA3Uj8DRAbPaTtcgFnvTQt",
+      "version": "0.0.0"
+    },
+    {
+      "name": "go-metrics",
+      "hash": "QmeYJHEk8UjVVZ4XCRTZe6dFQrb8pGWD81LYCgeLp8CvMB",
+      "version": "0.0.0"
     }
   ],
   "language": "go",
-  "gx":{
-	  "dvcsimport":"github.com/ipfs/go-libp2p"
+  "issues_url": "",
+  "gx": {
+    "dvcsimport": "github.com/ipfs/go-libp2p"
   }
 }

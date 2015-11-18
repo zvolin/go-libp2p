@@ -7,16 +7,16 @@ import (
 	"testing"
 	"time"
 
-	logging "QmWRypnfEwrgH4k93KEHN5hng7VjKYkWmzDYRuTZeh2Mgh/go-log"
-	u "Qmah3kfjwhVxBM4qGnrqJTqGzrF8svwByyhExPipA2U6LE/go-ipfs-util"
 	host "github.com/ipfs/go-libp2p/p2p/host"
 	inet "github.com/ipfs/go-libp2p/p2p/net"
 	swarm "github.com/ipfs/go-libp2p/p2p/net/swarm"
 	protocol "github.com/ipfs/go-libp2p/p2p/protocol"
 	testutil "github.com/ipfs/go-libp2p/p2p/test/util"
+	u "gx/QmQA79FfVsUnGkH3TgKDqcDkupfjqLSJ6EYwDuDDZK8nhD/go-ipfs-util"
+	logging "gx/QmfZZB1aVXWA4kaR5R4e9NifERT366TTCSagkfhmAbYLsu/go-log"
 
-	ps "QmTgxFwS1nDK126fH5XPnLFcxcDFsxKbPPnCBwyRWNAjDX/go-peerstream"
-	context "QmacZi9WygGK7Me8mH53pypyscHzU386aUZXpr28GZgUct/context"
+	ps "gx/QmQMkNFMuh1UJbdaggASZpLtCroTnAYcWNenYL5hrzLJrT/go-peerstream"
+	context "gx/QmacZi9WygGK7Me8mH53pypyscHzU386aUZXpr28GZgUct/context"
 )
 
 func init() {

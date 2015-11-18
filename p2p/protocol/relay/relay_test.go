@@ -4,14 +4,14 @@ import (
 	"io"
 	"testing"
 
-	logging "QmWRypnfEwrgH4k93KEHN5hng7VjKYkWmzDYRuTZeh2Mgh/go-log"
 	inet "github.com/ipfs/go-libp2p/p2p/net"
 	protocol "github.com/ipfs/go-libp2p/p2p/protocol"
 	relay "github.com/ipfs/go-libp2p/p2p/protocol/relay"
 	testutil "github.com/ipfs/go-libp2p/p2p/test/util"
+	logging "gx/QmfZZB1aVXWA4kaR5R4e9NifERT366TTCSagkfhmAbYLsu/go-log"
 
-	context "QmacZi9WygGK7Me8mH53pypyscHzU386aUZXpr28GZgUct/context"
-	msmux "QmdrbcnPVM2FnZQQM7p2GU91XhpuyYyd1tzPouEyh1phyD/go-multistream"
+	context "gx/QmacZi9WygGK7Me8mH53pypyscHzU386aUZXpr28GZgUct/context"
+	msmux "gx/QmdrbcnPVM2FnZQQM7p2GU91XhpuyYyd1tzPouEyh1phyD/go-multistream"
 )
 
 var log = logging.Logger("relay_test")
