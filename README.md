@@ -48,7 +48,7 @@ $ GO15VENDOREXPERIMENT=1 go test ./p2p/<path of _test.go you want to run>
 
 # Modules
 
-- [libp2p](https://github.com/diasdavid/rust-libp2p) (entry point)
+- [libp2p](https://github.com/ipfs/go-libp2p) (entry point)
 - **Swarm**
   - [libp2p-swarm]()
   - [libp2p-identify]()
