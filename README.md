@@ -41,7 +41,7 @@ $ go get github.com/ipfs/go-libp2p
 
 ```bash
 $ cd $GOPATH/src/github.com/ipfs/go-libp2p
-$ GO15VENDOREXPERIMENT=1 go test ./p2p/<path of _test.go you want to run>
+$ GO15VENDOREXPERIMENT=1 go test ./p2p/<path of folder you want to run>
 ```
 
 ## Interface
