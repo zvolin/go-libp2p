@@ -34,7 +34,7 @@ libp2p implementation in Go is a work in progress. As such, there's a few things
 ## Install
 
 ```bash
-$ go get github.com/ipfs/go-libp2p
+$ go get -u github.com/ipfs/go-libp2p
 ```
 
 # Run tests
