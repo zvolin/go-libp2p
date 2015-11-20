@@ -10,5 +10,7 @@ go:
 env:
     - GO15VENDOREXPERIMENT=1
 
+install: true
+
 script:
   - go test ./p2p/...
