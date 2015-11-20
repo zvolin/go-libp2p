@@ -178,7 +178,7 @@ func SubtestConnSendDisc(t *testing.T, hosts []host.Host) {
 	for i := 0; i < numStreams; i++ {
 		h1 := hosts[i%len(hosts)]
 		h2 := hosts[(i+1)%len(hosts)]
-		s, err := h1.NewStream(protocol.TestingID, h2.ID())
+		s, err := h1.NewStream(context.Background(), protocol.TestingID, h2.ID())
 		if err != nil {
 			t.Error(err)
 		}
