@@ -3,6 +3,7 @@ package relay
 import (
 	"fmt"
 	"io"
+	"time"
 
 	mh "gx/Qma7dqy7ZVH4tkNJdC9TRrA82Uz5fQfbbwuvmNVVc17r7a/go-multihash"
 
@@ -10,6 +11,7 @@ import (
 	inet "github.com/ipfs/go-libp2p/p2p/net"
 	peer "github.com/ipfs/go-libp2p/p2p/peer"
 	protocol "github.com/ipfs/go-libp2p/p2p/protocol"
+	context "gx/QmacZi9WygGK7Me8mH53pypyscHzU386aUZXpr28GZgUct/context"
 	logging "gx/QmfZZB1aVXWA4kaR5R4e9NifERT366TTCSagkfhmAbYLsu/go-log"
 )
 
@@ -83,10 +85,15 @@ func (rs *RelayService) consumeStream(s inet.Stream) error {
 
 // pipeStream relays over a stream to a remote peer. It's like `cat`
 func (rs *RelayService) pipeStream(src, dst peer.ID, s inet.Stream) error {
-	s2, err := rs.openStreamToPeer(dst)
+	// TODO: find a good way to pass contexts into here
+	nsctx, cancel := context.WithTimeout(context.TODO(), time.Second*30)
+	defer cancel()
+
+	s2, err := rs.openStreamToPeer(nsctx, dst)
 	if err != nil {
 		return fmt.Errorf("failed to open stream to peer: %s -- %s", dst, err)
 	}
+	cancel() // cancel here because this function might last a while
 
 	if err := WriteHeader(s2, src, dst); err != nil {
 		return err
@@ -116,8 +123,8 @@ func (rs *RelayService) pipeStream(src, dst peer.ID, s inet.Stream) error {
 // openStreamToPeer opens a pipe to a remote endpoint
 // for now, can only open streams to directly connected peers.
 // maybe we can do some routing later on.
-func (rs *RelayService) openStreamToPeer(p peer.ID) (inet.Stream, error) {
-	return rs.host.NewStream(ID, p)
+func (rs *RelayService) openStreamToPeer(ctx context.Context, p peer.ID) (inet.Stream, error) {
+	return rs.host.NewStream(ctx, ID, p)
 }
 
 func ReadHeader(r io.Reader) (src, dst peer.ID, err error) {
