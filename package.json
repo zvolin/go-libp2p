@@ -77,6 +77,11 @@
       "name": "go-metrics",
       "hash": "QmeYJHEk8UjVVZ4XCRTZe6dFQrb8pGWD81LYCgeLp8CvMB",
       "version": "0.0.0"
+    },
+    {
+      "name": "go-detect-race",
+      "hash": "QmQHGMVmrsgmqUG8ih3puNXUJneSpi13dkcZpzLKkskUkH",
+      "version": "0.0.0"
     }
   ],
   "language": "go",
