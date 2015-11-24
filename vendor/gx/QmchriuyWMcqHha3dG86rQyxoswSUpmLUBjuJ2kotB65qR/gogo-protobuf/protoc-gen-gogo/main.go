@@ -49,7 +49,7 @@
 package main
 
 import (
-	"github.com/gogo/protobuf/vanity/command"
+	"gx/QmchriuyWMcqHha3dG86rQyxoswSUpmLUBjuJ2kotB65qR/gogo-protobuf/vanity/command"
 )
 
 func main() {

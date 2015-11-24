@@ -203,8 +203,8 @@ A good idea is to let each plugin generate its own tests.
 package testgen
 
 import (
-	"github.com/gogo/protobuf/gogoproto"
-	"github.com/gogo/protobuf/protoc-gen-gogo/generator"
+	"gx/QmchriuyWMcqHha3dG86rQyxoswSUpmLUBjuJ2kotB65qR/gogo-protobuf/gogoproto"
+	"gx/QmchriuyWMcqHha3dG86rQyxoswSUpmLUBjuJ2kotB65qR/gogo-protobuf/protoc-gen-gogo/generator"
 )
 
 type TestPlugin interface {

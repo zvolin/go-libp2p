@@ -4,7 +4,7 @@
 
 package jsonpb
 
-import proto "github.com/gogo/protobuf/proto"
+import proto "gx/QmchriuyWMcqHha3dG86rQyxoswSUpmLUBjuJ2kotB65qR/gogo-protobuf/proto"
 import fmt "fmt"
 import math "math"
 

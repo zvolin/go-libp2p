@@ -29,7 +29,7 @@
 package io
 
 import (
-	"github.com/gogo/protobuf/proto"
+	"gx/QmchriuyWMcqHha3dG86rQyxoswSUpmLUBjuJ2kotB65qR/gogo-protobuf/proto"
 	"io"
 )
 

@@ -24,11 +24,6 @@
       "version": "1.0.0"
     },
     {
-      "name": "gogo-protobuf",
-      "hash": "QmchriuyWMcqHha3dG86rQyxoswSUpmLUBjuJ2kotB65qR",
-      "version": "1.0.0"
-    },
-    {
       "name": "go-notifier",
       "hash": "QmRV5aE4LZ4Kw9g2VAMpbEcaT7uz3Z3WxgdW8mzRPLL7g8",
       "version": "1.0.0"
@@ -81,6 +76,11 @@
     {
       "name": "go-detect-race",
       "hash": "QmQHGMVmrsgmqUG8ih3puNXUJneSpi13dkcZpzLKkskUkH",
+      "version": "0.0.0"
+    },
+    {
+      "name": "gogo-protobuf",
+      "hash": "QmchriuyWMcqHha3dG86rQyxoswSUpmLUBjuJ2kotB65qR",
       "version": "0.0.0"
     }
   ],
