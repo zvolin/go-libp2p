@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"unsafe"
 
-	"golang.org/x/net/internal/iana"
+	"gx/Qmbm2LFhcRyHzRqwefzBeazcK2EfUowfeYEAgEvr7N8hAh/go-net/internal/iana"
 )
 
 func setsockoptIPMreq(fd syscall.Handle, name int, ifi *net.Interface, grp net.IP) error {
