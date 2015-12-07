@@ -9,13 +9,13 @@ import (
 	"sync"
 	"time"
 
-	manet "gx/QmNT7d1e4Xcp3KcsvxyzUHVtqrR43uypoxLLzdKj6YZga2/go-multiaddr-net"
-	ma "gx/QmVUi2ncqnU48zsPgR1rQosDGwY3SSZ1Ndp33j33YjXdsj/go-multiaddr"
-	"gx/QmdkSkALqzKfXnuMTsbBVS26U4XGS9kCffRpSTWvVbkRSi/mdns"
+	"github.com/cryptix/mdns"
+	ma "github.com/jbenet/go-multiaddr"
+	manet "github.com/jbenet/go-multiaddr-net"
 
 	"github.com/ipfs/go-libp2p/p2p/host"
 	"github.com/ipfs/go-libp2p/p2p/peer"
-	logging "gx/QmfZZB1aVXWA4kaR5R4e9NifERT366TTCSagkfhmAbYLsu/go-log"
+	logging "github.com/ipfs/go-log"
 )
 
 var log = logging.Logger("mdns")

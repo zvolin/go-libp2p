@@ -8,10 +8,10 @@ import (
 	protocol "github.com/ipfs/go-libp2p/p2p/protocol"
 	relay "github.com/ipfs/go-libp2p/p2p/protocol/relay"
 	testutil "github.com/ipfs/go-libp2p/p2p/test/util"
-	logging "gx/QmfZZB1aVXWA4kaR5R4e9NifERT366TTCSagkfhmAbYLsu/go-log"
+	logging "github.com/ipfs/go-log"
 
-	context "gx/QmacZi9WygGK7Me8mH53pypyscHzU386aUZXpr28GZgUct/context"
-	msmux "gx/QmdrbcnPVM2FnZQQM7p2GU91XhpuyYyd1tzPouEyh1phyD/go-multistream"
+	msmux "github.com/whyrusleeping/go-multistream"
+	context "golang.org/x/net/context"
 )
 
 var log = logging.Logger("relay_test")
