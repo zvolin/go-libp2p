@@ -4,43 +4,13 @@
   "version": "1.0.0",
   "gxDependencies": [
     {
-      "name": "go-ipfs-util",
-      "hash": "QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1",
+      "name": "go-keyspace",
+      "hash": "QmZr6cLo6aaoEyLW6kJTfY9N4Tf1n1vDeHjxPDnzRrMwm4",
       "version": "1.0.0"
     },
     {
-      "name": "go-multiaddr-net",
-      "hash": "QmZAAUg3o295r9AEZyckxUSHtti153xzyrWfp9feWgS3eb",
-      "version": "0.0.0"
-    },
-    {
-      "name": "go-semver",
-      "hash": "QmcrrEpx3VMUbrbgVroH3YiYyUS5c4YAykzyPJWKspUYLa",
-      "version": "0.0.0"
-    },
-    {
-      "name": "go-peerstream",
-      "hash": "QmVLuo4e4nSuHTswxmZHs9YyYzMp3Nzg7UN8dhjAg9NGg8",
-      "version": "0.0.0"
-    },
-    {
-      "name": "go-net",
-      "hash": "Qmb3abNjenYDC6zwun6AuWHHjyguzhBnm7dmntH1rwL1kg",
-      "version": "0.0.0"
-    },
-    {
-      "name": "goprocess",
-      "hash": "QmQvFpSuM1MGULdffDvYJFtGgmAZoAsHxpH2iRXyZdb7yJ",
-      "version": "0.0.0"
-    },
-    {
-      "name": "go-multistream",
-      "hash": "QmUeEcYJrzAEKdQXjzTxCgNZgc9sRuwharsvzzm5Gd2oGB",
-      "version": "0.0.0"
-    },
-    {
-      "name": "go-crypto",
-      "hash": "Qme1boxspcQWR8FBzMxeppqug2fYgYc15diNWmqgDVnvn2",
+      "name": "go-base58",
+      "hash": "QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf",
       "version": "0.0.0"
     },
     {
@@ -49,33 +19,28 @@
       "version": "0.0.0"
     },
     {
-      "name": "go-keyspace",
-      "hash": "QmZr6cLo6aaoEyLW6kJTfY9N4Tf1n1vDeHjxPDnzRrMwm4",
+      "name": "go-nat",
+      "hash": "QmNLvkCDV6ZjUJsEwGNporYBuZdhWT6q7TBVYQwwRv12HT",
+      "version": "0.0.0"
+    },
+    {
+      "name": "go-semver",
+      "hash": "QmcrrEpx3VMUbrbgVroH3YiYyUS5c4YAykzyPJWKspUYLa",
+      "version": "0.0.0"
+    },
+    {
+      "name": "go-net",
+      "hash": "QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt",
+      "version": "0.0.0"
+    },
+    {
+      "name": "go-ipfs-util",
+      "hash": "QmaxtGhkpMMFjYxRnZBXVXcUqmxXD1PX5ztePo68xgfRgU",
       "version": "1.0.0"
     },
     {
-      "name": "mdns",
-      "hash": "QmcyNdyjHeYNVSHGct3ZTZK7jUsamtCp1F32w3HgGZsyCX",
-      "version": "0.0.0"
-    },
-    {
-      "name": "go-notifier",
-      "hash": "QmWXCt7SpQfHiKiCFsD1qc9gY1yE42kWSuVC3UvD1nHzLw",
-      "version": "0.0.0"
-    },
-    {
-      "name": "go-msgio",
-      "hash": "QmXMkWRYvXJ2NTzHMEz5794997kNPGsVX8EhFiXXpoKDZr",
-      "version": "0.0.0"
-    },
-    {
-      "name": "go-multihash",
-      "hash": "QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku",
-      "version": "0.0.0"
-    },
-    {
       "name": "go-log",
-      "hash": "QmQeXJS3iZJ98C8NozMrk5KjLGs7UqY9RHRLe6WXQxogBg",
+      "hash": "QmYVpX46yjFaaRy5BTR5YTQNFia4gJUYNrsPXeNxWs4HEi",
       "version": "0.0.0"
     },
     {
@@ -84,18 +49,38 @@
       "version": "0.0.0"
     },
     {
-      "name": "go-nat",
-      "hash": "QmfV93N4L99ZpdtKzETCZxgDo6dwv6ZeDhfV1JBwC6caPT",
+      "name": "goprocess",
+      "hash": "QmQopLATEYMNg7dVqZRNDfeE2S1yKy8zrRh5xnYiuqeZBn",
       "version": "0.0.0"
     },
     {
-      "name": "go-stream-muxer",
-      "hash": "QmR3zXQhbkhHbQpZQB6hNJyrWznU452GmDVD68Lce6nMxE",
+      "name": "go-msgio",
+      "hash": "QmRQhVisS8dmPbjBUthVkenn81pBxrx1GxE281csJhm2vL",
       "version": "0.0.0"
     },
     {
-      "name": "gogo-protobuf",
-      "hash": "QmZP9xnSCeqNXPrc3skHkoDYn5fxBkguenu88VSRNggm4B",
+      "name": "go-multiaddr-net",
+      "hash": "Qmd8ivF2YGVEGSUywZR4RXX5nFdNgK6TQPQAmzNJ6DHf9W",
+      "version": "0.0.0"
+    },
+    {
+      "name": "go-detect-race",
+      "hash": "QmQHGMVmrsgmqUG8ih3puNXUJneSpi13dkcZpzLKkskUkH",
+      "version": "0.0.0"
+    },
+    {
+      "name": "go-peerstream",
+      "hash": "QmYqq235RPgCFk9EyjLNb9xWJ2qTvYkWsyUtN2gW2mNKQ9",
+      "version": "0.0.0"
+    },
+    {
+      "name": "go-multihash",
+      "hash": "QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku",
+      "version": "0.0.0"
+    },
+    {
+      "name": "go-multistream",
+      "hash": "QmUeEcYJrzAEKdQXjzTxCgNZgc9sRuwharsvzzm5Gd2oGB",
       "version": "0.0.0"
     },
     {
@@ -104,19 +89,44 @@
       "version": "0.0.0"
     },
     {
-      "name": "go-base58",
-      "hash": "QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf",
+      "name": "go-stream-muxer",
+      "hash": "QmQMM6Qx7EBrc6c2VpyBMBTQ3oLQTgVzHKubtMwZhjNhzP",
       "version": "0.0.0"
     },
     {
-      "name": "go-reuseport",
-      "hash": "QmQDDfn4SU1ud5SKP1W9beFfDiDVMqcM4W7vMYSEkxVSvo",
+      "name": "go-crypto",
+      "hash": "Qme1boxspcQWR8FBzMxeppqug2fYgYc15diNWmqgDVnvn2",
+      "version": "0.0.0"
+    },
+    {
+      "name": "gogo-protobuf",
+      "hash": "QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV",
+      "version": "0.0.0"
+    },
+    {
+      "name": "mdns",
+      "hash": "QmSscYPCcE1H3UQr2tnsJ2a9dK9LsHTBGgP71VW6fz67e5",
       "version": "0.0.0"
     },
     {
       "name": "multiaddr-filter",
-      "hash": "QmVTsDABbo3MwjDaRqxfwdKzX45tsaXpgqJ5VQ3LWnAkjF",
+      "hash": "QmZ779GwS8aycD6dSMr4ETftbMr8GP5vXvvGd5ybUxKtVG",
       "version": "1.0.0"
+    },
+    {
+      "name": "go-reuseport",
+      "hash": "QmaaC9QMYTQHCbMq3Ebr3uMaAR2ev4AVqMmsJpgQijAZbJ",
+      "version": "0.0.0"
+    },
+    {
+      "name": "randbo",
+      "hash": "QmYvsG72GsfLgUeSojXArjnU6L4Wmwk7wuAxtNLuyXcc1T",
+      "version": "0.0.0"
+    },
+    {
+      "name": "go-notifier",
+      "hash": "QmbcS9XrwZkF1rZj8bBwwzoYhVuA2PCnPhFUL1pyWGgt2A",
+      "version": "0.0.0"
     }
   ],
   "language": "go",
