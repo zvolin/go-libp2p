@@ -13,4 +13,5 @@ env:
 install: true
 
 script:
+  - make deps
   - go test ./p2p/...
