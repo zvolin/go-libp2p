@@ -55,7 +55,7 @@
     },
     {
       "name": "go-multiaddr-net",
-      "hash": "QmYtzQmUwPFGxjCXctJ8e6GXS8sYfoXy2pdeMbS5SFWqRi",
+      "hash": "QmQB7mNP3QE7b4zP2MQmsyJDqG5hzYE2CL8k1VyLWky2Ed",
       "version": "0.0.0"
     },
     {
@@ -65,7 +65,7 @@
     },
     {
       "name": "multiaddr-filter",
-      "hash": "QmW3Q7RQa8D1qCEEeyKCBV1drgFxvHBqAZ3zgCujEwKpHD",
+      "hash": "QmcR6dLYF8Eozaae3wGd5wjq76bofzmmbvQmtwobxvfhEt",
       "version": "1.0.0"
     },
     {
@@ -85,7 +85,7 @@
     },
     {
       "name": "go-multiaddr",
-      "hash": "QmR3JkmZBKYXgNMNsNZawm914455Qof3PEopwuVSeXG7aV",
+      "hash": "QmcobAGsCjYt5DXoq9et9L8yR8er7o7Cu3DTvpaq12jYSz",
       "version": "0.0.0"
     },
     {
@@ -131,6 +131,7 @@
   ],
   "language": "go",
   "issues_url": "",
+  "gx_version": "0.4.0",
   "gx": {
     "dvcsimport": "github.com/ipfs/go-libp2p"
   }
