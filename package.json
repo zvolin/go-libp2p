@@ -127,6 +127,12 @@
       "name": "go-peerstream",
       "hash": "QmQDPXRFzRcCGPbPViQCKjzbQBkZGpLV1f9KwXnksSNcTK",
       "version": "0.0.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "name": "mafmt",
+      "hash": "QmWLfU4tstw2aNcTykDm44xbSTCYJ9pUJwfhQCKGwckcHx",
+      "version": "0.0.0"
     }
   ],
   "language": "go",
