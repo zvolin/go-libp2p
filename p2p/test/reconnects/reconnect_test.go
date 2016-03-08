@@ -12,7 +12,7 @@ import (
 	swarm "github.com/ipfs/go-libp2p/p2p/net/swarm"
 	protocol "github.com/ipfs/go-libp2p/p2p/protocol"
 	testutil "github.com/ipfs/go-libp2p/p2p/test/util"
-	ps "gx/ipfs/QmQDPXRFzRcCGPbPViQCKjzbQBkZGpLV1f9KwXnksSNcTK/go-peerstream"
+	ps "gx/ipfs/QmZK81vcgMhpb2t7GNbozk7qzt6Rj4zFqitpvsWT9mduW8/go-peerstream"
 	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
 	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
 	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
@@ -35,20 +35,20 @@ func EchoStreamHandler(stream inet.Stream) {
 }
 
 type sendChans struct {
-	send   chan struct{}
-	sent   chan struct{}
-	read   chan struct{}
-	close_ chan struct{}
-	closed chan struct{}
+	send	chan struct{}
+	sent	chan struct{}
+	read	chan struct{}
+	close_	chan struct{}
+	closed	chan struct{}
 }
 
 func newSendChans() sendChans {
 	return sendChans{
-		send:   make(chan struct{}),
-		sent:   make(chan struct{}),
-		read:   make(chan struct{}),
-		close_: make(chan struct{}),
-		closed: make(chan struct{}),
+		send:	make(chan struct{}),
+		sent:	make(chan struct{}),
+		read:	make(chan struct{}),
+		close_:	make(chan struct{}),
+		closed:	make(chan struct{}),
 	}
 }
 
@@ -188,7 +188,7 @@ func SubtestConnSendDisc(t *testing.T, hosts []host.Host) {
 
 			go sF(s)
 			log.Debugf("getting handle %d", j)
-			sc := <-ss // wait to get handle.
+			sc := <-ss	// wait to get handle.
 			log.Debugf("spawning worker %d", j)
 
 			for k := 0; k < numMsgs; k++ {
@@ -215,7 +215,7 @@ func SubtestConnSendDisc(t *testing.T, hosts []host.Host) {
 		for _, c := range cs {
 			sc := c.(*swarm.Conn)
 			if sc.LocalPeer() > sc.RemotePeer() {
-				continue // only close it on one side.
+				continue	// only close it on one side.
 			}
 
 			log.Debugf("closing: %s", sc.RawConn())
