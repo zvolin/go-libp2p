@@ -35,20 +35,20 @@ func EchoStreamHandler(stream inet.Stream) {
 }
 
 type sendChans struct {
-	send	chan struct{}
-	sent	chan struct{}
-	read	chan struct{}
-	close_	chan struct{}
-	closed	chan struct{}
+	send   chan struct{}
+	sent   chan struct{}
+	read   chan struct{}
+	close_ chan struct{}
+	closed chan struct{}
 }
 
 func newSendChans() sendChans {
 	return sendChans{
-		send:	make(chan struct{}),
-		sent:	make(chan struct{}),
-		read:	make(chan struct{}),
-		close_:	make(chan struct{}),
-		closed:	make(chan struct{}),
+		send:   make(chan struct{}),
+		sent:   make(chan struct{}),
+		read:   make(chan struct{}),
+		close_: make(chan struct{}),
+		closed: make(chan struct{}),
 	}
 }
 
@@ -188,7 +188,7 @@ func SubtestConnSendDisc(t *testing.T, hosts []host.Host) {
 
 			go sF(s)
 			log.Debugf("getting handle %d", j)
-			sc := <-ss	// wait to get handle.
+			sc := <-ss // wait to get handle.
 			log.Debugf("spawning worker %d", j)
 
 			for k := 0; k < numMsgs; k++ {
@@ -215,7 +215,7 @@ func SubtestConnSendDisc(t *testing.T, hosts []host.Host) {
 		for _, c := range cs {
 			sc := c.(*swarm.Conn)
 			if sc.LocalPeer() > sc.RemotePeer() {
-				continue	// only close it on one side.
+				continue // only close it on one side.
 			}
 
 			log.Debugf("closing: %s", sc.RawConn())
