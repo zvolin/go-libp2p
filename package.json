@@ -105,7 +105,7 @@
     },
     {
       "name": "go-stream-muxer",
-      "hash": "QmTYr6RrJs8b63LTVwahmtytnuqzsLfNPBJp6EvmFWHbGh",
+      "hash": "QmWSJzRkCMJFHYUQZxKwPX8WA7XipaPtfiwMPARP51ymfn",
       "version": "0.0.0"
     },
     {
@@ -125,7 +125,7 @@
     },
     {
       "name": "go-peerstream",
-      "hash": "QmQDPXRFzRcCGPbPViQCKjzbQBkZGpLV1f9KwXnksSNcTK",
+      "hash": "QmZK81vcgMhpb2t7GNbozk7qzt6Rj4zFqitpvsWT9mduW8",
       "version": "0.0.0"
     },
     {
