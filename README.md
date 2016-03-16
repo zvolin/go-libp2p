@@ -36,61 +36,20 @@ libp2p implementation in Go is a work in progress. As such, there's a few things
 ## Install
 
 ```bash
-$ go get -u github.com/ipfs/go-libp2p
+$ go get -d github.com/ipfs/go-libp2p
+$ cd $GOPATH/src/github.com/ipfs/go-libp2p
+$ make
 ```
 
 # Run tests
 
 ```bash
 $ cd $GOPATH/src/github.com/ipfs/go-libp2p
-$ GO15VENDOREXPERIMENT=1 go test ./p2p/<path of folder you want to run>
+$ make deps
+$ go test ./p2p/<path of module you want to run tests for>
 ```
 
-## Interface
 
-# Modules
-
-- [libp2p](https://github.com/ipfs/go-libp2p) (entry point)
-- **Swarm**
-  - [libp2p-swarm]()
-  - [libp2p-identify]()
-  - [libp2p-ping]()
-  - Transports
-    - [abstract-transport](https://github.com/diasdavid/abstract-transport)
-    - [abstract-connection](https://github.com/diasdavid/abstract-connection)
-    - [libp2p-tcp]()
-    - [libp2p-udp]()
-    - [libp2p-udt]()
-    - [libp2p-utp]()
-    - [libp2p-webrtc]()
-    - [libp2p-cjdns]()
-  - Stream Muxing
-    - [abstract-stream-muxer](https://github.com/diasdavid/abstract-stream-muxer)
-    - [libp2p-spdy]()
-    - [libp2p-multiplex]()
-  - Crypto Channel
-    - [libp2p-tls]()
-    - [libp2p-secio]()
-- **Peer Routing**
-  - [libp2p-kad-routing]()
-  - [libp2p-mDNS-routing]()
-- **Discovery**
-  - [libp2p-mdns-discovery]()
-  - [libp2p-random-walk]()
-  - [libp2p-railing]()
-- **Distributed Record Store**
-  - [libp2p-record]()
-  - [abstract-record-store](https://github.com/diasdavid/abstract-record-store)
-  - [libp2p-distributed-record-store]()
-  - [libp2p-kad-record-store]()
-- **Generic**
-  - [PeerInfo]()
-  - [PeerId]()
-  - [multihash]()
-  - [multiaddr]()
-  - [multistream]()
-  - [multicodec]()
-  - [ipld]()
-  - [repo]()
-- [**Specs**](https://github.com/ipfs/specs/tree/master/protocol/network)
+## Links
+- [**Specs**](https://github.com/ipfs/specs/tree/master/libp2p)
 - [**Website**](https://github.com/diasdavid/libp2p-website)
