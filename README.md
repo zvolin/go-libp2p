@@ -18,7 +18,7 @@ libp2p is the product of a long, and arduous quest of understanding -- a deep di
 >
 > We will be writing a set of docs, posts, tutorials, and talks to explain what p2p is, why it is tremendously useful, and how it can help your existing and new projects. But in the meantime, check out
 >
-> - [**The IPFS Network Spec**](https://github.com/ipfs/specs/tree/master/protocol/network), which grew into libp2p
+> - [**The IPFS Network Spec**](https://github.com/ipfs/specs/tree/master/libp2p), which grew into libp2p
 > - [**go-libp2p implementation**](https://github.com/ipfs/go-libp2p)
 > - [**js-libp2p implementation**](https://github.com/diasdavid/js-libp2p)
 
