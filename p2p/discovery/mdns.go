@@ -11,8 +11,8 @@ import (
 
 	"github.com/ipfs/go-libp2p/p2p/host"
 	"github.com/ipfs/go-libp2p/p2p/peer"
-	manet "gx/ipfs/QmQB7mNP3QE7b4zP2MQmsyJDqG5hzYE2CL8k1VyLWky2Ed/go-multiaddr-net"
 	"gx/ipfs/QmSscYPCcE1H3UQr2tnsJ2a9dK9LsHTBGgP71VW6fz67e5/mdns"
+	manet "gx/ipfs/QmYVqhVfbK4BKvbW88Lhm26b3ud14sTBvcm1H7uWUx1Fkp/go-multiaddr-net"
 	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
 	ma "gx/ipfs/QmcobAGsCjYt5DXoq9et9L8yR8er7o7Cu3DTvpaq12jYSz/go-multiaddr"
 )
