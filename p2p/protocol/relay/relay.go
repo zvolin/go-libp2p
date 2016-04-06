@@ -17,7 +17,7 @@ import (
 var log = logging.Logger("github.com/ipfs/go-libp2p/p2p/protocol/relay")
 
 // ID is the protocol.ID of the Relay Service.
-const ID protocol.ID = "/ipfs/relay"
+const ID protocol.ID = "/ipfs/relay/0.1.0"
 
 // Relay is a structure that implements ProtocolRelay.
 // It is a simple relay service which forwards traffic
