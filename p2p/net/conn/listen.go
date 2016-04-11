@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"sync"
+	"time"
 
 	ic "github.com/ipfs/go-libp2p/p2p/crypto"
 	filter "github.com/ipfs/go-libp2p/p2p/net/filter"
@@ -17,8 +19,15 @@ import (
 	ma "gx/ipfs/QmcobAGsCjYt5DXoq9et9L8yR8er7o7Cu3DTvpaq12jYSz/go-multiaddr"
 )
 
-const SecioTag = "/secio/1.0.0"
-const NoEncryptionTag = "/plaintext/1.0.0"
+const (
+	SecioTag        = "/secio/1.0.0"
+	NoEncryptionTag = "/plaintext/1.0.0"
+)
+
+var (
+	connAcceptBuffer     = 32
+	NegotiateReadTimeout = time.Second * 60
+)
 
 // ConnWrapper is any function that wraps a raw multiaddr connection
 type ConnWrapper func(transport.Conn) transport.Conn
@@ -33,10 +42,15 @@ type listener struct {
 	filters *filter.Filters
 
 	wrapper ConnWrapper
+	catcher tec.TempErrCatcher
 
 	proc goprocess.Process
 
 	mux *msmux.MultistreamMuxer
+
+	incoming chan connErr
+
+	ctx context.Context
 }
 
 func (l *listener) teardown() error {
@@ -57,62 +71,23 @@ func (l *listener) SetAddrFilters(fs *filter.Filters) {
 	l.filters = fs
 }
 
+type connErr struct {
+	conn transport.Conn
+	err  error
+}
+
 // Accept waits for and returns the next connection to the listener.
 // Note that unfortunately this
 func (l *listener) Accept() (net.Conn, error) {
-
-	// listeners dont have contexts. given changes dont make sense here anymore
-	// note that the parent of listener will Close, which will interrupt all io.
-	// Contexts and io don't mix.
-	ctx := context.Background()
-
-	var catcher tec.TempErrCatcher
-
-	catcher.IsTemp = func(e error) bool {
-		// ignore connection breakages up to this point. but log them
-		if e == io.EOF {
-			log.Debugf("listener ignoring conn with EOF: %s", e)
-			return true
+	for con := range l.incoming {
+		if con.err != nil {
+			return nil, con.err
 		}
 
-		te, ok := e.(tec.Temporary)
-		if ok {
-			log.Debugf("listener ignoring conn with temporary err: %s", e)
-			return te.Temporary()
-		}
-		return false
-	}
-
-	for {
-		maconn, err := l.Listener.Accept()
+		c, err := newSingleConn(l.ctx, l.local, "", con.conn)
 		if err != nil {
-			if catcher.IsTemporary(err) {
-				continue
-			}
-			return nil, err
-		}
-
-		log.Debugf("listener %s got connection: %s <---> %s", l, maconn.LocalMultiaddr(), maconn.RemoteMultiaddr())
-
-		if l.filters != nil && l.filters.AddrBlocked(maconn.RemoteMultiaddr()) {
-			log.Debugf("blocked connection from %s", maconn.RemoteMultiaddr())
-			maconn.Close()
-			continue
-		}
-		// If we have a wrapper func, wrap this conn
-		if l.wrapper != nil {
-			maconn = l.wrapper(maconn)
-		}
-
-		_, _, err = l.mux.Negotiate(maconn)
-		if err != nil {
-			log.Info("negotiation of crypto protocol failed: ", err)
-			continue
-		}
-
-		c, err := newSingleConn(ctx, l.local, "", maconn)
-		if err != nil {
-			if catcher.IsTemporary(err) {
+			con.conn.Close()
+			if l.catcher.IsTemporary(err) {
 				continue
 			}
 			return nil, err
@@ -122,13 +97,15 @@ func (l *listener) Accept() (net.Conn, error) {
 			log.Warning("listener %s listening INSECURELY!", l)
 			return c, nil
 		}
-		sc, err := newSecureConn(ctx, l.privk, c)
+		sc, err := newSecureConn(l.ctx, l.privk, c)
 		if err != nil {
+			con.conn.Close()
 			log.Infof("ignoring conn we failed to secure: %s %s", err, c)
 			continue
 		}
 		return sc, nil
 	}
+	return nil, fmt.Errorf("listener is closed")
 }
 
 func (l *listener) Addr() net.Addr {
@@ -157,20 +134,90 @@ func (l *listener) Loggable() map[string]interface{} {
 	}
 }
 
+func (l *listener) handleIncoming() {
+	var wg sync.WaitGroup
+	defer func() {
+		wg.Wait()
+		close(l.incoming)
+	}()
+
+	wg.Add(1)
+	defer wg.Done()
+
+	for {
+		maconn, err := l.Listener.Accept()
+		if err != nil {
+			if l.catcher.IsTemporary(err) {
+				continue
+			}
+
+			l.incoming <- connErr{err: err}
+			return
+		}
+
+		log.Debugf("listener %s got connection: %s <---> %s", l, maconn.LocalMultiaddr(), maconn.RemoteMultiaddr())
+
+		if l.filters != nil && l.filters.AddrBlocked(maconn.RemoteMultiaddr()) {
+			log.Debugf("blocked connection from %s", maconn.RemoteMultiaddr())
+			maconn.Close()
+			continue
+		}
+		// If we have a wrapper func, wrap this conn
+		if l.wrapper != nil {
+			maconn = l.wrapper(maconn)
+		}
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			maconn.SetReadDeadline(time.Now().Add(NegotiateReadTimeout))
+			_, _, err = l.mux.Negotiate(maconn)
+			if err != nil {
+				log.Info("incoming conn: negotiation of crypto protocol failed: ", err)
+				maconn.Close()
+				return
+			}
+
+			// clear read readline
+			maconn.SetReadDeadline(time.Time{})
+
+			l.incoming <- connErr{conn: maconn}
+		}()
+	}
+}
+
 func WrapTransportListener(ctx context.Context, ml transport.Listener, local peer.ID, sk ic.PrivKey) (Listener, error) {
 	l := &listener{
 		Listener: ml,
 		local:    local,
 		privk:    sk,
 		mux:      msmux.NewMultistreamMuxer(),
+		incoming: make(chan connErr, connAcceptBuffer),
+		ctx:      ctx,
 	}
 	l.proc = goprocessctx.WithContextAndTeardown(ctx, l.teardown)
+	l.catcher.IsTemp = func(e error) bool {
+		// ignore connection breakages up to this point. but log them
+		if e == io.EOF {
+			log.Debugf("listener ignoring conn with EOF: %s", e)
+			return true
+		}
+
+		te, ok := e.(tec.Temporary)
+		if ok {
+			log.Debugf("listener ignoring conn with temporary err: %s", e)
+			return te.Temporary()
+		}
+		return false
+	}
 
 	if EncryptConnections {
 		l.mux.AddHandler(SecioTag, nil)
 	} else {
 		l.mux.AddHandler(NoEncryptionTag, nil)
 	}
+
+	go l.handleIncoming()
 
 	log.Debugf("Conn Listener on %s", l.Multiaddr())
 	log.Event(ctx, "swarmListen", l)
