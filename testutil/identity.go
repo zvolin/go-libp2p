@@ -3,8 +3,8 @@ package testutil
 import (
 	"testing"
 
-	ci "github.com/ipfs/go-libp2p/p2p/crypto"
-	peer "github.com/ipfs/go-libp2p/p2p/peer"
+	peer "gx/ipfs/QmY1xNhBfF9xA1pmD8yejyQAyd77K68qNN6JPM1CN2eiRu/go-libp2p-peer"
+	ci "gx/ipfs/QmaP38GJApheTr84f8R89vsT7oJLQw1AeCz4HqrQgv2njB/go-libp2p-crypto"
 	ma "gx/ipfs/QmcobAGsCjYt5DXoq9et9L8yR8er7o7Cu3DTvpaq12jYSz/go-multiaddr"
 )
 
