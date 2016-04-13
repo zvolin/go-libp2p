@@ -157,6 +157,7 @@
   "issues_url": "",
   "gx_version": "0.4.0",
   "gx": {
-    "dvcsimport": "github.com/ipfs/go-libp2p"
+    "dvcsimport": "github.com/ipfs/go-libp2p",
+	"goversion":"1.5.2"
   }
 }
