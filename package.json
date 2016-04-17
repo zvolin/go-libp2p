@@ -1,4 +1,7 @@
 {
+  "name": "go-libp2p",
+  "author": "whyrusleeping",
+  "version": "3.0.0",
   "gxDependencies": [
     {
       "hash": "QmcrrEpx3VMUbrbgVroH3YiYyUS5c4YAykzyPJWKspUYLa",
@@ -157,8 +160,6 @@
     }
   ],
   "license": "MIT",
-  "name": "go-libp2p",
-  "version": "2.0.3",
   "language": "go",
   "gxVersion": "0.4.0",
   "gx": {
@@ -167,6 +168,5 @@
   },
   "bugs": {
     "url": "https://github.com/ipfs/go-libp2p"
-  },
-  "author": "whyrusleeping"
+  }
 }
