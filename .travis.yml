@@ -14,6 +14,7 @@ install: true
 
 script:
   - make deps
+  - gx-go rewrite
   - go test ./p2p/...
 
 cache:

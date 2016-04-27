@@ -1,10 +1,7 @@
 {
+  "name": "go-libp2p",
   "author": "whyrusleeping",
-  "bugs": {},
-  "gx": {
-    "dvcsimport": "github.com/ipfs/go-libp2p",
-    "goversion": "1.5.2"
-  },
+  "version": "3.0.0",
   "gxDependencies": [
     {
       "hash": "QmcrrEpx3VMUbrbgVroH3YiYyUS5c4YAykzyPJWKspUYLa",
@@ -145,6 +142,12 @@
     },
     {
       "author": "whyrusleeping",
+      "name": "go-libp2p-loggables",
+      "hash": "QmYqiDbGUGqatbPFie11Py8cnyduoJYqcgKtjfhu1SQLh1",
+      "version": "1.0.1"
+    },
+    {
+      "author": "whyrusleeping",
       "hash": "QmPKuU1ohMDaJRJHmatXewCqjZp5wKrD3CK6m9TnCK6XBe",
       "name": "go-libp2p-secio",
       "version": "1.0.1"
@@ -156,11 +159,14 @@
       "version": "1.1.0"
     }
   ],
-  "gxVersion": "0.6.0",
-  "gx_version": "0.4.0",
-  "issues_url": "",
+  "license": "MIT",
   "language": "go",
-  "license": "",
-  "name": "go-libp2p",
-  "version": "2.0.3"
+  "gxVersion": "0.4.0",
+  "gx": {
+    "dvcsimport": "github.com/ipfs/go-libp2p",
+    "goversion":"1.5.2"
+  },
+  "bugs": {
+    "url": "https://github.com/ipfs/go-libp2p"
+  }
 }

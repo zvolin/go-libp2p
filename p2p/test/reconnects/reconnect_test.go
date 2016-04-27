@@ -7,15 +7,15 @@ import (
 	"testing"
 	"time"
 
+	u "github.com/ipfs/go-ipfs-util"
 	host "github.com/ipfs/go-libp2p/p2p/host"
 	inet "github.com/ipfs/go-libp2p/p2p/net"
 	swarm "github.com/ipfs/go-libp2p/p2p/net/swarm"
 	protocol "github.com/ipfs/go-libp2p/p2p/protocol"
 	testutil "github.com/ipfs/go-libp2p/p2p/test/util"
-	ps "gx/ipfs/QmZK81vcgMhpb2t7GNbozk7qzt6Rj4zFqitpvsWT9mduW8/go-peerstream"
-	u "gx/ipfs/QmZNVWh8LLjAavuQ2JXuFmuYH3C11xo988vSgp7UQrTRj1/go-ipfs-util"
-	context "gx/ipfs/QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt/go-net/context"
-	logging "gx/ipfs/Qmazh5oNUVsDZTs2g59rq8aYQqwpss8tcUWQzor5sCCEuH/go-log"
+	logging "github.com/ipfs/go-log"
+	ps "github.com/jbenet/go-peerstream"
+	context "golang.org/x/net/context"
 )
 
 func init() {
