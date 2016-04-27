@@ -145,6 +145,12 @@
     },
     {
       "author": "whyrusleeping",
+      "name": "go-libp2p-loggables",
+      "hash": "QmYqiDbGUGqatbPFie11Py8cnyduoJYqcgKtjfhu1SQLh1",
+      "version": "1.0.1"
+    },
+    {
+      "author": "whyrusleeping",
       "hash": "QmPKuU1ohMDaJRJHmatXewCqjZp5wKrD3CK6m9TnCK6XBe",
       "name": "go-libp2p-secio",
       "version": "1.0.1"
