@@ -1,7 +1,12 @@
 {
-  "name": "go-libp2p",
   "author": "whyrusleeping",
-  "version": "3.0.0",
+  "bugs": {
+    "url": "https://github.com/ipfs/go-libp2p"
+  },
+  "gx": {
+    "dvcsimport": "github.com/ipfs/go-libp2p",
+    "goversion": "1.5.2"
+  },
   "gxDependencies": [
     {
       "hash": "QmcrrEpx3VMUbrbgVroH3YiYyUS5c4YAykzyPJWKspUYLa",
@@ -29,7 +34,7 @@
       "version": "1.0.0"
     },
     {
-      "hash": "QmUeEcYJrzAEKdQXjzTxCgNZgc9sRuwharsvzzm5Gd2oGB",
+      "hash": "Qmf91yhgRLo2dhhbc5zZ7TxjMaR1oxaWaoc9zRZdi1kU4a",
       "name": "go-multistream",
       "version": "0.0.0"
     },
@@ -54,9 +59,9 @@
       "version": "0.0.0"
     },
     {
-      "hash": "QmTrxSBY8Wqd5aBB4MeizeSzS5xFbK8dQBrYaMsiGnCBhb",
+      "hash": "QmUBa4w6CbHJUMeGJPDiMEDWsM93xToK1fTnFXnrC8Hksw",
       "name": "go-multiaddr-net",
-      "version": "1.0.0"
+      "version": "1.0.1"
     },
     {
       "hash": "QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku",
@@ -64,7 +69,7 @@
       "version": "0.0.0"
     },
     {
-      "hash": "Qme8dipKnZAChkp5Kfgj2MYYyBbzjqqPXmxQx3g9v3MoxP",
+      "hash": "QmUaRHbB7pUwj5mS9BS4CMvBiW48MpaH2wbGxeWfFhhHxK",
       "name": "multiaddr-filter",
       "version": "1.0.1"
     },
@@ -84,7 +89,7 @@
       "version": "0.0.0"
     },
     {
-      "hash": "QmcobAGsCjYt5DXoq9et9L8yR8er7o7Cu3DTvpaq12jYSz",
+      "hash": "QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd",
       "name": "go-multiaddr",
       "version": "0.0.0"
     },
@@ -104,7 +109,7 @@
       "version": "0.0.0"
     },
     {
-      "hash": "QmWSJzRkCMJFHYUQZxKwPX8WA7XipaPtfiwMPARP51ymfn",
+      "hash": "QmWo4w5EybXUjBn9L7nsBneEPcLArq6fDMBWEFJ2Qny6Eq",
       "name": "go-stream-muxer",
       "version": "0.0.0"
     },
@@ -124,15 +129,15 @@
       "version": "0.0.0"
     },
     {
-      "hash": "QmZK81vcgMhpb2t7GNbozk7qzt6Rj4zFqitpvsWT9mduW8",
+      "hash": "Qmcq3bs1zXXoougbpTtLRp7AravkCGBkVyCqJxZRk5qdwo",
       "name": "go-peerstream",
       "version": "0.0.0"
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmWLfU4tstw2aNcTykDm44xbSTCYJ9pUJwfhQCKGwckcHx",
+      "hash": "QmeLQ13LftT9XhNn22piZc3GP56fGqhijuL5Y8KdUaRn1g",
       "name": "mafmt",
-      "version": "0.0.0"
+      "version": "1.1.1"
     },
     {
       "author": "whyrusleeping",
@@ -142,31 +147,26 @@
     },
     {
       "author": "whyrusleeping",
+      "hash": "Qmdt3dCBXLwr9TEYbmcx6adfP4mNfNArKyWMmYy4EzpHiu",
       "name": "go-libp2p-loggables",
-      "hash": "QmYqiDbGUGqatbPFie11Py8cnyduoJYqcgKtjfhu1SQLh1",
-      "version": "1.0.1"
+      "version": "1.0.2"
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmPKuU1ohMDaJRJHmatXewCqjZp5wKrD3CK6m9TnCK6XBe",
+      "hash": "QmPDQHJHvzAp9Tver9VAoqzuzcS3uEjPYLYp2CMh89h5fC",
       "name": "go-libp2p-secio",
-      "version": "1.0.1"
+      "version": "1.0.2"
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmRHqYZs3Diy8YC3bW16zvs8VDDwS2ARKBuKwALxEMqibc",
+      "hash": "QmaLnS2kGBLuGZKJdT5KAyoWEtW3u8CS3h6YKCVge5ohD2",
       "name": "go-libp2p-transport",
-      "version": "1.1.0"
+      "version": "1.1.1"
     }
   ],
-  "license": "MIT",
-  "language": "go",
   "gxVersion": "0.4.0",
-  "gx": {
-    "dvcsimport": "github.com/ipfs/go-libp2p",
-    "goversion":"1.5.2"
-  },
-  "bugs": {
-    "url": "https://github.com/ipfs/go-libp2p"
-  }
+  "language": "go",
+  "license": "MIT",
+  "name": "go-libp2p",
+  "version": "3.1.0"
 }
