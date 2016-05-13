@@ -40,7 +40,6 @@ func (t *Transport) NewConn(nc net.Conn, isServer bool) (smux.Conn, error) {
 		}
 		proto = selected
 	} else {
-		// prefer yamux
 		selected, err := mss.SelectOneOf(t.OrderPreference, nc)
 		if err != nil {
 			return nil, err
