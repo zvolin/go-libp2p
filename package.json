@@ -109,9 +109,9 @@
       "version": "0.0.0"
     },
     {
-      "hash": "QmWo4w5EybXUjBn9L7nsBneEPcLArq6fDMBWEFJ2Qny6Eq",
+      "hash": "Qmb1US8uyZeEpMyc56wVZy2cDFdQjNFojAUYVCoo9ieTqp",
       "name": "go-stream-muxer",
-      "version": "0.0.0"
+      "version": "1.0.0"
     },
     {
       "hash": "QmaaC9QMYTQHCbMq3Ebr3uMaAR2ev4AVqMmsJpgQijAZbJ",
@@ -129,9 +129,9 @@
       "version": "0.0.0"
     },
     {
-      "hash": "Qmcq3bs1zXXoougbpTtLRp7AravkCGBkVyCqJxZRk5qdwo",
+      "hash": "QmduCCgTaLnxwwf9RFQy2PMUytrKcEH9msohtVxSBZUdgu",
       "name": "go-peerstream",
-      "version": "0.0.0"
+      "version": "1.0.0"
     },
     {
       "author": "whyrusleeping",
@@ -162,6 +162,24 @@
       "hash": "QmaLnS2kGBLuGZKJdT5KAyoWEtW3u8CS3h6YKCVge5ohD2",
       "name": "go-libp2p-transport",
       "version": "1.1.1"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmYaeRqthWTco7oQF4dztuqA94P8JF36gVjd2z2eEqKfrh",
+      "name": "go-smux-yamux",
+      "version": "1.1.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmVcmcQE9eX4HQ8QwhVXpoHt3ennG7d299NDYFq9D1Uqa1",
+      "name": "go-smux-multistream",
+      "version": "1.0.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmWMKNLGkYJTZ4Tq3DQ8E9j86QaKvGjKgFzvLzGYXvW69Z",
+      "name": "go-smux-spdystream",
+      "version": "1.0.0"
     }
   ],
   "gxVersion": "0.4.0",
