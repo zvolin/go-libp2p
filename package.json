@@ -147,21 +147,21 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "Qmdt3dCBXLwr9TEYbmcx6adfP4mNfNArKyWMmYy4EzpHiu",
+      "hash": "QmTfX8ffnQZ4twPpfC9ye7FcFeFKw4najRESmyeymsT6aa",
       "name": "go-libp2p-loggables",
-      "version": "1.0.2"
+      "version": "1.0.4"
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmPDQHJHvzAp9Tver9VAoqzuzcS3uEjPYLYp2CMh89h5fC",
+      "hash": "QmbuSYB51KtX8izgab1fSyBgsyMH2hTuCfBtXm77PeXWca",
       "name": "go-libp2p-secio",
-      "version": "1.0.2"
+      "version": "1.0.4"
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmaLnS2kGBLuGZKJdT5KAyoWEtW3u8CS3h6YKCVge5ohD2",
+      "hash": "QmboVACz6WES3byh3q8jdYPWL9TMz7CT89V34WPtruuRoS",
       "name": "go-libp2p-transport",
-      "version": "1.1.1"
+      "version": "1.1.3"
     },
     {
       "author": "whyrusleeping",
@@ -186,5 +186,5 @@
   "language": "go",
   "license": "MIT",
   "name": "go-libp2p",
-  "version": "3.2.1"
+  "version": "3.2.2"
 }
