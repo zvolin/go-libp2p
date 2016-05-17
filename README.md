@@ -41,6 +41,10 @@ $ cd $GOPATH/src/github.com/ipfs/go-libp2p
 $ make
 ```
 
+# Examples
+
+Examples can be found on the [libp2p-examples repo](https://github.com/whyrusleeping/libp2p-examples/)
+
 # Run tests
 
 ```bash
