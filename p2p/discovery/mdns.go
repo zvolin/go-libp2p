@@ -11,6 +11,7 @@ import (
 
 	"github.com/cryptix/mdns"
 	"github.com/ipfs/go-libp2p-peer"
+	pstore "github.com/ipfs/go-libp2p-peerstore"
 	"github.com/ipfs/go-libp2p/p2p/host"
 	logging "github.com/ipfs/go-log"
 	ma "github.com/jbenet/go-multiaddr"
@@ -28,7 +29,7 @@ type Service interface {
 }
 
 type Notifee interface {
-	HandlePeerFound(peer.PeerInfo)
+	HandlePeerFound(pstore.PeerInfo)
 }
 
 type mdnsService struct {
@@ -154,7 +155,7 @@ func (m *mdnsService) handleEntry(e *mdns.ServiceEntry) {
 		return
 	}
 
-	pi := peer.PeerInfo{
+	pi := pstore.PeerInfo{
 		ID:    mpeer,
 		Addrs: []ma.Multiaddr{maddr},
 	}
