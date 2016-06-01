@@ -166,9 +166,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmRgddEN3nMY2jecG3EFNTMZzdk1gXEnPQxksJuReMTUZV",
+      "hash": "QmSHTSkxXGQgaHWz91oZV3CDy3hmKmDgpjbYRT6niACG4E",
       "name": "go-smux-yamux",
-      "version": "1.1.2"
+      "version": "1.1.1"
     },
     {
       "author": "whyrusleeping",
