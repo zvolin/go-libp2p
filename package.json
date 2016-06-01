@@ -1,5 +1,4 @@
 {
-  "name":"go-libp2p",
   "author": "whyrusleeping",
   "bugs": {
     "url": "https://github.com/ipfs/go-libp2p"
@@ -193,5 +192,5 @@
   "language": "go",
   "license": "MIT",
   "name": "go-libp2p",
-  "version": "3.2.3"
+  "version": "3.3.0"
 }
