@@ -59,9 +59,9 @@
       "version": "0.0.0"
     },
     {
-      "hash": "QmUBa4w6CbHJUMeGJPDiMEDWsM93xToK1fTnFXnrC8Hksw",
+      "hash": "QmPpRcbNUXauP3zWZ1NJMLWpe4QnmEHrd2ba2D3yqWznw7",
       "name": "go-multiaddr-net",
-      "version": "1.0.1"
+      "version": "1.2.0"
     },
     {
       "hash": "QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku",
@@ -69,9 +69,9 @@
       "version": "0.0.0"
     },
     {
-      "hash": "QmUaRHbB7pUwj5mS9BS4CMvBiW48MpaH2wbGxeWfFhhHxK",
+      "hash": "QmSMZwvs3n4GBikZ7hKzT17c3bk65FmyZo2JqtJ16swqCv",
       "name": "multiaddr-filter",
-      "version": "1.0.1"
+      "version": "1.0.2"
     },
     {
       "hash": "QmT8rehPR3F6bmwL6zjUN8XpiDBFFpMP2myPdC6ApsWfJf",
@@ -159,9 +159,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmQ6qQtDoFjfNoXoR74sxYWggGAFzeLxf4JCa2ATpbvvCp",
+      "hash": "Qme5FbqN4BteaBcpbsj51fjzvqJhr54DigbqWAdXS5zgEe",
       "name": "go-libp2p-transport",
-      "version": "1.1.4"
+      "version": "1.2.0"
     },
     {
       "author": "whyrusleeping",
@@ -183,14 +183,14 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmZ62t46e9p7vMYqCmptwQC1RhRv5cpQ5cwoqYspedaXyq",
+      "hash": "QmXHUpFsnpCmanRnacqYkFoLoFfEq5yS2nUgGkAjJ1Nj9j",
       "name": "go-libp2p-peerstore",
-      "version": "1.0.0"
+      "version": "1.1.0"
     }
   ],
   "gxVersion": "0.4.0",
   "language": "go",
   "license": "MIT",
   "name": "go-libp2p",
-  "version": "3.3.2"
+  "version": "3.3.3"
 }
