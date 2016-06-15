@@ -159,9 +159,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "Qme5FbqN4BteaBcpbsj51fjzvqJhr54DigbqWAdXS5zgEe",
+      "hash": "QmaNko8ug5seuo61TnmW8jcVtCVgD6uR454wagU7PPKVWA",
       "name": "go-libp2p-transport",
-      "version": "1.2.0"
+      "version": "1.3.0"
     },
     {
       "author": "whyrusleeping",
