@@ -318,7 +318,7 @@ func TestStBackpressureStreamWrite(t *testing.T) {
 		receive(s, b)
 		roundsTotal = roundsTotal + b
 	}
-	roundsTime := time.Now().Sub(roundsStart)
+	roundsTime := time.Since(roundsStart)
 
 	// now read continously, while we measure stats.
 	stop := make(chan struct{})
@@ -341,7 +341,7 @@ func TestStBackpressureStreamWrite(t *testing.T) {
 		contTotal += n
 	}
 	stop <- struct{}{}
-	contTime := time.Now().Sub(contStart)
+	contTime := time.Since(contStart)
 
 	// now compare! continuous should've been faster AND larger
 	if roundsTime < contTime {
