@@ -110,28 +110,25 @@ func (m *mdnsService) Close() error {
 
 func (m *mdnsService) pollForEntries() {
 	ticker := time.NewTicker(m.interval)
-	for {
-		select {
-		case <-ticker.C:
-			entriesCh := make(chan *mdns.ServiceEntry, 16)
-			go func() {
-				for entry := range entriesCh {
-					m.handleEntry(entry)
-				}
-			}()
-
-			qp := mdns.QueryParam{}
-			qp.Domain = "local"
-			qp.Entries = entriesCh
-			qp.Service = ServiceTag
-			qp.Timeout = time.Second * 5
-
-			err := mdns.Query(&qp)
-			if err != nil {
-				log.Error("mdns lookup error: ", err)
+	for range ticker.C {
+		entriesCh := make(chan *mdns.ServiceEntry, 16)
+		go func() {
+			for entry := range entriesCh {
+				m.handleEntry(entry)
 			}
-			close(entriesCh)
+		}()
+
+		qp := mdns.QueryParam{}
+		qp.Domain = "local"
+		qp.Entries = entriesCh
+		qp.Service = ServiceTag
+		qp.Timeout = time.Second * 5
+
+		err := mdns.Query(&qp)
+		if err != nil {
+			log.Error("mdns lookup error: ", err)
 		}
+		close(entriesCh)
 	}
 }
 
