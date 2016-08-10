@@ -12,10 +12,10 @@ import (
 	"github.com/cryptix/mdns"
 	"github.com/ipfs/go-libp2p-peer"
 	pstore "github.com/ipfs/go-libp2p-peerstore"
-	"github.com/ipfs/go-libp2p/p2p/host"
 	logging "github.com/ipfs/go-log"
 	ma "github.com/jbenet/go-multiaddr"
 	manet "github.com/jbenet/go-multiaddr-net"
+	"github.com/libp2p/go-libp2p/p2p/host"
 )
 
 var log = logging.Logger("mdns")

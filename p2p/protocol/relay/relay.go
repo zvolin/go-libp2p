@@ -6,15 +6,15 @@ import (
 	"time"
 
 	peer "github.com/ipfs/go-libp2p-peer"
-	host "github.com/ipfs/go-libp2p/p2p/host"
-	inet "github.com/ipfs/go-libp2p/p2p/net"
-	protocol "github.com/ipfs/go-libp2p/p2p/protocol"
 	logging "github.com/ipfs/go-log"
 	mh "github.com/jbenet/go-multihash"
+	host "github.com/libp2p/go-libp2p/p2p/host"
+	inet "github.com/libp2p/go-libp2p/p2p/net"
+	protocol "github.com/libp2p/go-libp2p/p2p/protocol"
 	context "golang.org/x/net/context"
 )
 
-var log = logging.Logger("github.com/ipfs/go-libp2p/p2p/protocol/relay")
+var log = logging.Logger("github.com/libp2p/go-libp2p/p2p/protocol/relay")
 
 // ID is the protocol.ID of the Relay Service.
 const ID protocol.ID = "/ipfs/relay/line/0.1.0"

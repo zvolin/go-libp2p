@@ -6,8 +6,8 @@ package ci
 import (
 	"os"
 
-	jenkins "github.com/ipfs/go-libp2p/testutil/ci/jenkins"
-	travis "github.com/ipfs/go-libp2p/testutil/ci/travis"
+	jenkins "github.com/libp2p/go-libp2p/testutil/ci/jenkins"
+	travis "github.com/libp2p/go-libp2p/testutil/ci/travis"
 )
 
 // EnvVar is a type to use travis-only env var names with

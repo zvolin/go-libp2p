@@ -8,13 +8,13 @@ import (
 	"time"
 
 	u "github.com/ipfs/go-ipfs-util"
-	host "github.com/ipfs/go-libp2p/p2p/host"
-	inet "github.com/ipfs/go-libp2p/p2p/net"
-	swarm "github.com/ipfs/go-libp2p/p2p/net/swarm"
-	protocol "github.com/ipfs/go-libp2p/p2p/protocol"
-	testutil "github.com/ipfs/go-libp2p/p2p/test/util"
 	logging "github.com/ipfs/go-log"
 	ps "github.com/jbenet/go-peerstream"
+	host "github.com/libp2p/go-libp2p/p2p/host"
+	inet "github.com/libp2p/go-libp2p/p2p/net"
+	swarm "github.com/libp2p/go-libp2p/p2p/net/swarm"
+	protocol "github.com/libp2p/go-libp2p/p2p/protocol"
+	testutil "github.com/libp2p/go-libp2p/p2p/test/util"
 	context "golang.org/x/net/context"
 )
 
