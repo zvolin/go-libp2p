@@ -3,6 +3,7 @@
 package multistream
 
 import (
+	"fmt"
 	"net"
 
 	mss "github.com/whyrusleeping/go-multistream"
@@ -47,7 +48,10 @@ func (t *Transport) NewConn(nc net.Conn, isServer bool) (smux.Conn, error) {
 		proto = selected
 	}
 
-	tpt := t.tpts[proto]
+	tpt, ok := t.tpts[proto]
+	if !ok {
+		return nil, fmt.Errorf("selected protocol we don't have a transport for")
+	}
 
 	return tpt.NewConn(nc, isServer)
 }
