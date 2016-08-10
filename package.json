@@ -34,9 +34,9 @@
       "version": "1.0.0"
     },
     {
-      "hash": "Qmc8WfU6Ci9e1qvTNYE3EUwrHEXfpxY7dNrWtVtjpYcp2P",
+      "hash": "QmXAWgboitGTKjCqHjVNKMAU13hV5LjYMui8n3UAGPBDLp",
       "name": "go-multistream",
-      "version": "0.1.0"
+      "version": "0.2.0"
     },
     {
       "hash": "QmNLvkCDV6ZjUJsEwGNporYBuZdhWT6q7TBVYQwwRv12HT",
@@ -171,9 +171,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmRbnoT3xJXpi37Vc11e6VYV4RXKWUMsZtfbBQkR43377P",
+      "hash": "QmcK5em8AHkQf72b4JPyDdyuKkCc7xADTEN7w26CJh4uQN",
       "name": "go-smux-multistream",
-      "version": "1.1.0"
+      "version": "1.2.0"
     },
     {
       "author": "whyrusleeping",
