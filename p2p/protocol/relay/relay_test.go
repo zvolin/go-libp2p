@@ -4,11 +4,11 @@ import (
 	"io"
 	"testing"
 
-	inet "github.com/ipfs/go-libp2p/p2p/net"
-	protocol "github.com/ipfs/go-libp2p/p2p/protocol"
-	relay "github.com/ipfs/go-libp2p/p2p/protocol/relay"
-	testutil "github.com/ipfs/go-libp2p/p2p/test/util"
 	logging "github.com/ipfs/go-log"
+	inet "github.com/libp2p/go-libp2p/p2p/net"
+	protocol "github.com/libp2p/go-libp2p/p2p/protocol"
+	relay "github.com/libp2p/go-libp2p/p2p/protocol/relay"
+	testutil "github.com/libp2p/go-libp2p/p2p/test/util"
 	msmux "github.com/whyrusleeping/go-multistream"
 	context "golang.org/x/net/context"
 )

@@ -13,18 +13,18 @@ import (
 	peer "github.com/ipfs/go-libp2p-peer"
 	pstore "github.com/ipfs/go-libp2p-peerstore"
 	transport "github.com/ipfs/go-libp2p-transport"
-	metrics "github.com/ipfs/go-libp2p/p2p/metrics"
-	mconn "github.com/ipfs/go-libp2p/p2p/metrics/conn"
-	inet "github.com/ipfs/go-libp2p/p2p/net"
-	conn "github.com/ipfs/go-libp2p/p2p/net/conn"
-	filter "github.com/ipfs/go-libp2p/p2p/net/filter"
-	addrutil "github.com/ipfs/go-libp2p/p2p/net/swarm/addr"
 	logging "github.com/ipfs/go-log"
 	ma "github.com/jbenet/go-multiaddr"
 	ps "github.com/jbenet/go-peerstream"
 	pst "github.com/jbenet/go-stream-muxer"
 	"github.com/jbenet/goprocess"
 	goprocessctx "github.com/jbenet/goprocess/context"
+	metrics "github.com/libp2p/go-libp2p/p2p/metrics"
+	mconn "github.com/libp2p/go-libp2p/p2p/metrics/conn"
+	inet "github.com/libp2p/go-libp2p/p2p/net"
+	conn "github.com/libp2p/go-libp2p/p2p/net/conn"
+	filter "github.com/libp2p/go-libp2p/p2p/net/filter"
+	addrutil "github.com/libp2p/go-libp2p/p2p/net/swarm/addr"
 	psmss "github.com/whyrusleeping/go-smux-multistream"
 	spdy "github.com/whyrusleeping/go-smux-spdystream"
 	yamux "github.com/whyrusleeping/go-smux-yamux"
@@ -340,9 +340,9 @@ func (n *ps2netNotifee) Disconnected(c *ps.Conn) {
 }
 
 func (n *ps2netNotifee) OpenedStream(s *ps.Stream) {
-	n.not.OpenedStream(n.net, inet.Stream((*Stream)(s)))
+	n.not.OpenedStream(n.net, &Stream{stream: s})
 }
 
 func (n *ps2netNotifee) ClosedStream(s *ps.Stream) {
-	n.not.ClosedStream(n.net, inet.Stream((*Stream)(s)))
+	n.not.ClosedStream(n.net, &Stream{stream: s})
 }

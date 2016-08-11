@@ -8,11 +8,11 @@ import (
 
 	u "github.com/ipfs/go-ipfs-util"
 	peer "github.com/ipfs/go-libp2p-peer"
-	host "github.com/ipfs/go-libp2p/p2p/host"
-	inet "github.com/ipfs/go-libp2p/p2p/net"
-	protocol "github.com/ipfs/go-libp2p/p2p/protocol"
-	testutil "github.com/ipfs/go-libp2p/p2p/test/util"
 	logging "github.com/ipfs/go-log"
+	host "github.com/libp2p/go-libp2p/p2p/host"
+	inet "github.com/libp2p/go-libp2p/p2p/net"
+	protocol "github.com/libp2p/go-libp2p/p2p/protocol"
+	testutil "github.com/libp2p/go-libp2p/p2p/test/util"
 	context "golang.org/x/net/context"
 )
 
