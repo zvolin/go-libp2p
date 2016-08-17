@@ -49,7 +49,7 @@ func TestRelaySimple(t *testing.T) {
 
 	// ok, now we can try to relay n1--->n2--->n3.
 	log.Debug("open relay stream")
-	s, err := n1.NewStream(ctx, relay.ID, n2p)
+	s, err := n1.NewStream(ctx, n2p, relay.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,7 +144,7 @@ func TestRelayAcrossFour(t *testing.T) {
 
 	// ok, now we can try to relay n1--->n2--->n3--->n4--->n5
 	log.Debug("open relay stream")
-	s, err := n1.NewStream(ctx, relay.ID, n2p)
+	s, err := n1.NewStream(ctx, n2p, relay.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -244,7 +244,7 @@ func TestRelayStress(t *testing.T) {
 
 	// ok, now we can try to relay n1--->n2--->n3.
 	log.Debug("open relay stream")
-	s, err := n1.NewStream(ctx, relay.ID, n2p)
+	s, err := n1.NewStream(ctx, n2p, relay.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
