@@ -36,8 +36,8 @@ libp2p implementation in Go is a work in progress. As such, there's a few things
 ## Install
 
 ```bash
-$ go get -d github.com/ipfs/go-libp2p
-$ cd $GOPATH/src/github.com/ipfs/go-libp2p
+$ go get -d github.com/libp2p/go-libp2p
+$ cd $GOPATH/src/github.com/libp2p/go-libp2p
 $ make
 ```
 
@@ -48,7 +48,7 @@ Examples can be found on the [libp2p-examples repo](https://github.com/whyruslee
 # Run tests
 
 ```bash
-$ cd $GOPATH/src/github.com/ipfs/go-libp2p
+$ cd $GOPATH/src/github.com/libp2p/go-libp2p
 $ make deps
 $ go test ./p2p/<path of module you want to run tests for>
 ```
