@@ -192,5 +192,5 @@
   "language": "go",
   "license": "MIT",
   "name": "go-libp2p",
-  "version": "3.3.7"
+  "version": "3.4.0"
 }
