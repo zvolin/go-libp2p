@@ -123,7 +123,7 @@ func (rs *RelayService) pipeStream(src, dst peer.ID, s inet.Stream) error {
 // for now, can only open streams to directly connected peers.
 // maybe we can do some routing later on.
 func (rs *RelayService) openStreamToPeer(ctx context.Context, p peer.ID) (inet.Stream, error) {
-	return rs.host.NewStream(ctx, ID, p)
+	return rs.host.NewStream(ctx, p, ID)
 }
 
 func ReadHeader(r io.Reader) (src, dst peer.ID, err error) {

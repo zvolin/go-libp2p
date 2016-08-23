@@ -83,7 +83,7 @@ a problem.
 		}()
 
 		for {
-			s, err = host.NewStream(context.Background(), protocol.TestingID, remote)
+			s, err = host.NewStream(context.Background(), remote, protocol.TestingID)
 			if err != nil {
 				return
 			}
@@ -285,7 +285,7 @@ func TestStBackpressureStreamWrite(t *testing.T) {
 	}
 
 	// open a stream, from 2->1, this is our reader
-	s, err := h2.NewStream(context.Background(), protocol.TestingID, h1.ID())
+	s, err := h2.NewStream(context.Background(), h1.ID(), protocol.TestingID)
 	if err != nil {
 		t.Fatal(err)
 	}

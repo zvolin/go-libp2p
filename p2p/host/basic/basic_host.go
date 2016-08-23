@@ -111,10 +111,10 @@ func (h *BasicHost) newStreamHandler(s inet.Stream) {
 		}
 		return
 	}
+	s.SetProtocol(protocol.ID(protoID))
 
-	logStream := mstream.WrapStream(s, protocol.ID(protoID), h.bwc)
+	logStream := mstream.WrapStream(s, h.bwc)
 
-	s.SetProtocol(protoID)
 	go handle(protoID, logStream)
 }
 
@@ -150,7 +150,7 @@ func (h *BasicHost) IDService() *identify.IDService {
 func (h *BasicHost) SetStreamHandler(pid protocol.ID, handler inet.StreamHandler) {
 	h.Mux().AddHandler(string(pid), func(p string, rwc io.ReadWriteCloser) error {
 		is := rwc.(inet.Stream)
-		is.SetProtocol(p)
+		is.SetProtocol(protocol.ID(p))
 		handler(is)
 		return nil
 	})
@@ -161,7 +161,7 @@ func (h *BasicHost) SetStreamHandler(pid protocol.ID, handler inet.StreamHandler
 func (h *BasicHost) SetStreamHandlerMatch(pid protocol.ID, m func(string) bool, handler inet.StreamHandler) {
 	h.Mux().AddHandlerWithFunc(string(pid), m, func(p string, rwc io.ReadWriteCloser) error {
 		is := rwc.(inet.Stream)
-		is.SetProtocol(p)
+		is.SetProtocol(protocol.ID(p))
 		handler(is)
 		return nil
 	})
@@ -176,13 +176,69 @@ func (h *BasicHost) RemoveStreamHandler(pid protocol.ID) {
 // header with given protocol.ID. If there is no connection to p, attempts
 // to create one. If ProtocolID is "", writes no header.
 // (Threadsafe)
-func (h *BasicHost) NewStream(ctx context.Context, pid protocol.ID, p peer.ID) (inet.Stream, error) {
+func (h *BasicHost) NewStream(ctx context.Context, p peer.ID, pids ...protocol.ID) (inet.Stream, error) {
+	pref, err := h.preferredProtocol(p, pids)
+	if err != nil {
+		return nil, err
+	}
+
+	if pref != "" {
+		return h.newStream(ctx, p, pref)
+	}
+
+	var protoStrs []string
+	for _, pid := range pids {
+		protoStrs = append(protoStrs, string(pid))
+	}
+
 	s, err := h.Network().NewStream(ctx, p)
 	if err != nil {
 		return nil, err
 	}
 
-	logStream := mstream.WrapStream(s, pid, h.bwc)
+	selected, err := msmux.SelectOneOf(protoStrs, s)
+	if err != nil {
+		s.Close()
+		return nil, err
+	}
+	selpid := protocol.ID(selected)
+	s.SetProtocol(selpid)
+	h.Peerstore().AddProtocols(p, selected)
+
+	return mstream.WrapStream(s, h.bwc), nil
+}
+
+func pidsToStrings(pids []protocol.ID) []string {
+	out := make([]string, len(pids))
+	for i, p := range pids {
+		out[i] = string(p)
+	}
+	return out
+}
+
+func (h *BasicHost) preferredProtocol(p peer.ID, pids []protocol.ID) (protocol.ID, error) {
+	pidstrs := pidsToStrings(pids)
+	supported, err := h.Peerstore().SupportsProtocols(p, pidstrs...)
+	if err != nil {
+		return "", err
+	}
+
+	var out protocol.ID
+	if len(supported) > 0 {
+		out = protocol.ID(supported[0])
+	}
+	return out, nil
+}
+
+func (h *BasicHost) newStream(ctx context.Context, p peer.ID, pid protocol.ID) (inet.Stream, error) {
+	s, err := h.Network().NewStream(ctx, p)
+	if err != nil {
+		return nil, err
+	}
+
+	s.SetProtocol(pid)
+
+	logStream := mstream.WrapStream(s, h.bwc)
 
 	lzcon := msmux.NewMSSelect(logStream, string(pid))
 	return &streamWrapper{
