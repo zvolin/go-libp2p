@@ -1,10 +1,10 @@
 {
   "author": "whyrusleeping",
   "bugs": {
-    "url": "https://github.com/ipfs/go-libp2p"
+    "url": "https://github.com/libp2p/go-libp2p"
   },
   "gx": {
-    "dvcsimport": "github.com/ipfs/go-libp2p",
+    "dvcsimport": "github.com/libp2p/go-libp2p",
     "goversion": "1.5.2"
   },
   "gxDependencies": [
@@ -192,5 +192,5 @@
   "language": "go",
   "license": "MIT",
   "name": "go-libp2p",
-  "version": "3.4.0"
+  "version": "3.4.1"
 }
