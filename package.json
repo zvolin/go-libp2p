@@ -177,9 +177,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmYVkdUUNyPfPGYKc49TMd9BV8ByxRgoCauaZghh3bu81d",
+      "hash": "QmRy2wBDz9M4t26F2FrCWwxijsmVwakaZG4WALSVvczjkY",
       "name": "go-smux-spdystream",
-      "version": "1.0.1"
+      "version": "1.1.0"
     },
     {
       "author": "whyrusleeping",
@@ -198,5 +198,5 @@
   "language": "go",
   "license": "MIT",
   "name": "go-libp2p",
-  "version": "3.5.0"
+  "version": "3.5.1"
 }
