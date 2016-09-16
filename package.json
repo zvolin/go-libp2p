@@ -154,9 +154,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmPsBtdPF4KubRJA6hYRZuZTaipVahT1M7kgHQbNMYttSm",
+      "hash": "Qmazcq5ZXnyP5smvUquM8dAro6ZAppExxyV7Z3URq3dzin",
       "name": "go-libp2p-transport",
-      "version": "1.6.0"
+      "version": "1.6.1"
     },
     {
       "author": "whyrusleeping",
@@ -184,9 +184,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmRPLfjThFCccpedegUo6BKkpANXaMNpA7BfEd6eGamoE4",
+      "hash": "QmWEQk3Ak32B2nAVjAnXzAsfXGHCyjvrHB9vroooWhEr8j",
       "name": "ws-transport",
-      "version": "1.2.1"
+      "version": "1.2.2"
     }
   ],
   "gxVersion": "0.4.0",
