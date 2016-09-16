@@ -114,11 +114,6 @@
       "version": "1.0.0"
     },
     {
-      "hash": "QmaaC9QMYTQHCbMq3Ebr3uMaAR2ev4AVqMmsJpgQijAZbJ",
-      "name": "go-reuseport",
-      "version": "0.0.0"
-    },
-    {
       "hash": "QmbcS9XrwZkF1rZj8bBwwzoYhVuA2PCnPhFUL1pyWGgt2A",
       "name": "go-notifier",
       "version": "0.0.0"
@@ -159,9 +154,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmQCGn5uWpL1wWntVzCWQrNmXBZ5a1PXbxZNFtPPbFk3KC",
+      "hash": "QmPsBtdPF4KubRJA6hYRZuZTaipVahT1M7kgHQbNMYttSm",
       "name": "go-libp2p-transport",
-      "version": "1.3.6"
+      "version": "1.6.0"
     },
     {
       "author": "whyrusleeping",
@@ -189,9 +184,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "Qmb5uXFWQMcJdJK6nMSZ92HRvc1okWutVgLFsyesKdpemc",
+      "hash": "QmRPLfjThFCccpedegUo6BKkpANXaMNpA7BfEd6eGamoE4",
       "name": "ws-transport",
-      "version": "1.0.6"
+      "version": "1.2.1"
     }
   ],
   "gxVersion": "0.4.0",
