@@ -1,6 +1,7 @@
 package discovery
 
 import (
+	"context"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -60,7 +61,7 @@ func getDialableListenAddrs(ph host.Host) ([]*net.TCPAddr, error) {
 	return out, nil
 }
 
-func NewMdnsService(peerhost host.Host, interval time.Duration) (Service, error) {
+func NewMdnsService(ctx context.Context, peerhost host.Host, interval time.Duration) (Service, error) {
 
 	// TODO: dont let mdns use logging...
 	golog.SetOutput(ioutil.Discard)
@@ -99,7 +100,7 @@ func NewMdnsService(peerhost host.Host, interval time.Duration) (Service, error)
 		interval: interval,
 	}
 
-	go s.pollForEntries()
+	go s.pollForEntries(ctx)
 
 	return s, nil
 }
@@ -108,31 +109,42 @@ func (m *mdnsService) Close() error {
 	return m.server.Shutdown()
 }
 
-func (m *mdnsService) pollForEntries() {
+func (m *mdnsService) pollForEntries(ctx context.Context) {
+
 	ticker := time.NewTicker(m.interval)
-	for range ticker.C {
-		entriesCh := make(chan *mdns.ServiceEntry, 16)
-		go func() {
-			for entry := range entriesCh {
-				m.handleEntry(entry)
+	for {
+		select {
+		case <-ticker.C:
+			entriesCh := make(chan *mdns.ServiceEntry, 16)
+			go func() {
+				for entry := range entriesCh {
+					m.handleEntry(entry)
+				}
+			}()
+
+			log.Debug("starting mdns query")
+			qp := &mdns.QueryParam{
+				Domain:  "local",
+				Entries: entriesCh,
+				Service: ServiceTag,
+				Timeout: time.Second * 5,
 			}
-		}()
 
-		qp := mdns.QueryParam{}
-		qp.Domain = "local"
-		qp.Entries = entriesCh
-		qp.Service = ServiceTag
-		qp.Timeout = time.Second * 5
-
-		err := mdns.Query(&qp)
-		if err != nil {
-			log.Error("mdns lookup error: ", err)
+			err := mdns.Query(qp)
+			if err != nil {
+				log.Error("mdns lookup error: ", err)
+			}
+			close(entriesCh)
+			log.Debug("mdns query complete")
+		case <-ctx.Done():
+			log.Debug("mdns service halting")
+			return
 		}
-		close(entriesCh)
 	}
 }
 
 func (m *mdnsService) handleEntry(e *mdns.ServiceEntry) {
+	log.Debugf("Handling MDNS entry: %s:%d %s", e.AddrV4, e.Port, e.Info)
 	mpeer, err := peer.IDB58Decode(e.Info)
 	if err != nil {
 		log.Warning("Error parsing peer ID from mdns entry: ", err)
@@ -140,6 +152,7 @@ func (m *mdnsService) handleEntry(e *mdns.ServiceEntry) {
 	}
 
 	if mpeer == m.host.ID() {
+		log.Debug("got our own mdns entry, skipping")
 		return
 	}
 
@@ -159,7 +172,7 @@ func (m *mdnsService) handleEntry(e *mdns.ServiceEntry) {
 
 	m.lk.Lock()
 	for _, n := range m.notifees {
-		n.HandlePeerFound(pi)
+		go n.HandlePeerFound(pi)
 	}
 	m.lk.Unlock()
 }
