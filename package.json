@@ -59,9 +59,9 @@
       "version": "1.2.0"
     },
     {
-      "hash": "QmPpRcbNUXauP3zWZ1NJMLWpe4QnmEHrd2ba2D3yqWznw7",
+      "hash": "QmY83KqqnQ286ZWbV2x7ixpeemH3cBpk8R54egS619WYff",
       "name": "go-multiaddr-net",
-      "version": "1.2.0"
+      "version": "1.3.0"
     },
     {
       "hash": "QmYf7ng2hG5XBtJA3tN34DQ2GUN5HNksEw1rLDkmr6vGku",
@@ -154,12 +154,6 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "Qmazcq5ZXnyP5smvUquM8dAro6ZAppExxyV7Z3URq3dzin",
-      "name": "go-libp2p-transport",
-      "version": "1.6.1"
-    },
-    {
-      "author": "whyrusleeping",
       "hash": "QmSHTSkxXGQgaHWz91oZV3CDy3hmKmDgpjbYRT6niACG4E",
       "name": "go-smux-yamux",
       "version": "1.1.1"
@@ -178,15 +172,27 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmdMfSLMDBDYhtc4oF3NYGCZr5dy4wQb6Ji26N4D4mdxa2",
+      "hash": "QmYkwVGkwoPbMVQEbf6LonZg4SsCxGP3H7PBEtdNCNRyxD",
       "name": "go-libp2p-peerstore",
-      "version": "1.2.4"
+      "version": "1.2.5"
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmWEQk3Ak32B2nAVjAnXzAsfXGHCyjvrHB9vroooWhEr8j",
+      "hash": "QmNvbe83jVfR13jAHpmEzrV21YJ1QRrRWJh6Vw9uBDaQdS",
       "name": "ws-transport",
-      "version": "1.2.2"
+      "version": "1.3.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmUDjsP471mkH5F4DoD5jQaTybX7ENU6YDULwQi9Keu3Vi",
+      "name": "go-libp2p-transport",
+      "version": "2.1.2"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmXHZVjWjAgLXTBrH9LZ3u1VRiQBsmaPnd8ZWJG8jTTQNC",
+      "name": "go-tcp-transport",
+      "version": "1.0.1"
     }
   ],
   "gxVersion": "0.4.0",
