@@ -199,6 +199,7 @@
   "language": "go",
   "license": "MIT",
   "name": "go-libp2p",
-  "version": "3.5.3"
+  "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
+  "version": "3.5.4"
 }
 
