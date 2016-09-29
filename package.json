@@ -14,9 +14,9 @@
       "version": "0.0.0"
     },
     {
-      "hash": "QmSscYPCcE1H3UQr2tnsJ2a9dK9LsHTBGgP71VW6fz67e5",
+      "hash": "QmZ6K4wx6uDZLPEjcDbHErMV1qGjSbcNrck3PqYSRhkrAN",
       "name": "mdns",
-      "version": "0.0.0"
+      "version": "0.1.0"
     },
     {
       "hash": "QmRQhVisS8dmPbjBUthVkenn81pBxrx1GxE281csJhm2vL",
@@ -202,4 +202,3 @@
   "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
   "version": "3.5.4"
 }
-
