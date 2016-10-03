@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"context"
 	u "github.com/ipfs/go-ipfs-util"
 	peer "github.com/ipfs/go-libp2p-peer"
 	logging "github.com/ipfs/go-log"
@@ -13,7 +14,6 @@ import (
 	inet "github.com/libp2p/go-libp2p/p2p/net"
 	protocol "github.com/libp2p/go-libp2p/p2p/protocol"
 	testutil "github.com/libp2p/go-libp2p/p2p/test/util"
-	context "golang.org/x/net/context"
 )
 
 var log = logging.Logger("backpressure")
