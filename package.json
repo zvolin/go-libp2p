@@ -104,11 +104,6 @@
       "version": "0.0.0"
     },
     {
-      "hash": "QmZy2y8t9zQH2a1b8q2ZSLKp17ATuJoCNxxyMFG5qFExpt",
-      "name": "go-net",
-      "version": "0.0.0"
-    },
-    {
       "hash": "Qmb1US8uyZeEpMyc56wVZy2cDFdQjNFojAUYVCoo9ieTqp",
       "name": "go-stream-muxer",
       "version": "1.0.0"

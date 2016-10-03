@@ -1,6 +1,7 @@
 package reconnect
 
 import (
+	"context"
 	"io"
 	"math/rand"
 	"sync"
@@ -15,7 +16,6 @@ import (
 	swarm "github.com/libp2p/go-libp2p/p2p/net/swarm"
 	protocol "github.com/libp2p/go-libp2p/p2p/protocol"
 	testutil "github.com/libp2p/go-libp2p/p2p/test/util"
-	context "golang.org/x/net/context"
 )
 
 func init() {

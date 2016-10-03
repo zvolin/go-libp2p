@@ -4,13 +4,13 @@ import (
 	"io"
 	"testing"
 
+	"context"
 	logging "github.com/ipfs/go-log"
 	inet "github.com/libp2p/go-libp2p/p2p/net"
 	protocol "github.com/libp2p/go-libp2p/p2p/protocol"
 	relay "github.com/libp2p/go-libp2p/p2p/protocol/relay"
 	testutil "github.com/libp2p/go-libp2p/p2p/test/util"
 	msmux "github.com/whyrusleeping/go-multistream"
-	context "golang.org/x/net/context"
 )
 
 var log = logging.Logger("relay_test")
