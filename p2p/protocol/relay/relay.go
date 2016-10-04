@@ -1,20 +1,21 @@
 package relay
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"time"
 
-	"context"
+	host "github.com/libp2p/go-libp2p/p2p/host"
+
 	peer "github.com/ipfs/go-libp2p-peer"
 	logging "github.com/ipfs/go-log"
 	mh "github.com/jbenet/go-multihash"
+	inet "github.com/libp2p/go-libp2p-net"
 	protocol "github.com/libp2p/go-libp2p-protocol"
-	host "github.com/libp2p/go-libp2p/p2p/host"
-	inet "github.com/libp2p/go-libp2p/p2p/net"
 )
 
-var log = logging.Logger("github.com/libp2p/go-libp2p/p2p/protocol/relay")
+var log = logging.Logger("protocol/relay")
 
 // ID is the protocol.ID of the Relay Service.
 const ID protocol.ID = "/ipfs/relay/line/0.1.0"

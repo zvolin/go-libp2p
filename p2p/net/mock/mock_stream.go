@@ -6,8 +6,8 @@ import (
 	"time"
 
 	process "github.com/jbenet/goprocess"
+	inet "github.com/libp2p/go-libp2p-net"
 	protocol "github.com/libp2p/go-libp2p-protocol"
-	inet "github.com/libp2p/go-libp2p/p2p/net"
 )
 
 // stream implements inet.Stream

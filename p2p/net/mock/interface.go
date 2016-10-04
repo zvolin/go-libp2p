@@ -11,12 +11,12 @@ import (
 	"time"
 
 	host "github.com/libp2p/go-libp2p/p2p/host"
-	inet "github.com/libp2p/go-libp2p/p2p/net"
 
 	ic "github.com/ipfs/go-libp2p-crypto"
 	peer "github.com/ipfs/go-libp2p-peer"
 	pstore "github.com/ipfs/go-libp2p-peerstore"
 	ma "github.com/jbenet/go-multiaddr"
+	inet "github.com/libp2p/go-libp2p-net"
 )
 
 type Mocknet interface {

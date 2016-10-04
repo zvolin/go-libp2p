@@ -1,18 +1,17 @@
 package mocknet
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"sync"
 
-	inet "github.com/libp2p/go-libp2p/p2p/net"
-
-	"context"
 	peer "github.com/ipfs/go-libp2p-peer"
 	pstore "github.com/ipfs/go-libp2p-peerstore"
 	ma "github.com/jbenet/go-multiaddr"
 	"github.com/jbenet/goprocess"
 	goprocessctx "github.com/jbenet/goprocess/context"
+	inet "github.com/libp2p/go-libp2p-net"
 )
 
 // peernet implements inet.Network
