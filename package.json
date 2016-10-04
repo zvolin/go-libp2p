@@ -188,6 +188,18 @@
       "hash": "QmXFU6HbpMaxJ3wtw96aSSqBcdJJqtuE2ipMopmh1T3be8",
       "name": "go-tcp-transport",
       "version": "1.0.2"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmaRNdghe7SY53L9WfyVesio7yvVnyXtgSpbBd9CJYfvJg",
+      "name": "go-maddr-filter",
+      "version": "1.0.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN",
+      "name": "go-libp2p-protocol",
+      "version": "1.0.0"
     }
   ],
   "gxVersion": "0.4.0",
