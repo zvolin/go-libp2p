@@ -6,8 +6,8 @@ import (
 
 	"context"
 	logging "github.com/ipfs/go-log"
+	protocol "github.com/libp2p/go-libp2p-protocol"
 	inet "github.com/libp2p/go-libp2p/p2p/net"
-	protocol "github.com/libp2p/go-libp2p/p2p/protocol"
 	relay "github.com/libp2p/go-libp2p/p2p/protocol/relay"
 	testutil "github.com/libp2p/go-libp2p/p2p/test/util"
 	msmux "github.com/whyrusleeping/go-multistream"
