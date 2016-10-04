@@ -236,6 +236,12 @@
       "hash": "QmRxzoGdQaN6HYyqWnT82NnLLHBAZbTUvxPEfTBTjU7KCn",
       "name": "go-libp2p-interface-conn",
       "version": "0.1.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmaAyA9QMVdzCYHv7QJnKu4Dzk4zfnFrHw9itzP9kEUKYW",
+      "name": "go-libp2p-host",
+      "version": "1.0.0"
     }
   ],
   "gxVersion": "0.4.0",

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	host "github.com/libp2p/go-libp2p/p2p/host"
+	host "github.com/libp2p/go-libp2p-host"
 
 	lgbl "github.com/ipfs/go-libp2p-loggables"
 	peer "github.com/ipfs/go-libp2p-peer"

@@ -6,7 +6,7 @@ import (
 	"io"
 	"time"
 
-	host "github.com/libp2p/go-libp2p/p2p/host"
+	host "github.com/libp2p/go-libp2p-host"
 
 	peer "github.com/ipfs/go-libp2p-peer"
 	logging "github.com/ipfs/go-log"
