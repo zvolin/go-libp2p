@@ -218,6 +218,18 @@
       "hash": "QmTaW4q1AbqMkpfDLUYzW18nW62GsrnFvtVcvR1pnaURm6",
       "name": "go-libp2p-conn",
       "version": "1.0.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmSctCnUNkE7c7C2LGRGYrdmU9SDH3MtbAeueN7Jq1NN2q",
+      "name": "go-libp2p-net",
+      "version": "1.0.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmS38TTyj47fP5NVNznxpw4KpFYSU9zHkCEfmuBSkHzb6d",
+      "name": "go-libp2p-metrics",
+      "version": "1.0.0"
     }
   ],
   "gxVersion": "0.4.0",

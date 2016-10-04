@@ -8,7 +8,6 @@ import (
 
 	host "github.com/libp2p/go-libp2p/p2p/host"
 	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
-	inet "github.com/libp2p/go-libp2p/p2p/net"
 	p2putil "github.com/libp2p/go-libp2p/p2p/test/util"
 
 	ic "github.com/ipfs/go-libp2p-crypto"
@@ -17,6 +16,7 @@ import (
 	ma "github.com/jbenet/go-multiaddr"
 	"github.com/jbenet/goprocess"
 	goprocessctx "github.com/jbenet/goprocess/context"
+	inet "github.com/libp2p/go-libp2p-net"
 	testutil "github.com/libp2p/go-testutil"
 )
 

@@ -8,7 +8,7 @@ import (
 	peer "github.com/ipfs/go-libp2p-peer"
 	ma "github.com/jbenet/go-multiaddr"
 	process "github.com/jbenet/goprocess"
-	inet "github.com/libp2p/go-libp2p/p2p/net"
+	inet "github.com/libp2p/go-libp2p-net"
 )
 
 // conn represents one side's perspective of a

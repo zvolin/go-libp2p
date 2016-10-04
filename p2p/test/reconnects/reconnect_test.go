@@ -11,9 +11,9 @@ import (
 	u "github.com/ipfs/go-ipfs-util"
 	logging "github.com/ipfs/go-log"
 	ps "github.com/jbenet/go-peerstream"
+	inet "github.com/libp2p/go-libp2p-net"
 	protocol "github.com/libp2p/go-libp2p-protocol"
 	host "github.com/libp2p/go-libp2p/p2p/host"
-	inet "github.com/libp2p/go-libp2p/p2p/net"
 	swarm "github.com/libp2p/go-libp2p/p2p/net/swarm"
 	testutil "github.com/libp2p/go-libp2p/p2p/test/util"
 )
