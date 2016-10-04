@@ -200,6 +200,24 @@
       "hash": "QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN",
       "name": "go-libp2p-protocol",
       "version": "1.0.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmT6RvBdXJ6xfPgEMT7LAmFcTEbs9Ggh2N3fYGfR1xN3HX",
+      "name": "go-addr-util",
+      "version": "1.0.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmYpVUnnedgGrp6cX2pBii5HRQgcSr778FiKVe7o7nF5Z3",
+      "name": "go-testutil",
+      "version": "1.0.2"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmTaW4q1AbqMkpfDLUYzW18nW62GsrnFvtVcvR1pnaURm6",
+      "name": "go-libp2p-conn",
+      "version": "1.0.0"
     }
   ],
   "gxVersion": "0.4.0",
