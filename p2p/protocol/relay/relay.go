@@ -9,10 +9,10 @@ import (
 	host "github.com/libp2p/go-libp2p-host"
 
 	logging "github.com/ipfs/go-log"
-	mh "github.com/jbenet/go-multihash"
 	inet "github.com/libp2p/go-libp2p-net"
 	peer "github.com/libp2p/go-libp2p-peer"
 	protocol "github.com/libp2p/go-libp2p-protocol"
+	mh "github.com/multiformats/go-multihash"
 )
 
 var log = logging.Logger("protocol/relay")

@@ -7,16 +7,18 @@ language: go
 go:
     - 1.7
 
-env:
-    - GO15VENDOREXPERIMENT=1
-
 install: true
 
-script:
+before_install:
   - make deps
-  - gx-go rewrite
-  - go test ./p2p/...
+
+#- go vet ./...
+script:
+  - go test ./... -v
 
 cache:
     directories:
         - $GOPATH/src/gx
+
+notifications:
+  email: false
