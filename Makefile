@@ -1,8 +1,15 @@
-export IPFS_API ?= v04x.ipfs.io
-
 gx:
-	go get -u github.com/whyrusleeping/gx
-	go get -u github.com/whyrusleeping/gx-go
+	go get github.com/whyrusleeping/gx
+	go get github.com/whyrusleeping/gx-go
 
-deps: gx
+covertools:
+	go get github.com/mattn/goveralls
+	go get golang.org/x/tools/cmd/cover
+
+deps: gx covertools
 	gx --verbose install --global
+	gx-go rewrite
+
+publish:
+	gx-go rewrite --undo
+
