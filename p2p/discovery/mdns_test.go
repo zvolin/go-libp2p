@@ -8,7 +8,7 @@ import (
 	host "github.com/libp2p/go-libp2p-host"
 	netutil "github.com/libp2p/go-libp2p/p2p/test/util"
 
-	pstore "github.com/ipfs/go-libp2p-peerstore"
+	pstore "github.com/libp2p/go-libp2p-peerstore"
 )
 
 type DiscoveryNotifee struct {

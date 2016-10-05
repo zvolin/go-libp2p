@@ -7,14 +7,14 @@ import (
 
 	host "github.com/libp2p/go-libp2p-host"
 
-	lgbl "github.com/ipfs/go-libp2p-loggables"
-	peer "github.com/ipfs/go-libp2p-peer"
-	pstore "github.com/ipfs/go-libp2p-peerstore"
 	logging "github.com/ipfs/go-log"
-	ma "github.com/jbenet/go-multiaddr"
+	lgbl "github.com/libp2p/go-libp2p-loggables"
 	metrics "github.com/libp2p/go-libp2p-metrics"
 	inet "github.com/libp2p/go-libp2p-net"
+	peer "github.com/libp2p/go-libp2p-peer"
+	pstore "github.com/libp2p/go-libp2p-peerstore"
 	protocol "github.com/libp2p/go-libp2p-protocol"
+	ma "github.com/multiformats/go-multiaddr"
 	msmux "github.com/whyrusleeping/go-multistream"
 )
 
