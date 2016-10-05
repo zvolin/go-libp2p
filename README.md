@@ -43,7 +43,7 @@ $ make
 
 # Examples
 
-Examples can be found on the [libp2p-examples repo](https://github.com/whyrusleeping/libp2p-examples/)
+Examples can be found on the [examples folder](examples).
 
 # Run tests
 
