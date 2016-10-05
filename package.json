@@ -215,20 +215,32 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmTaW4q1AbqMkpfDLUYzW18nW62GsrnFvtVcvR1pnaURm6",
+      "hash": "Qmd4eGc7VMmVZu225mdCzsagdWJBaAVHmmvNFYSvxSUeX5",
       "name": "go-libp2p-conn",
-      "version": "1.0.0"
+      "version": "1.1.0"
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmSctCnUNkE7c7C2LGRGYrdmU9SDH3MtbAeueN7Jq1NN2q",
+      "hash": "Qmcr6YS5QCPwejhBxZk5iFEvVEHSVzewbLVMyc64zefaUf",
       "name": "go-libp2p-net",
       "version": "1.0.0"
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmS38TTyj47fP5NVNznxpw4KpFYSU9zHkCEfmuBSkHzb6d",
+      "hash": "QmbidKjoAxLVE2skY74Rfw1QafReyf4w2FZqA8Sd7MxoVd",
       "name": "go-libp2p-metrics",
+      "version": "1.1.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmRxzoGdQaN6HYyqWnT82NnLLHBAZbTUvxPEfTBTjU7KCn",
+      "name": "go-libp2p-interface-conn",
+      "version": "0.1.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmaAyA9QMVdzCYHv7QJnKu4Dzk4zfnFrHw9itzP9kEUKYW",
+      "name": "go-libp2p-host",
       "version": "1.0.0"
     }
   ],

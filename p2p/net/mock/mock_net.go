@@ -6,7 +6,7 @@ import (
 	"sort"
 	"sync"
 
-	host "github.com/libp2p/go-libp2p/p2p/host"
+	host "github.com/libp2p/go-libp2p-host"
 	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
 	p2putil "github.com/libp2p/go-libp2p/p2p/test/util"
 
