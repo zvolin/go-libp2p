@@ -4,11 +4,11 @@ import (
 	"container/list"
 	"sync"
 
-	ic "github.com/ipfs/go-libp2p-crypto"
-	peer "github.com/ipfs/go-libp2p-peer"
-	ma "github.com/jbenet/go-multiaddr"
 	process "github.com/jbenet/goprocess"
+	ic "github.com/libp2p/go-libp2p-crypto"
 	inet "github.com/libp2p/go-libp2p-net"
+	peer "github.com/libp2p/go-libp2p-peer"
+	ma "github.com/multiformats/go-multiaddr"
 )
 
 // conn represents one side's perspective of a

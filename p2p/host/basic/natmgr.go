@@ -6,10 +6,10 @@ import (
 
 	inat "github.com/libp2p/go-libp2p/p2p/nat"
 
-	lgbl "github.com/ipfs/go-libp2p-loggables"
-	ma "github.com/jbenet/go-multiaddr"
 	goprocess "github.com/jbenet/goprocess"
+	lgbl "github.com/libp2p/go-libp2p-loggables"
 	inet "github.com/libp2p/go-libp2p-net"
+	ma "github.com/multiformats/go-multiaddr"
 )
 
 // natManager takes care of adding + removing port mappings to the nat.

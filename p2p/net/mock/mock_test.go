@@ -12,8 +12,8 @@ import (
 
 	inet "github.com/libp2p/go-libp2p-net"
 
-	peer "github.com/ipfs/go-libp2p-peer"
 	detectrace "github.com/jbenet/go-detect-race"
+	peer "github.com/libp2p/go-libp2p-peer"
 	protocol "github.com/libp2p/go-libp2p-protocol"
 	testutil "github.com/libp2p/go-testutil"
 )

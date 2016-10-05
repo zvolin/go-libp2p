@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"io"
 
-	peer "github.com/ipfs/go-libp2p-peer"
 	inet "github.com/libp2p/go-libp2p-net"
+	peer "github.com/libp2p/go-libp2p-peer"
 )
 
 // separate object so our interfaces are separate :)
