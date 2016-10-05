@@ -14,7 +14,7 @@ before_install:
 
 #- go vet ./...
 script:
-  - $GOPATH/bin/goveralls ./... -service="travis-ci"
+  - go test ./... -v
 
 cache:
     directories:
