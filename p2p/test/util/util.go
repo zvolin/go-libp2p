@@ -5,11 +5,11 @@ import (
 	"testing"
 
 	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
-	swarm "github.com/libp2p/go-libp2p/p2p/net/swarm"
 
 	metrics "github.com/libp2p/go-libp2p-metrics"
 	inet "github.com/libp2p/go-libp2p-net"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
+	swarm "github.com/libp2p/go-libp2p-swarm"
 	tu "github.com/libp2p/go-testutil"
 	ma "github.com/multiformats/go-multiaddr"
 )
