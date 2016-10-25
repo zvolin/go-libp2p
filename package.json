@@ -39,11 +39,6 @@
       "version": "0.3.1"
     },
     {
-      "hash": "QmYabcy8kaP658zZRZHLqRquJ37ycNWr4qhBL25tUodZWc",
-      "name": "go-nat",
-      "version": "0.0.0"
-    },
-    {
       "hash": "QmQHGMVmrsgmqUG8ih3puNXUJneSpi13dkcZpzLKkskUkH",
       "name": "go-detect-race",
       "version": "0.0.0"
@@ -248,6 +243,12 @@
       "hash": "QmeAfPWBWDQq9qjQ5oiWhaFs7oEsfB6FyEj5VxNdc2r34q",
       "name": "go-libp2p-swarm",
       "version": "1.0.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmPpncQ3L4bC3rnwLBrgEomygs5RbnFejb68GgsecxbMiL",
+      "name": "go-libp2p-nat",
+      "version": "0.0.0"
     }
   ],
   "gxVersion": "0.4.0",

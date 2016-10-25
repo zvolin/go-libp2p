@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	inat "github.com/libp2p/go-libp2p/p2p/nat"
+	inat "github.com/libp2p/go-libp2p-nat"
 
 	goprocess "github.com/jbenet/goprocess"
 	lgbl "github.com/libp2p/go-libp2p-loggables"
