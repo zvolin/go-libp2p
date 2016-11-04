@@ -10,12 +10,12 @@ import (
 
 	u "github.com/ipfs/go-ipfs-util"
 	logging "github.com/ipfs/go-log"
-	ps "github.com/jbenet/go-peerstream"
 	host "github.com/libp2p/go-libp2p-host"
 	inet "github.com/libp2p/go-libp2p-net"
 	protocol "github.com/libp2p/go-libp2p-protocol"
 	swarm "github.com/libp2p/go-libp2p-swarm"
 	testutil "github.com/libp2p/go-libp2p/p2p/test/util"
+	ps "github.com/libp2p/go-peerstream"
 )
 
 func init() {
