@@ -117,6 +117,7 @@ func (h *BasicHost) newStreamHandler(s inet.Stream) {
 		} else {
 			log.Warning("protocol mux failed: %s (took %s)", err, took)
 		}
+		s.Close()
 		return
 	}
 	s.SetProtocol(protocol.ID(protoID))
