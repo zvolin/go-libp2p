@@ -5,24 +5,30 @@ package multistream
 import (
 	"fmt"
 	"net"
+	"time"
 
 	mss "github.com/whyrusleeping/go-multistream"
 
 	smux "github.com/jbenet/go-stream-muxer"
 )
 
+var DefaultNegotiateTimeout = time.Second * 60
+
 type Transport struct {
 	mux *mss.MultistreamMuxer
 
 	tpts map[string]smux.Transport
+
+	NegotiateTimeout time.Duration
 
 	OrderPreference []string
 }
 
 func NewBlankTransport() *Transport {
 	return &Transport{
-		mux:  mss.NewMultistreamMuxer(),
-		tpts: make(map[string]smux.Transport),
+		mux:              mss.NewMultistreamMuxer(),
+		tpts:             make(map[string]smux.Transport),
+		NegotiateTimeout: DefaultNegotiateTimeout,
 	}
 }
 
@@ -33,6 +39,12 @@ func (t *Transport) AddTransport(path string, tpt smux.Transport) {
 }
 
 func (t *Transport) NewConn(nc net.Conn, isServer bool) (smux.Conn, error) {
+	if t.NegotiateTimeout != 0 {
+		if err := nc.SetDeadline(time.Now().Add(t.NegotiateTimeout)); err != nil {
+			return nil, err
+		}
+	}
+
 	var proto string
 	if isServer {
 		selected, _, err := t.mux.Negotiate(nc)
@@ -46,6 +58,12 @@ func (t *Transport) NewConn(nc net.Conn, isServer bool) (smux.Conn, error) {
 			return nil, err
 		}
 		proto = selected
+	}
+
+	if t.NegotiateTimeout != 0 {
+		if err := nc.SetDeadline(time.Time{}); err != nil {
+			return nil, err
+		}
 	}
 
 	tpt, ok := t.tpts[proto]
