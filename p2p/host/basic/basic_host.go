@@ -21,7 +21,7 @@ import (
 	msmux "github.com/whyrusleeping/go-multistream"
 )
 
-var log = logging.Logger("github.com/libp2p/go-libp2p/p2p/host/basic")
+var log = logging.Logger("basichost")
 
 // Option is a type used to pass in options to the host.
 type Option int
