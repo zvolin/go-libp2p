@@ -3,6 +3,7 @@ package mocknet
 import (
 	"bytes"
 	"io"
+	"net"
 	"time"
 
 	process "github.com/jbenet/goprocess"
@@ -12,8 +13,7 @@ import (
 
 // stream implements inet.Stream
 type stream struct {
-	io.Reader
-	io.Writer
+	Pipe      net.Conn
 	conn      *conn
 	toDeliver chan *transportObject
 	proc      process.Process
@@ -26,10 +26,9 @@ type transportObject struct {
 	arrivalTime time.Time
 }
 
-func NewStream(w io.Writer, r io.Reader) *stream {
+func NewStream(p net.Conn) *stream {
 	s := &stream{
-		Reader:    r,
-		Writer:    w,
+		Pipe:      p,
 		toDeliver: make(chan *transportObject),
 	}
 
@@ -70,12 +69,7 @@ func (s *stream) teardown() error {
 	// at this point, no streams are writing.
 
 	s.conn.removeStream(s)
-	if r, ok := (s.Reader).(io.Closer); ok {
-		r.Close()
-	}
-	if w, ok := (s.Writer).(io.Closer); ok {
-		w.Close()
-	}
+	s.Pipe.Close()
 	s.conn.net.notifyAll(func(n inet.Notifiee) {
 		n.ClosedStream(s.conn.net, s)
 	})
@@ -84,6 +78,22 @@ func (s *stream) teardown() error {
 
 func (s *stream) Conn() inet.Conn {
 	return s.conn
+}
+
+func (s *stream) SetDeadline(t time.Time) error {
+	return s.Pipe.SetDeadline(t)
+}
+
+func (s *stream) SetReadDeadline(t time.Time) error {
+	return s.Pipe.SetReadDeadline(t)
+}
+
+func (s *stream) SetWriteDeadline(t time.Time) error {
+	return s.Pipe.SetWriteDeadline(t)
+}
+
+func (s *stream) Read(b []byte) (int, error) {
+	return s.Pipe.Read(b)
 }
 
 // transport will grab message arrival times, wait until that time, and
@@ -97,7 +107,7 @@ func (s *stream) transport(proc process.Process) {
 	// done only when arrival time makes sense.
 	drainBuf := func() {
 		if buf.Len() > 0 {
-			_, err := s.Writer.Write(buf.Bytes())
+			_, err := s.Pipe.Write(buf.Bytes())
 			if err != nil {
 				return
 			}
@@ -131,7 +141,7 @@ func (s *stream) transport(proc process.Process) {
 		drainBuf()
 
 		// write this message.
-		_, err := s.Writer.Write(o.msg)
+		_, err := s.Pipe.Write(o.msg)
 		if err != nil {
 			log.Error("mock_stream", err)
 		}

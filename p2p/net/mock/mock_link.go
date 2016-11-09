@@ -2,7 +2,7 @@ package mocknet
 
 import (
 	//	"fmt"
-	"io"
+	"net"
 	"sync"
 	"time"
 
@@ -45,11 +45,10 @@ func (l *link) newConnPair(dialer *peernet) (*conn, *conn) {
 }
 
 func (l *link) newStreamPair() (*stream, *stream) {
-	r1, w1 := io.Pipe()
-	r2, w2 := io.Pipe()
+	a, b := net.Pipe()
 
-	s1 := NewStream(w2, r1)
-	s2 := NewStream(w1, r2)
+	s1 := NewStream(a)
+	s2 := NewStream(b)
 	return s1, s2
 }
 
