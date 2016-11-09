@@ -23,6 +23,8 @@ import (
 
 var log = logging.Logger("basichost")
 
+var NegotiateTimeout = time.Second * 60
+
 // Option is a type used to pass in options to the host.
 type Option int
 
@@ -48,6 +50,8 @@ type BasicHost struct {
 	relay   *relay.RelayService
 	natmgr  *natManager
 
+	NegotiateTimeout time.Duration
+
 	proc goprocess.Process
 
 	bwc metrics.Reporter
@@ -56,8 +60,9 @@ type BasicHost struct {
 // New constructs and sets up a new *BasicHost with given Network
 func New(net inet.Network, opts ...interface{}) *BasicHost {
 	h := &BasicHost{
-		network: net,
-		mux:     msmux.NewMultistreamMuxer(),
+		network:          net,
+		mux:              msmux.NewMultistreamMuxer(),
+		NegotiateTimeout: NegotiateTimeout,
 	}
 
 	h.proc = goprocess.WithTeardown(func() error {
@@ -106,6 +111,15 @@ func (h *BasicHost) newConnHandler(c inet.Conn) {
 // TODO: this feels a bit wonky
 func (h *BasicHost) newStreamHandler(s inet.Stream) {
 	before := time.Now()
+
+	if h.NegotiateTimeout != 0 {
+		if err := s.SetDeadline(time.Now().Add(h.NegotiateTimeout)); err != nil {
+			log.Error("setting stream deadline: ", err)
+			s.Close()
+			return
+		}
+	}
+
 	protoID, handle, err := h.Mux().Negotiate(s)
 	took := time.Now().Sub(before)
 	if err != nil {
@@ -121,6 +135,15 @@ func (h *BasicHost) newStreamHandler(s inet.Stream) {
 		s.Close()
 		return
 	}
+
+	if h.NegotiateTimeout != 0 {
+		if err := s.SetDeadline(time.Time{}); err != nil {
+			log.Error("resetting stream deadline: ", err)
+			s.Close()
+			return
+		}
+	}
+
 	s.SetProtocol(protocol.ID(protoID))
 
 	if h.bwc != nil {
