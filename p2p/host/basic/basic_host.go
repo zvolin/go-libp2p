@@ -58,7 +58,6 @@ func New(net inet.Network, opts ...interface{}) *BasicHost {
 	h := &BasicHost{
 		network: net,
 		mux:     msmux.NewMultistreamMuxer(),
-		bwc:     metrics.NewBandwidthCounter(),
 	}
 
 	h.proc = goprocess.WithTeardown(func() error {
@@ -89,6 +88,8 @@ func New(net inet.Network, opts ...interface{}) *BasicHost {
 			h.bwc = o
 		}
 	}
+
+	h.ids.Reporter = h.bwc
 
 	net.SetConnHandler(h.newConnHandler)
 	net.SetStreamHandler(h.newStreamHandler)
@@ -217,7 +218,11 @@ func (h *BasicHost) NewStream(ctx context.Context, p peer.ID, pids ...protocol.I
 	s.SetProtocol(selpid)
 	h.Peerstore().AddProtocols(p, selected)
 
-	return mstream.WrapStream(s, h.bwc), nil
+	if h.bwc != nil {
+		s = mstream.WrapStream(s, h.bwc)
+	}
+
+	return s, nil
 }
 
 func pidsToStrings(pids []protocol.ID) []string {
@@ -250,11 +255,13 @@ func (h *BasicHost) newStream(ctx context.Context, p peer.ID, pid protocol.ID) (
 
 	s.SetProtocol(pid)
 
-	logStream := mstream.WrapStream(s, h.bwc)
+	if h.bwc != nil {
+		s = mstream.WrapStream(s, h.bwc)
+	}
 
-	lzcon := msmux.NewMSSelect(logStream, string(pid))
+	lzcon := msmux.NewMSSelect(s, string(pid))
 	return &streamWrapper{
-		Stream: logStream,
+		Stream: s,
 		rw:     lzcon,
 	}, nil
 }

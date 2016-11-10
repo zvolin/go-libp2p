@@ -9,7 +9,6 @@ import (
 
 	logging "github.com/ipfs/go-log"
 	lgbl "github.com/libp2p/go-libp2p-loggables"
-	metrics "github.com/libp2p/go-libp2p-metrics"
 	inet "github.com/libp2p/go-libp2p-net"
 	peer "github.com/libp2p/go-libp2p-peer"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
@@ -18,7 +17,7 @@ import (
 	msmux "github.com/whyrusleeping/go-multistream"
 )
 
-var log = logging.Logger("github.com/libp2p/go-libp2p/p2p/host/routed")
+var log = logging.Logger("routedhost")
 
 // AddressTTL is the expiry time for our addresses.
 // We expire them quickly.
@@ -124,10 +123,6 @@ func (rh *RoutedHost) NewStream(ctx context.Context, p peer.ID, pids ...protocol
 func (rh *RoutedHost) Close() error {
 	// no need to close IpfsRouting. we dont own it.
 	return rh.host.Close()
-}
-
-func (rh *RoutedHost) GetBandwidthReporter() metrics.Reporter {
-	return rh.host.GetBandwidthReporter()
 }
 
 var _ (host.Host) = (*RoutedHost)(nil)
