@@ -307,7 +307,7 @@ func (h *BasicHost) dialPeer(ctx context.Context, p peer.ID) error {
 		return ctx.Err()
 	}
 
-	log.Debugf("host %s finished dialing %s", h.ID, p)
+	log.Debugf("host %s finished dialing %s", h.ID(), p)
 	return nil
 }
 
