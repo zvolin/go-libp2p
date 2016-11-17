@@ -8,12 +8,12 @@ import (
 
 	host "github.com/libp2p/go-libp2p-host"
 	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
-	p2putil "github.com/libp2p/go-libp2p/p2p/test/util"
 
 	"github.com/jbenet/goprocess"
 	goprocessctx "github.com/jbenet/goprocess/context"
 	ic "github.com/libp2p/go-libp2p-crypto"
 	inet "github.com/libp2p/go-libp2p-net"
+	p2putil "github.com/libp2p/go-libp2p-netutil"
 	peer "github.com/libp2p/go-libp2p-peer"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
 	testutil "github.com/libp2p/go-testutil"

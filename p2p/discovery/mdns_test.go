@@ -5,8 +5,10 @@ import (
 	"testing"
 	"time"
 
+	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
+
 	host "github.com/libp2p/go-libp2p-host"
-	netutil "github.com/libp2p/go-libp2p/p2p/test/util"
+	netutil "github.com/libp2p/go-libp2p-netutil"
 
 	pstore "github.com/libp2p/go-libp2p-peerstore"
 )
@@ -23,8 +25,8 @@ func TestMdnsDiscovery(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	a := netutil.GenHostSwarm(t, ctx)
-	b := netutil.GenHostSwarm(t, ctx)
+	a := bhost.New(netutil.GenSwarmNetwork(t, ctx))
+	b := bhost.New(netutil.GenSwarmNetwork(t, ctx))
 
 	sa, err := NewMdnsService(ctx, a, time.Second)
 	if err != nil {

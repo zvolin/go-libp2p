@@ -1,4 +1,4 @@
-package basichost_test
+package basichost
 
 import (
 	"bytes"
@@ -9,15 +9,15 @@ import (
 
 	host "github.com/libp2p/go-libp2p-host"
 	inet "github.com/libp2p/go-libp2p-net"
+	testutil "github.com/libp2p/go-libp2p-netutil"
 	protocol "github.com/libp2p/go-libp2p-protocol"
-	testutil "github.com/libp2p/go-libp2p/p2p/test/util"
 )
 
 func TestHostSimple(t *testing.T) {
 
 	ctx := context.Background()
-	h1 := testutil.GenHostSwarm(t, ctx)
-	h2 := testutil.GenHostSwarm(t, ctx)
+	h1 := New(testutil.GenSwarmNetwork(t, ctx))
+	h2 := New(testutil.GenSwarmNetwork(t, ctx))
 	defer h1.Close()
 	defer h2.Close()
 
@@ -64,8 +64,8 @@ func TestHostSimple(t *testing.T) {
 }
 
 func getHostPair(ctx context.Context, t *testing.T) (host.Host, host.Host) {
-	h1 := testutil.GenHostSwarm(t, ctx)
-	h2 := testutil.GenHostSwarm(t, ctx)
+	h1 := New(testutil.GenSwarmNetwork(t, ctx))
+	h2 := New(testutil.GenSwarmNetwork(t, ctx))
 
 	h2pi := h2.Peerstore().PeerInfo(h2.ID())
 	if err := h1.Connect(ctx, h2pi); err != nil {
@@ -170,8 +170,8 @@ func TestHostProtoPreknowledge(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	h1 := testutil.GenHostSwarm(t, ctx)
-	h2 := testutil.GenHostSwarm(t, ctx)
+	h1 := New(testutil.GenSwarmNetwork(t, ctx))
+	h2 := New(testutil.GenSwarmNetwork(t, ctx))
 
 	conn := make(chan protocol.ID, 16)
 	handler := func(s inet.Stream) {
