@@ -1,19 +1,21 @@
 package backpressure_tests
 
 import (
+	"context"
 	"io"
 	"math/rand"
 	"testing"
 	"time"
 
-	"context"
+	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
+
 	u "github.com/ipfs/go-ipfs-util"
 	logging "github.com/ipfs/go-log"
 	host "github.com/libp2p/go-libp2p-host"
 	inet "github.com/libp2p/go-libp2p-net"
+	testutil "github.com/libp2p/go-libp2p-netutil"
 	peer "github.com/libp2p/go-libp2p-peer"
 	protocol "github.com/libp2p/go-libp2p-protocol"
-	testutil "github.com/libp2p/go-libp2p/p2p/test/util"
 )
 
 var log = logging.Logger("backpressure")
@@ -135,8 +137,8 @@ a problem.
 	// ok that's enough setup. let's do it!
 
 	ctx := context.Background()
-	h1 := testutil.GenHostSwarm(t, ctx)
-	h2 := testutil.GenHostSwarm(t, ctx)
+	h1 := bhost.New(testutil.GenSwarmNetwork(t, ctx))
+	h2 := bhost.New(testutil.GenSwarmNetwork(t, ctx))
 
 	// setup receiver handler
 	h1.SetStreamHandler(protocol.TestingID, receiver)
@@ -272,8 +274,8 @@ func TestStBackpressureStreamWrite(t *testing.T) {
 
 	// setup the networks
 	ctx := context.Background()
-	h1 := testutil.GenHostSwarm(t, ctx)
-	h2 := testutil.GenHostSwarm(t, ctx)
+	h1 := bhost.New(testutil.GenSwarmNetwork(t, ctx))
+	h2 := bhost.New(testutil.GenSwarmNetwork(t, ctx))
 
 	// setup sender handler on 1
 	h1.SetStreamHandler(protocol.TestingID, sender)

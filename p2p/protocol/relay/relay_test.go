@@ -1,15 +1,17 @@
 package relay_test
 
 import (
+	"context"
 	"io"
 	"testing"
 
-	"context"
+	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
+	relay "github.com/libp2p/go-libp2p/p2p/protocol/relay"
+
 	logging "github.com/ipfs/go-log"
 	inet "github.com/libp2p/go-libp2p-net"
+	testutil "github.com/libp2p/go-libp2p-netutil"
 	protocol "github.com/libp2p/go-libp2p-protocol"
-	relay "github.com/libp2p/go-libp2p/p2p/protocol/relay"
-	testutil "github.com/libp2p/go-libp2p/p2p/test/util"
 	msmux "github.com/whyrusleeping/go-multistream"
 )
 
@@ -20,9 +22,9 @@ func TestRelaySimple(t *testing.T) {
 	ctx := context.Background()
 
 	// these networks have the relay service wired in already.
-	n1 := testutil.GenHostSwarm(t, ctx)
-	n2 := testutil.GenHostSwarm(t, ctx)
-	n3 := testutil.GenHostSwarm(t, ctx)
+	n1 := bhost.New(testutil.GenSwarmNetwork(t, ctx))
+	n2 := bhost.New(testutil.GenSwarmNetwork(t, ctx))
+	n3 := bhost.New(testutil.GenSwarmNetwork(t, ctx))
 
 	n1p := n1.ID()
 	n2p := n2.ID()
@@ -103,11 +105,11 @@ func TestRelayAcrossFour(t *testing.T) {
 	ctx := context.Background()
 
 	// these networks have the relay service wired in already.
-	n1 := testutil.GenHostSwarm(t, ctx)
-	n2 := testutil.GenHostSwarm(t, ctx)
-	n3 := testutil.GenHostSwarm(t, ctx)
-	n4 := testutil.GenHostSwarm(t, ctx)
-	n5 := testutil.GenHostSwarm(t, ctx)
+	n1 := bhost.New(testutil.GenSwarmNetwork(t, ctx))
+	n2 := bhost.New(testutil.GenSwarmNetwork(t, ctx))
+	n3 := bhost.New(testutil.GenSwarmNetwork(t, ctx))
+	n4 := bhost.New(testutil.GenSwarmNetwork(t, ctx))
+	n5 := bhost.New(testutil.GenSwarmNetwork(t, ctx))
 
 	n1p := n1.ID()
 	n2p := n2.ID()
@@ -215,9 +217,9 @@ func TestRelayStress(t *testing.T) {
 	ctx := context.Background()
 
 	// these networks have the relay service wired in already.
-	n1 := testutil.GenHostSwarm(t, ctx)
-	n2 := testutil.GenHostSwarm(t, ctx)
-	n3 := testutil.GenHostSwarm(t, ctx)
+	n1 := bhost.New(testutil.GenSwarmNetwork(t, ctx))
+	n2 := bhost.New(testutil.GenSwarmNetwork(t, ctx))
+	n3 := bhost.New(testutil.GenSwarmNetwork(t, ctx))
 
 	n1p := n1.ID()
 	n2p := n2.ID()

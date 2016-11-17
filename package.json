@@ -226,6 +226,18 @@
       "hash": "QmPpncQ3L4bC3rnwLBrgEomygs5RbnFejb68GgsecxbMiL",
       "name": "go-libp2p-nat",
       "version": "0.0.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmcDTquYLTYirqj71RRWKUWEEw3nJt11Awzun5ep8kfY7W",
+      "name": "go-libp2p-netutil",
+      "version": "0.1.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmYjDhB1VkuP5ATkqjdnPHfA2huyfcydNMXoGdtEvTNcYL",
+      "name": "go-libp2p-blankhost",
+      "version": "0.1.0"
     }
   ],
   "gxVersion": "0.4.0",
@@ -235,3 +247,4 @@
   "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
   "version": "4.1.0"
 }
+

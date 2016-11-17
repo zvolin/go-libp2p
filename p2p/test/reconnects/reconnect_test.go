@@ -8,13 +8,15 @@ import (
 	"testing"
 	"time"
 
+	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
+
 	u "github.com/ipfs/go-ipfs-util"
 	logging "github.com/ipfs/go-log"
 	host "github.com/libp2p/go-libp2p-host"
 	inet "github.com/libp2p/go-libp2p-net"
+	testutil "github.com/libp2p/go-libp2p-netutil"
 	protocol "github.com/libp2p/go-libp2p-protocol"
 	swarm "github.com/libp2p/go-libp2p-swarm"
-	testutil "github.com/libp2p/go-libp2p/p2p/test/util"
 	ps "github.com/libp2p/go-peerstream"
 )
 
@@ -103,8 +105,8 @@ func newSender() (chan sendChans, func(s inet.Stream)) {
 // TestReconnect tests whether hosts are able to disconnect and reconnect.
 func TestReconnect2(t *testing.T) {
 	ctx := context.Background()
-	h1 := testutil.GenHostSwarm(t, ctx)
-	h2 := testutil.GenHostSwarm(t, ctx)
+	h1 := bhost.New(testutil.GenSwarmNetwork(t, ctx))
+	h2 := bhost.New(testutil.GenSwarmNetwork(t, ctx))
 	hosts := []host.Host{h1, h2}
 
 	h1.SetStreamHandler(protocol.TestingID, EchoStreamHandler)
@@ -123,11 +125,11 @@ func TestReconnect2(t *testing.T) {
 // TestReconnect tests whether hosts are able to disconnect and reconnect.
 func TestReconnect5(t *testing.T) {
 	ctx := context.Background()
-	h1 := testutil.GenHostSwarm(t, ctx)
-	h2 := testutil.GenHostSwarm(t, ctx)
-	h3 := testutil.GenHostSwarm(t, ctx)
-	h4 := testutil.GenHostSwarm(t, ctx)
-	h5 := testutil.GenHostSwarm(t, ctx)
+	h1 := bhost.New(testutil.GenSwarmNetwork(t, ctx))
+	h2 := bhost.New(testutil.GenSwarmNetwork(t, ctx))
+	h3 := bhost.New(testutil.GenSwarmNetwork(t, ctx))
+	h4 := bhost.New(testutil.GenSwarmNetwork(t, ctx))
+	h5 := bhost.New(testutil.GenSwarmNetwork(t, ctx))
 	hosts := []host.Host{h1, h2, h3, h4, h5}
 
 	h1.SetStreamHandler(protocol.TestingID, EchoStreamHandler)
