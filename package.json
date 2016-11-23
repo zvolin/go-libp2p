@@ -139,9 +139,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmXXCcQ7CLg5a81Ui9TTR35QcR4y7ZyihxwfjqaHfUVcVo",
+      "hash": "QmeXj9VAjmYQZxpmVz7VzccbJrpmr8qkCDSjfVNsPTWTYU",
       "name": "go-libp2p-peerstore",
-      "version": "1.3.0"
+      "version": "1.4.0"
     },
     {
       "author": "whyrusleeping",
@@ -193,15 +193,15 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmU3pGGVT1riXp5dBJbNrGpxssVScfvk9236drRHZZbKJ1",
+      "hash": "QmQx1dHDDYENugYgqA22BaBrRfuv1coSsuPiM7rYh1wwGH",
       "name": "go-libp2p-net",
-      "version": "1.6.0"
+      "version": "1.6.1"
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmX4j1JhubdEt4EB1JY1mMKTvJwPZSRzTv3uwh5zaDqyAi",
+      "hash": "QmY2otvyPM2sTaDsczo7Yuosg98sUMCJ9qx1gpPaAPTS9B",
       "name": "go-libp2p-metrics",
-      "version": "1.6.0"
+      "version": "1.6.1"
     },
     {
       "author": "whyrusleeping",
@@ -211,15 +211,15 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "Qmb6UFbVu1grhv5o5KnouvtZ6cqdrjXj6zLejAHWunxgCt",
+      "hash": "QmPTGbC34bPKaUm9wTxBo7zSCac7pDuG42ZmnXC718CKZZ",
       "name": "go-libp2p-host",
-      "version": "1.3.0"
+      "version": "1.3.1"
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmNafAGBU21iQmLudMT2z1kqgEGhjUrNoK9a3v4azd8ei4",
+      "hash": "QmV82zccDVU2fPv7E6wBD6cPy55brSFGHNeTVg5MZ6ZDQ8",
       "name": "go-libp2p-swarm",
-      "version": "1.5.0"
+      "version": "1.5.1"
     },
     {
       "author": "whyrusleeping",
@@ -229,15 +229,15 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmcDTquYLTYirqj71RRWKUWEEw3nJt11Awzun5ep8kfY7W",
+      "hash": "QmbUDXBMqSe4VCRgTMeAfyBh1T3GBnELEBXobZDL7cjVgs",
       "name": "go-libp2p-netutil",
-      "version": "0.1.0"
+      "version": "0.1.1"
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmYjDhB1VkuP5ATkqjdnPHfA2huyfcydNMXoGdtEvTNcYL",
+      "hash": "QmSzhYTPRvh5nUJnRfYBW52QGX6jekULCRQcrxRs8hmzj4",
       "name": "go-libp2p-blankhost",
-      "version": "0.1.0"
+      "version": "0.1.1"
     }
   ],
   "gxVersion": "0.4.0",
