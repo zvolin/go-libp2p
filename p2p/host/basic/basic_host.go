@@ -104,6 +104,9 @@ func New(net inet.Network, opts ...interface{}) *BasicHost {
 
 // newConnHandler is the remote-opened conn handler for inet.Network
 func (h *BasicHost) newConnHandler(c inet.Conn) {
+	// Clear protocols on connecting to new peer to avoid issues caused
+	// by misremembering protocols between reconnects
+	h.Peerstore().SetProtocols(c.RemotePeer())
 	h.ids.IdentifyConn(c)
 }
 
@@ -120,7 +123,7 @@ func (h *BasicHost) newStreamHandler(s inet.Stream) {
 		}
 	}
 
-	protoID, handle, err := h.Mux().Negotiate(s)
+	lzc, protoID, handle, err := h.Mux().NegotiateLazy(s)
 	took := time.Now().Sub(before)
 	if err != nil {
 		if err == io.EOF {
@@ -134,6 +137,11 @@ func (h *BasicHost) newStreamHandler(s inet.Stream) {
 		}
 		s.Close()
 		return
+	}
+
+	s = &streamWrapper{
+		Stream: s,
+		rw:     lzc,
 	}
 
 	if h.NegotiateTimeout != 0 {
@@ -315,6 +323,10 @@ func (h *BasicHost) dialPeer(ctx context.Context, p peer.ID) error {
 	if err != nil {
 		return err
 	}
+
+	// Clear protocols on connecting to new peer to avoid issues caused
+	// by misremembering protocols between reconnects
+	h.Peerstore().SetProtocols(p)
 
 	// identify the connection before returning.
 	done := make(chan struct{})
