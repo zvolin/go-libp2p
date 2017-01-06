@@ -98,7 +98,7 @@ func TestHostProtoPreference(t *testing.T) {
 	protoNew := protocol.ID("/testing/1.1.0")
 	protoMinor := protocol.ID("/testing/1.2.0")
 
-	connectedOn := make(chan protocol.ID, 16)
+	connectedOn := make(chan protocol.ID)
 
 	handler := func(s inet.Stream) {
 		connectedOn <- s.Protocol()
@@ -173,7 +173,7 @@ func TestHostProtoPreknowledge(t *testing.T) {
 	h1 := New(testutil.GenSwarmNetwork(t, ctx))
 	h2 := New(testutil.GenSwarmNetwork(t, ctx))
 
-	conn := make(chan protocol.ID, 16)
+	conn := make(chan protocol.ID)
 	handler := func(s inet.Stream) {
 		conn <- s.Protocol()
 		s.Close()
@@ -189,7 +189,17 @@ func TestHostProtoPreknowledge(t *testing.T) {
 	defer h2.Close()
 
 	// wait for identify handshake to finish completely
-	time.Sleep(time.Millisecond * 20)
+	select {
+	case <-h1.ids.IdentifyWait(h1.Network().ConnsToPeer(h2.ID())[0]):
+	case <-time.After(time.Second * 5):
+		t.Fatal("timed out waiting for identify")
+	}
+
+	select {
+	case <-h2.ids.IdentifyWait(h2.Network().ConnsToPeer(h1.ID())[0]):
+	case <-time.After(time.Second * 5):
+		t.Fatal("timed out waiting for identify")
+	}
 
 	h1.SetStreamHandler("/foo", handler)
 
@@ -222,7 +232,7 @@ func TestNewDialOld(t *testing.T) {
 	defer h1.Close()
 	defer h2.Close()
 
-	connectedOn := make(chan protocol.ID, 16)
+	connectedOn := make(chan protocol.ID)
 	h1.SetStreamHandler("/testing", func(s inet.Stream) {
 		connectedOn <- s.Protocol()
 		s.Close()
@@ -250,7 +260,7 @@ func TestProtoDowngrade(t *testing.T) {
 	defer h1.Close()
 	defer h2.Close()
 
-	connectedOn := make(chan protocol.ID, 16)
+	connectedOn := make(chan protocol.ID)
 	h1.SetStreamHandler("/testing/1.0.0", func(s inet.Stream) {
 		connectedOn <- s.Protocol()
 		s.Close()
