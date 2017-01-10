@@ -187,9 +187,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmdEajEhjdowKAsrZiaZBWnZkdREjT32UZAsfhAfcmonr3",
+      "hash": "Qmbw14c3YFucyNLdszPzAg9BZaucJcKQGjRsnMKcujZwEz",
       "name": "go-libp2p-conn",
-      "version": "1.5.4"
+      "version": "1.5.5"
     },
     {
       "author": "whyrusleeping",
@@ -245,6 +245,6 @@
   "license": "MIT",
   "name": "go-libp2p",
   "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
-  "version": "4.3.3"
+  "version": "4.3.4"
 }
 
