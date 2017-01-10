@@ -14,7 +14,7 @@ import (
 	pstore "github.com/libp2p/go-libp2p-peerstore"
 	protocol "github.com/libp2p/go-libp2p-protocol"
 	ma "github.com/multiformats/go-multiaddr"
-	msmux "github.com/whyrusleeping/go-multistream"
+	msmux "github.com/multiformats/go-multistream"
 )
 
 var log = logging.Logger("routedhost")
