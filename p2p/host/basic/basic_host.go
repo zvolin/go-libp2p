@@ -6,7 +6,6 @@ import (
 	"time"
 
 	identify "github.com/libp2p/go-libp2p/p2p/protocol/identify"
-	relay "github.com/libp2p/go-libp2p/p2p/protocol/relay"
 
 	logging "github.com/ipfs/go-log"
 	goprocess "github.com/jbenet/goprocess"
@@ -40,13 +39,11 @@ const (
 // particular host implementation:
 //  * uses a protocol muxer to mux per-protocol streams
 //  * uses an identity service to send + receive node information
-//  * uses a relay service to allow hosts to relay conns for each other
 //  * uses a nat service to establish NAT port mappings
 type BasicHost struct {
 	network inet.Network
 	mux     *msmux.MultistreamMuxer
 	ids     *identify.IDService
-	relay   *relay.RelayService
 	natmgr  *natManager
 
 	NegotiateTimeout time.Duration
@@ -74,12 +71,6 @@ func New(net inet.Network, opts ...interface{}) *BasicHost {
 
 	// setup host services
 	h.ids = identify.NewIDService(h)
-
-	muxh := h.Mux().Handle
-	handle := func(s inet.Stream) {
-		muxh(s)
-	}
-	h.relay = relay.NewRelayService(h, handle)
 
 	for _, o := range opts {
 		switch o := o.(type) {
@@ -300,7 +291,7 @@ func (h *BasicHost) newStream(ctx context.Context, p peer.ID, pid protocol.ID) (
 // given peer.ID. Connect will absorb the addresses in pi into its internal
 // peerstore. If there is not an active connection, Connect will issue a
 // h.Network.Dial, and block until a connection is open, or an error is
-// returned. // TODO: Relay + NAT.
+// returned.
 func (h *BasicHost) Connect(ctx context.Context, pi pstore.PeerInfo) error {
 
 	// absorb addresses into peerstore
