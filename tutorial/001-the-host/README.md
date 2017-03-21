@@ -4,16 +4,25 @@ started. This guide will show how to construct and use a simple host.
 The host is an abstraction that manages services on top of a swarm. It provides
 a clean interface to connect to a service on a given remote peer.
 
-First, you'll need an ID, and a place to store that ID. To generate a 'test'
+First, you'll need an ID, and a place to store that ID. To generate an
 ID, you can do the following:
 ```go
 import (
-	testutil "github.com/libp2p/go-testutil"
+	"crypto/rand"
+
+	crypto "github.com/libp2p/go-libp2p-crypto"
+	peer "github.com/libp2p/go-libp2p-peer"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
 )
 
-// For toy applications, this is an easy way to get an identity
-ident, err := testutil.RandIdentity()
+// Generate an identity keypair using go's cryptographic randomness source
+priv, pub, err := crypto.GenerateEd25519Key(rand.Reader)
+if err != nil {
+	panic(err)
+}
+
+// A peers ID is the hash of its public key
+pid, err := peer.IDFromPublicKey(pub)
 if err != nil {
 	panic(err)
 }
@@ -21,10 +30,8 @@ if err != nil {
 // We've created the identity, now we need to store it.
 // A peerstore holds information about peers, including your own
 ps := pstore.NewPeerstore()
-
-// An identity is essentially a public/private keypair
-ps.AddPrivKey(ident.ID(), ident.PrivateKey())
-ps.AddPubKey(ident.ID(), ident.PublicKey())
+ps.AddPrivKey(pid, priv)
+ps.AddPubKey(pid, priv)
 ```
 
 Next, you'll need at least one address that you want to listen on. You can go

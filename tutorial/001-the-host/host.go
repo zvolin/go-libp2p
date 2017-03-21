@@ -2,18 +2,26 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
 
+	crypto "github.com/libp2p/go-libp2p-crypto"
+	peer "github.com/libp2p/go-libp2p-peer"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
 	swarm "github.com/libp2p/go-libp2p-swarm"
 	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
-	testutil "github.com/libp2p/go-testutil"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
 func main() {
-	// For toy applications, this is an easy way to get an identity
-	ident, err := testutil.RandIdentity()
+	// Generate an identity keypair using go's cryptographic randomness source
+	priv, pub, err := crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		panic(err)
+	}
+
+	// A peers ID is the hash of its public key
+	pid, err := peer.IDFromPublicKey(pub)
 	if err != nil {
 		panic(err)
 	}
@@ -21,10 +29,8 @@ func main() {
 	// We've created the identity, now we need to store it.
 	// A peerstore holds information about peers, including your own
 	ps := pstore.NewPeerstore()
-
-	// An identity is essentially a public/private keypair
-	ps.AddPrivKey(ident.ID(), ident.PrivateKey())
-	ps.AddPubKey(ident.ID(), ident.PublicKey())
+	ps.AddPrivKey(pid, priv)
+	ps.AddPubKey(pid, pub)
 
 	maddr, err := ma.NewMultiaddr("/ip4/0.0.0.0/tcp/9000")
 	if err != nil {
@@ -35,7 +41,7 @@ func main() {
 	ctx := context.Background()
 
 	// Put all this together
-	netw, err := swarm.NewNetwork(ctx, []ma.Multiaddr{maddr}, ident.ID(), ps, nil)
+	netw, err := swarm.NewNetwork(ctx, []ma.Multiaddr{maddr}, pid, ps, nil)
 	if err != nil {
 		panic(err)
 	}
