@@ -11,7 +11,8 @@ install: true
 
 before_install:
   - make deps
-
+  - go get -u github.com/multiformats/go-multicodec
+  - go get -u github.com/jbenet/go-msgio
 #- go vet ./...
 script:
   - go test ./... -v
