@@ -63,9 +63,7 @@ func (oas *ObservedAddrSet) Addrs() []ma.Multiaddr {
 			continue
 		}
 
-		if a.Activated {
-			addrs = append(addrs, a.Addr)
-		} else if a.TryActivate(oas.ttl) {
+		if a.Activated || a.TryActivate(oas.ttl) {
 			addrs = append(addrs, a.Addr)
 		}
 	}

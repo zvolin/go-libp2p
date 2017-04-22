@@ -18,6 +18,10 @@ func TestObsAddrSet(t *testing.T) {
 	}
 
 	addrsMarch := func(a, b []ma.Multiaddr) bool {
+		if len(a) != len(b) {
+			return false
+		}
+
 		for _, aa := range a {
 			found := false
 			for _, bb := range b {
@@ -38,8 +42,12 @@ func TestObsAddrSet(t *testing.T) {
 	a3 := m("/ip4/1.2.3.4/tcp/1233")
 	a4 := m("/ip4/1.2.3.4/tcp/1234")
 	a5 := m("/ip4/1.2.3.4/tcp/1235")
-	a6 := m("/ip4/1.2.3.6/tcp/1236")
-	a7 := m("/ip4/1.2.3.7/tcp/1237")
+
+	b1 := m("/ip4/1.2.3.6/tcp/1236")
+	b2 := m("/ip4/1.2.3.7/tcp/1237")
+	b3 := m("/ip4/1.2.3.8/tcp/1237")
+	b4 := m("/ip4/1.2.3.9/tcp/1237")
+	b5 := m("/ip4/1.2.3.10/tcp/1237")
 
 	oas := ObservedAddrSet{}
 
@@ -72,7 +80,9 @@ func TestObsAddrSet(t *testing.T) {
 		t.Error("addrs should _still_ be empty (same obs group)")
 	}
 
-	oas.Add(a1, a6)
+	oas.Add(a1, b1)
+	oas.Add(a1, b2)
+	oas.Add(a1, b3)
 	if !addrsMarch(oas.Addrs(), []ma.Multiaddr{a1}) {
 		t.Error("addrs should only have a1")
 	}
@@ -80,12 +90,14 @@ func TestObsAddrSet(t *testing.T) {
 	oas.Add(a2, a5)
 	oas.Add(a1, a5)
 	oas.Add(a1, a5)
-	oas.Add(a2, a6)
-	oas.Add(a1, a6)
-	oas.Add(a1, a6)
-	oas.Add(a2, a7)
-	oas.Add(a1, a7)
-	oas.Add(a1, a7)
+	oas.Add(a2, b1)
+	oas.Add(a1, b1)
+	oas.Add(a1, b1)
+	oas.Add(a2, b2)
+	oas.Add(a1, b2)
+	oas.Add(a1, b2)
+	oas.Add(a2, b4)
+	oas.Add(a2, b5)
 	if !addrsMarch(oas.Addrs(), []ma.Multiaddr{a1, a2}) {
 		t.Error("addrs should only have a1, a2")
 	}
@@ -93,7 +105,7 @@ func TestObsAddrSet(t *testing.T) {
 	// change the timeout constant so we can time it out.
 	oas.SetTTL(time.Millisecond * 200)
 	<-time.After(time.Millisecond * 210)
-	if !addrsMarch(oas.Addrs(), []ma.Multiaddr{nil}) {
+	if !addrsMarch(oas.Addrs(), nil) {
 		t.Error("addrs should have timed out")
 	}
 }
