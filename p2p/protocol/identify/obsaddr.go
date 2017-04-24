@@ -8,15 +8,32 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
+const ActivationThresh = 4
+
 // ObservedAddr is an entry for an address reported by our peers.
 // We only use addresses that:
-// - have been observed more than once. (counter symmetric nats)
-// - have been observed recently (10min), because our position in the
+// - have been observed at least 4 times in last 1h. (counter symmetric nats)
+// - have been observed at least once recently (1h), because our position in the
 //   network, or network port mapppings, may have changed.
 type ObservedAddr struct {
-	Addr     ma.Multiaddr
-	SeenBy   map[string]struct{}
-	LastSeen time.Time
+	Addr      ma.Multiaddr
+	SeenBy    map[string]time.Time
+	LastSeen  time.Time
+	Activated bool
+}
+
+func (oa *ObservedAddr) TryActivate(ttl time.Duration) bool {
+	// cleanup SeenBy set
+	now := time.Now()
+	for k, t := range oa.SeenBy {
+		if now.Sub(t) > ttl*ActivationThresh {
+			delete(oa.SeenBy, k)
+		}
+	}
+
+	// We only activate if in the TTL other peers observed the same address
+	// of ours at least 4 times.
+	return len(oa.SeenBy) >= ActivationThresh
 }
 
 // ObservedAddrSet keeps track of a set of ObservedAddrs
@@ -46,16 +63,7 @@ func (oas *ObservedAddrSet) Addrs() []ma.Multiaddr {
 			continue
 		}
 
-		// we only use an address if we've seen it more than once
-		// because symmetric nats may cause all our peers to see
-		// different port numbers and thus report always different
-		// addresses (different ports) for us. These wouldn't be
-		// very useful. We make the assumption that if we've
-		// connected to two different peers, and they both have
-		// reported seeing the same address, it is probably useful.
-		//
-		// Note: make sure not to double count observers.
-		if len(a.SeenBy) > 1 {
+		if a.Activated || a.TryActivate(oas.ttl) {
 			addrs = append(addrs, a.Addr)
 		}
 	}
@@ -79,13 +87,13 @@ func (oas *ObservedAddrSet) Add(addr ma.Multiaddr, observer ma.Multiaddr) {
 	if !found {
 		oa = &ObservedAddr{
 			Addr:   addr,
-			SeenBy: make(map[string]struct{}),
+			SeenBy: make(map[string]time.Time),
 		}
 		oas.addrs[s] = oa
 	}
 
 	// mark the observer
-	oa.SeenBy[observerGroup(observer)] = struct{}{}
+	oa.SeenBy[observerGroup(observer)] = time.Now()
 	oa.LastSeen = time.Now()
 }
 
@@ -100,6 +108,7 @@ func (oas *ObservedAddrSet) Add(addr ma.Multiaddr, observer ma.Multiaddr) {
 // Here, we use the root multiaddr address. This is mostly
 // IP addresses. In practice, this is what we want.
 func observerGroup(m ma.Multiaddr) string {
+	//TODO: If IPv6 rolls out we should mark /64 routing zones as one group
 	return ma.Split(m)[0].String()
 }
 
