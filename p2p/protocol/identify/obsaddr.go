@@ -26,7 +26,7 @@ func (oa *ObservedAddr) TryActivate(ttl time.Duration) bool {
 	// cleanup SeenBy set
 	now := time.Now()
 	for k, t := range oa.SeenBy {
-		if now.Sub(t) > ttl {
+		if now.Sub(t) > ttl*ActivationThresh {
 			delete(oa.SeenBy, k)
 		}
 	}
