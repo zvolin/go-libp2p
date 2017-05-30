@@ -11,6 +11,7 @@ import (
 	inet "github.com/libp2p/go-libp2p-net"
 	testutil "github.com/libp2p/go-libp2p-netutil"
 	protocol "github.com/libp2p/go-libp2p-protocol"
+	ma "github.com/multiformats/go-multiaddr"
 )
 
 func TestHostSimple(t *testing.T) {
@@ -60,6 +61,25 @@ func TestHostSimple(t *testing.T) {
 	}
 	if !bytes.Equal(buf1, buf3) {
 		t.Fatal("buf1 != buf3 -- %x != %x", buf1, buf3)
+	}
+}
+
+func TestHostAddrsFactory(t *testing.T) {
+	maddr := ma.StringCast("/ip4/1.2.3.4/tcp/1234")
+	addrsFactory := func(addrs []ma.Multiaddr) []ma.Multiaddr {
+		return []ma.Multiaddr{maddr}
+	}
+
+	ctx := context.Background()
+	h := New(testutil.GenSwarmNetwork(t, ctx), AddrsFactory(addrsFactory))
+	defer h.Close()
+
+	addrs := h.Addrs()
+	if len(addrs) != 1 {
+		t.Fatalf("expected 1 addr, got %d", len(addrs))
+	}
+	if addrs[0] != maddr {
+		t.Fatalf("expected %s, got %s", maddr.String(), addrs[0].String())
 	}
 }
 
