@@ -19,7 +19,7 @@ import (
 //    as the network signals Listen() or ListenClose().
 //  * closing the natManager closes the nat and its mappings.
 type natManager struct {
-	host  *BasicHost
+	net   inet.Network
 	natmu sync.RWMutex // guards nat (ready could obviate this mutex, but safety first.)
 	nat   *inat.NAT
 
@@ -27,22 +27,17 @@ type natManager struct {
 	proc  goprocess.Process // natManager has a process + children. can be closed.
 }
 
-func newNatManager(host *BasicHost) *natManager {
+func newNatManager(net inet.Network) *natManager {
 	nmgr := &natManager{
-		host:  host,
+		net:   net,
 		ready: make(chan struct{}),
-		proc:  goprocess.WithParent(host.proc),
 	}
 
-	// teardown
 	nmgr.proc = goprocess.WithTeardown(func() error {
 		// on closing, unregister from network notifications.
-		host.Network().StopNotify((*nmgrNetNotifiee)(nmgr))
+		net.StopNotify((*nmgrNetNotifiee)(nmgr))
 		return nil
 	})
-
-	// host is our parent. close when host closes.
-	host.proc.AddChild(nmgr.proc)
 
 	// discover the nat.
 	nmgr.discoverNAT()
@@ -108,13 +103,13 @@ func (nmgr *natManager) discoverNAT() {
 		// sign natManager up for network notifications
 		// we need to sign up here to avoid missing some notifs
 		// before the NAT has been found.
-		nmgr.host.Network().Notify((*nmgrNetNotifiee)(nmgr))
+		nmgr.net.Notify((*nmgrNetNotifiee)(nmgr))
 
 		// if any interfaces were brought up while we were setting up
 		// the nat, now is the time to setup port mappings for them.
 		// we release ready, then grab them to avoid losing any. adding
 		// a port mapping is idempotent, so its ok to add the same twice.
-		addrs := nmgr.host.Network().ListenAddresses()
+		addrs := nmgr.net.ListenAddresses()
 		for _, addr := range addrs {
 			// we do it async because it's slow and we may want to close beforehand
 			go addPortMapping(nmgr, addr)
