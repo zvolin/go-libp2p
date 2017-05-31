@@ -55,6 +55,8 @@ type IDService struct {
 	observedAddrs ObservedAddrSet
 }
 
+// NewIDService constructs a new *IDService and activates it by
+// attaching its stream handler to the given host.Host.
 func NewIDService(h host.Host) *IDService {
 	s := &IDService{
 		Host:   h,

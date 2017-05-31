@@ -21,23 +21,31 @@ import (
 
 var log = logging.Logger("basichost")
 
-var NegotiateTimeout = time.Second * 60
+var (
+	// DefaultNegotiationTimeout is the default value for HostOpts.NegotiationTimeout.
+	DefaultNegotiationTimeout = time.Second * 60
+
+	// DefaultAddrsFactory is the default value for HostOpts.AddrsFactory.
+	DefaultAddrsFactory = func(addrs []ma.Multiaddr) []ma.Multiaddr { return addrs }
+)
 
 // AddrsFactory functions can be passed to New in order to override
 // addresses returned by Addrs.
 type AddrsFactory func([]ma.Multiaddr) []ma.Multiaddr
 
 // Option is a type used to pass in options to the host.
+//
+// Deprecated in favor of HostOpts and NewHost.
 type Option int
 
-const (
-	// NATPortMap makes the host attempt to open port-mapping in NAT devices
-	// for all its listeners. Pass in this option in the constructor to
-	// asynchronously a) find a gateway, b) open port mappings, c) republish
-	// port mappings periodically. The NATed addresses are included in the
-	// Host's Addrs() list.
-	NATPortMap Option = iota
-)
+// NATPortMap makes the host attempt to open port-mapping in NAT devices
+// for all its listeners. Pass in this option in the constructor to
+// asynchronously a) find a gateway, b) open port mappings, c) republish
+// port mappings periodically. The NATed addresses are included in the
+// Host's Addrs() list.
+//
+// This option is deprecated in favor of HostOpts and NewHost.
+const NATPortMap Option = iota
 
 // BasicHost is the basic implementation of the host.Host interface. This
 // particular host implementation:
@@ -51,55 +59,116 @@ type BasicHost struct {
 	natmgr  *natManager
 	addrs   AddrsFactory
 
-	NegotiateTimeout time.Duration
+	negtimeout time.Duration
 
 	proc goprocess.Process
 
 	bwc metrics.Reporter
 }
 
-// New constructs and sets up a new *BasicHost with given Network
-func New(net inet.Network, opts ...interface{}) *BasicHost {
+// HostOpts holds options that can be passed to NewHost in order to
+// customize construction of the *BasicHost.
+type HostOpts struct {
+
+	// MultistreamMuxer is essential for the *BasicHost and will use a sensible default value if omitted.
+	MultistreamMuxer *msmux.MultistreamMuxer
+
+	// NegotiationTimeout determines the read and write timeouts on streams.
+	// If 0 or omitted, it will use DefaultNegotiationTimeout.
+	// If below 0, timeouts on streams will be deactivated.
+	NegotiationTimeout time.Duration
+
+	// IdentifyService holds an implementation of the /ipfs/id/ protocol.
+	// If omitted, a new *identify.IDService will be used.
+	IdentifyService *identify.IDService
+
+	// AddrsFactory holds a function which can be used to override or filter the result of Addrs.
+	// If omitted, there's no override or filtering, and the results of Addrs and AllAddrs are the same.
+	AddrsFactory AddrsFactory
+
+	// NATManager takes care of setting NAT port mappings, and discovering external addresses.
+	// If omitted, this will simply be disabled.
+	//
+	// TODO: Currently the NATManager can only be enabled by calling New,
+	//       since the underlying struct and functions are still private.
+	//       Once they are public, NATManager can be used through NewHost as well.
+	NATManager *natManager
+
+	//
+	BandwidthReporter metrics.Reporter
+}
+
+// NewHost constructs a new *BasicHost and activates it by attaching its stream and connection handlers to the given inet.Network.
+func NewHost(net inet.Network, opts *HostOpts) *BasicHost {
 	h := &BasicHost{
-		network:          net,
-		mux:              msmux.NewMultistreamMuxer(),
-		NegotiateTimeout: NegotiateTimeout,
+		network:    net,
+		mux:        msmux.NewMultistreamMuxer(),
+		negtimeout: DefaultNegotiationTimeout,
+		addrs:      DefaultAddrsFactory,
+	}
+
+	if opts.MultistreamMuxer != nil {
+		h.mux = opts.MultistreamMuxer
+	}
+
+	if opts.IdentifyService != nil {
+		h.ids = opts.IdentifyService
+	} else {
+		// we can't set this as a default above because it depends on the *BasicHost.
+		h.ids = identify.NewIDService(h)
+	}
+
+	if uint64(opts.NegotiationTimeout) != 0 {
+		h.negtimeout = opts.NegotiationTimeout
+	}
+
+	if opts.AddrsFactory != nil {
+		h.addrs = opts.AddrsFactory
+	}
+
+	if opts.NATManager != nil {
+		h.natmgr = opts.NATManager
+	}
+
+	if opts.BandwidthReporter != nil {
+		h.bwc = opts.BandwidthReporter
+		h.ids.Reporter = opts.BandwidthReporter
 	}
 
 	h.proc = goprocess.WithTeardown(func() error {
 		if h.natmgr != nil {
 			h.natmgr.Close()
 		}
-
 		return h.Network().Close()
 	})
 
-	// setup host services
-	h.ids = identify.NewIDService(h)
+	net.SetConnHandler(h.newConnHandler)
+	net.SetStreamHandler(h.newStreamHandler)
 
-	// default addresses factory, can be overridden via opts argument
-	h.addrs = func(addrs []ma.Multiaddr) []ma.Multiaddr { return addrs }
+	return h
+}
+
+// New constructs and sets up a new *BasicHost with given Network and options.
+// Three options can be passed: NATPortMap, AddrsFactory, and metrics.Reporter.
+// This function is deprecated in favor of NewHost and HostOpts.
+func New(net inet.Network, opts ...interface{}) *BasicHost {
+	hostopts := &HostOpts{}
 
 	for _, o := range opts {
 		switch o := o.(type) {
 		case Option:
 			switch o {
 			case NATPortMap:
-				h.natmgr = newNatManager(h)
+				hostopts.NATManager = newNatManager(net)
 			}
 		case metrics.Reporter:
-			h.bwc = o
+			hostopts.BandwidthReporter = o
 		case AddrsFactory:
-			h.addrs = AddrsFactory(o)
+			hostopts.AddrsFactory = AddrsFactory(o)
 		}
 	}
 
-	h.ids.Reporter = h.bwc
-
-	net.SetConnHandler(h.newConnHandler)
-	net.SetStreamHandler(h.newStreamHandler)
-
-	return h
+	return NewHost(net, hostopts)
 }
 
 // newConnHandler is the remote-opened conn handler for inet.Network
@@ -115,8 +184,8 @@ func (h *BasicHost) newConnHandler(c inet.Conn) {
 func (h *BasicHost) newStreamHandler(s inet.Stream) {
 	before := time.Now()
 
-	if h.NegotiateTimeout != 0 {
-		if err := s.SetDeadline(time.Now().Add(h.NegotiateTimeout)); err != nil {
+	if h.negtimeout > 0 {
+		if err := s.SetDeadline(time.Now().Add(h.negtimeout)); err != nil {
 			log.Error("setting stream deadline: ", err)
 			s.Close()
 			return
@@ -144,7 +213,7 @@ func (h *BasicHost) newStreamHandler(s inet.Stream) {
 		rw:     lzc,
 	}
 
-	if h.NegotiateTimeout != 0 {
+	if h.negtimeout > 0 {
 		if err := s.SetDeadline(time.Time{}); err != nil {
 			log.Error("resetting stream deadline: ", err)
 			s.Close()
