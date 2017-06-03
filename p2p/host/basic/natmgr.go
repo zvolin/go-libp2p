@@ -12,23 +12,23 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
-// natManager takes care of adding + removing port mappings to the nat.
+// NATManager takes care of adding + removing port mappings to the nat.
 // Initialized with the host if it has a NATPortMap option enabled.
-// natManager receives signals from the network, and check on nat mappings:
-//  * natManager listens to the network and adds or closes port mappings
+// NATManager receives signals from the network, and check on nat mappings:
+//  * NATManager listens to the network and adds or closes port mappings
 //    as the network signals Listen() or ListenClose().
-//  * closing the natManager closes the nat and its mappings.
-type natManager struct {
+//  * closing the NATManager closes the nat and its mappings.
+type NATManager struct {
 	net   inet.Network
 	natmu sync.RWMutex // guards nat (ready could obviate this mutex, but safety first.)
 	nat   *inat.NAT
 
 	ready chan struct{}     // closed once the nat is ready to process port mappings
-	proc  goprocess.Process // natManager has a process + children. can be closed.
+	proc  goprocess.Process // NATManager has a process + children. can be closed.
 }
 
-func newNatManager(net inet.Network) *natManager {
-	nmgr := &natManager{
+func NewNATManager(net inet.Network) *NATManager {
+	nmgr := &NATManager{
 		net:   net,
 		ready: make(chan struct{}),
 	}
@@ -44,19 +44,19 @@ func newNatManager(net inet.Network) *natManager {
 	return nmgr
 }
 
-// Close closes the natManager, closing the underlying nat
+// Close closes the NATManager, closing the underlying nat
 // and unregistering from network events.
-func (nmgr *natManager) Close() error {
+func (nmgr *NATManager) Close() error {
 	return nmgr.proc.Close()
 }
 
 // Ready returns a channel which will be closed when the NAT has been found
 // and is ready to be used, or the search process is done.
-func (nmgr *natManager) Ready() <-chan struct{} {
+func (nmgr *NATManager) Ready() <-chan struct{} {
 	return nmgr.ready
 }
 
-func (nmgr *natManager) discoverNAT() {
+func (nmgr *NATManager) discoverNAT() {
 
 	nmgr.proc.Go(func(worker goprocess.Process) {
 		// inat.DiscoverNAT blocks until the nat is found or a timeout
@@ -100,7 +100,7 @@ func (nmgr *natManager) discoverNAT() {
 		// signal that we're ready to process nat mappings:
 		close(nmgr.ready)
 
-		// sign natManager up for network notifications
+		// sign NATManager up for network notifications
 		// we need to sign up here to avoid missing some notifs
 		// before the NAT has been found.
 		nmgr.net.Notify((*nmgrNetNotifiee)(nmgr))
@@ -117,19 +117,19 @@ func (nmgr *natManager) discoverNAT() {
 	})
 }
 
-// NAT returns the natManager's nat object. this may be nil, if
+// NAT returns the NATManager's nat object. this may be nil, if
 // (a) the search process is still ongoing, or (b) the search process
 // found no nat. Clients must check whether the return value is nil.
-func (nmgr *natManager) NAT() *inat.NAT {
+func (nmgr *NATManager) NAT() *inat.NAT {
 	nmgr.natmu.Lock()
 	defer nmgr.natmu.Unlock()
 	return nmgr.nat
 }
 
-func addPortMapping(nmgr *natManager, intaddr ma.Multiaddr) {
+func addPortMapping(nmgr *NATManager, intaddr ma.Multiaddr) {
 	nat := nmgr.NAT()
 	if nat == nil {
-		panic("natManager addPortMapping called without a nat.")
+		panic("NATManager addPortMapping called without a nat.")
 	}
 
 	// first, check if the port mapping already exists.
@@ -175,10 +175,10 @@ func addPortMapping(nmgr *natManager, intaddr ma.Multiaddr) {
 	log.Infof("established nat port mapping: %s <--> %s", intaddr, extaddr)
 }
 
-func rmPortMapping(nmgr *natManager, intaddr ma.Multiaddr) {
+func rmPortMapping(nmgr *NATManager, intaddr ma.Multiaddr) {
 	nat := nmgr.NAT()
 	if nat == nil {
-		panic("natManager rmPortMapping called without a nat.")
+		panic("NATManager rmPortMapping called without a nat.")
 	}
 
 	// list the port mappings (it may be gone on it's own, so we need to
@@ -193,12 +193,12 @@ func rmPortMapping(nmgr *natManager, intaddr ma.Multiaddr) {
 }
 
 // nmgrNetNotifiee implements the network notification listening part
-// of the natManager. this is merely listening to Listen() and ListenClose()
+// of the NATManager. this is merely listening to Listen() and ListenClose()
 // events.
-type nmgrNetNotifiee natManager
+type nmgrNetNotifiee NATManager
 
-func (nn *nmgrNetNotifiee) natManager() *natManager {
-	return (*natManager)(nn)
+func (nn *nmgrNetNotifiee) natManager() *NATManager {
+	return (*NATManager)(nn)
 }
 
 func (nn *nmgrNetNotifiee) Listen(n inet.Network, addr ma.Multiaddr) {

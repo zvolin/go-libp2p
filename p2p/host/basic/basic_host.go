@@ -56,7 +56,7 @@ type BasicHost struct {
 	network inet.Network
 	mux     *msmux.MultistreamMuxer
 	ids     *identify.IDService
-	natmgr  *natManager
+	natmgr  *NATManager
 	addrs   AddrsFactory
 
 	negtimeout time.Duration
@@ -88,11 +88,7 @@ type HostOpts struct {
 
 	// NATManager takes care of setting NAT port mappings, and discovering external addresses.
 	// If omitted, this will simply be disabled.
-	//
-	// TODO: Currently the NATManager can only be enabled by calling New,
-	//       since the underlying struct and functions are still private.
-	//       Once they are public, NATManager can be used through NewHost as well.
-	NATManager *natManager
+	NATManager *NATManager
 
 	//
 	BandwidthReporter metrics.Reporter
@@ -159,7 +155,7 @@ func New(net inet.Network, opts ...interface{}) *BasicHost {
 		case Option:
 			switch o {
 			case NATPortMap:
-				hostopts.NATManager = newNatManager(net)
+				hostopts.NATManager = NewNATManager(net)
 			}
 		case metrics.Reporter:
 			hostopts.BandwidthReporter = o
