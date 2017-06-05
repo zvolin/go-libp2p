@@ -4,31 +4,49 @@ import (
 	"context"
 	"sync"
 
-	inat "github.com/libp2p/go-libp2p-nat"
-
 	goprocess "github.com/jbenet/goprocess"
-	lgbl "github.com/libp2p/go-libp2p-loggables"
+	inat "github.com/libp2p/go-libp2p-nat"
 	inet "github.com/libp2p/go-libp2p-net"
+	lgbl "github.com/libp2p/go-libp2p-loggables"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
-// NATManager takes care of adding + removing port mappings to the nat.
+// A simple interface to manage NAT devices. 
+type NATManager interface {
+
+	// Get the NAT device managed by the NAT manager.
+	NAT() *inat.NAT
+
+	// Receive a notification when the NAT device is ready for use.
+	Ready() <-chan struct{}
+
+	// Close all resources associated with a NAT manager.
+	Close() error
+
+}
+
+// Create a NAT manager.
+func NewNATManager(net inet.Network) NATManager {
+	return newNatManager(net)
+}
+
+// natManager takes care of adding + removing port mappings to the nat.
 // Initialized with the host if it has a NATPortMap option enabled.
-// NATManager receives signals from the network, and check on nat mappings:
-//  * NATManager listens to the network and adds or closes port mappings
+// natManager receives signals from the network, and check on nat mappings:
+//  * natManager listens to the network and adds or closes port mappings
 //    as the network signals Listen() or ListenClose().
-//  * closing the NATManager closes the nat and its mappings.
-type NATManager struct {
+//  * closing the natManager closes the nat and its mappings.
+type natManager struct {
 	net   inet.Network
 	natmu sync.RWMutex // guards nat (ready could obviate this mutex, but safety first.)
 	nat   *inat.NAT
 
 	ready chan struct{}     // closed once the nat is ready to process port mappings
-	proc  goprocess.Process // NATManager has a process + children. can be closed.
+	proc  goprocess.Process // natManager has a process + children. can be closed.
 }
 
-func NewNATManager(net inet.Network) *NATManager {
-	nmgr := &NATManager{
+func newNatManager(net inet.Network) *natManager {
+	nmgr := &natManager{
 		net:   net,
 		ready: make(chan struct{}),
 	}
@@ -44,19 +62,19 @@ func NewNATManager(net inet.Network) *NATManager {
 	return nmgr
 }
 
-// Close closes the NATManager, closing the underlying nat
+// Close closes the natManager, closing the underlying nat
 // and unregistering from network events.
-func (nmgr *NATManager) Close() error {
+func (nmgr *natManager) Close() error {
 	return nmgr.proc.Close()
 }
 
 // Ready returns a channel which will be closed when the NAT has been found
 // and is ready to be used, or the search process is done.
-func (nmgr *NATManager) Ready() <-chan struct{} {
+func (nmgr *natManager) Ready() <-chan struct{} {
 	return nmgr.ready
 }
 
-func (nmgr *NATManager) discoverNAT() {
+func (nmgr *natManager) discoverNAT() {
 
 	nmgr.proc.Go(func(worker goprocess.Process) {
 		// inat.DiscoverNAT blocks until the nat is found or a timeout
@@ -100,7 +118,7 @@ func (nmgr *NATManager) discoverNAT() {
 		// signal that we're ready to process nat mappings:
 		close(nmgr.ready)
 
-		// sign NATManager up for network notifications
+		// sign natManager up for network notifications
 		// we need to sign up here to avoid missing some notifs
 		// before the NAT has been found.
 		nmgr.net.Notify((*nmgrNetNotifiee)(nmgr))
@@ -117,19 +135,19 @@ func (nmgr *NATManager) discoverNAT() {
 	})
 }
 
-// NAT returns the NATManager's nat object. this may be nil, if
+// NAT returns the natManager's nat object. this may be nil, if
 // (a) the search process is still ongoing, or (b) the search process
 // found no nat. Clients must check whether the return value is nil.
-func (nmgr *NATManager) NAT() *inat.NAT {
+func (nmgr *natManager) NAT() *inat.NAT {
 	nmgr.natmu.Lock()
 	defer nmgr.natmu.Unlock()
 	return nmgr.nat
 }
 
-func addPortMapping(nmgr *NATManager, intaddr ma.Multiaddr) {
+func addPortMapping(nmgr *natManager, intaddr ma.Multiaddr) {
 	nat := nmgr.NAT()
 	if nat == nil {
-		panic("NATManager addPortMapping called without a nat.")
+		panic("natManager addPortMapping called without a nat.")
 	}
 
 	// first, check if the port mapping already exists.
@@ -175,10 +193,10 @@ func addPortMapping(nmgr *NATManager, intaddr ma.Multiaddr) {
 	log.Infof("established nat port mapping: %s <--> %s", intaddr, extaddr)
 }
 
-func rmPortMapping(nmgr *NATManager, intaddr ma.Multiaddr) {
+func rmPortMapping(nmgr *natManager, intaddr ma.Multiaddr) {
 	nat := nmgr.NAT()
 	if nat == nil {
-		panic("NATManager rmPortMapping called without a nat.")
+		panic("natManager rmPortMapping called without a nat.")
 	}
 
 	// list the port mappings (it may be gone on it's own, so we need to
@@ -193,12 +211,12 @@ func rmPortMapping(nmgr *NATManager, intaddr ma.Multiaddr) {
 }
 
 // nmgrNetNotifiee implements the network notification listening part
-// of the NATManager. this is merely listening to Listen() and ListenClose()
+// of the natManager. this is merely listening to Listen() and ListenClose()
 // events.
-type nmgrNetNotifiee NATManager
+type nmgrNetNotifiee natManager
 
-func (nn *nmgrNetNotifiee) natManager() *NATManager {
-	return (*NATManager)(nn)
+func (nn *nmgrNetNotifiee) natManager() *natManager {
+	return (*natManager)(nn)
 }
 
 func (nn *nmgrNetNotifiee) Listen(n inet.Network, addr ma.Multiaddr) {
