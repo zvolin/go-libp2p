@@ -4,13 +4,31 @@ import (
 	"context"
 	"sync"
 
-	inat "github.com/libp2p/go-libp2p-nat"
-
 	goprocess "github.com/jbenet/goprocess"
-	lgbl "github.com/libp2p/go-libp2p-loggables"
+	inat "github.com/libp2p/go-libp2p-nat"
 	inet "github.com/libp2p/go-libp2p-net"
+	lgbl "github.com/libp2p/go-libp2p-loggables"
 	ma "github.com/multiformats/go-multiaddr"
 )
+
+// A simple interface to manage NAT devices. 
+type NATManager interface {
+
+	// Get the NAT device managed by the NAT manager.
+	NAT() *inat.NAT
+
+	// Receive a notification when the NAT device is ready for use.
+	Ready() <-chan struct{}
+
+	// Close all resources associated with a NAT manager.
+	Close() error
+
+}
+
+// Create a NAT manager.
+func NewNATManager(net inet.Network) NATManager {
+	return newNatManager(net)
+}
 
 // natManager takes care of adding + removing port mappings to the nat.
 // Initialized with the host if it has a NATPortMap option enabled.
