@@ -9,6 +9,7 @@ import (
 
 	logging "github.com/ipfs/go-log"
 	goprocess "github.com/jbenet/goprocess"
+	connmgr "github.com/libp2p/go-libp2p-connmgr"
 	metrics "github.com/libp2p/go-libp2p-metrics"
 	mstream "github.com/libp2p/go-libp2p-metrics/stream"
 	inet "github.com/libp2p/go-libp2p-net"
@@ -58,6 +59,7 @@ type BasicHost struct {
 	ids     *identify.IDService
 	natmgr  NATManager
 	addrs   AddrsFactory
+	cmgr    connmgr.ConnManager
 
 	negtimeout time.Duration
 
@@ -92,6 +94,9 @@ type HostOpts struct {
 
 	//
 	BandwidthReporter metrics.Reporter
+
+	// ConnManager is a libp2p connection manager
+	ConnManager connmgr.ConnManager
 }
 
 // NewHost constructs a new *BasicHost and activates it by attaching its stream and connection handlers to the given inet.Network.
@@ -131,6 +136,13 @@ func NewHost(net inet.Network, opts *HostOpts) *BasicHost {
 		h.ids.Reporter = opts.BandwidthReporter
 	}
 
+	if opts.ConnManager == nil {
+		// create 'disabled' conn manager for now
+		h.cmgr = connmgr.NewConnManager(0, 0, 0)
+	} else {
+		h.cmgr = opts.ConnManager
+	}
+
 	h.proc = goprocess.WithTeardown(func() error {
 		if h.natmgr != nil {
 			h.natmgr.Close()
@@ -161,6 +173,8 @@ func New(net inet.Network, opts ...interface{}) *BasicHost {
 			hostopts.BandwidthReporter = o
 		case AddrsFactory:
 			hostopts.AddrsFactory = AddrsFactory(o)
+		case connmgr.ConnManager:
+			hostopts.ConnManager = o
 		}
 	}
 
@@ -409,6 +423,10 @@ func (h *BasicHost) dialPeer(ctx context.Context, p peer.ID) error {
 
 	log.Debugf("host %s finished dialing %s", h.ID(), p)
 	return nil
+}
+
+func (h *BasicHost) ConnManager() connmgr.ConnManager {
+	return h.cmgr
 }
 
 // Addrs returns listening addresses that are safe to announce to the network.
