@@ -5,13 +5,13 @@ import (
 	"sync"
 
 	goprocess "github.com/jbenet/goprocess"
+	lgbl "github.com/libp2p/go-libp2p-loggables"
 	inat "github.com/libp2p/go-libp2p-nat"
 	inet "github.com/libp2p/go-libp2p-net"
-	lgbl "github.com/libp2p/go-libp2p-loggables"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
-// A simple interface to manage NAT devices. 
+// A simple interface to manage NAT devices.
 type NATManager interface {
 
 	// Get the NAT device managed by the NAT manager.
@@ -22,7 +22,6 @@ type NATManager interface {
 
 	// Close all resources associated with a NAT manager.
 	Close() error
-
 }
 
 // Create a NAT manager.
