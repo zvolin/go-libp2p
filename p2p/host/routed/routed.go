@@ -59,23 +59,32 @@ func (rh *RoutedHost) Connect(ctx context.Context, pi pstore.PeerInfo) error {
 	// Check if we have some addresses in our recent memory.
 	addrs := rh.Peerstore().Addrs(pi.ID)
 	if len(addrs) < 1 {
-
 		// no addrs? find some with the routing system.
-		pi2, err := rh.route.FindPeer(ctx, pi.ID)
+		var err error
+		addrs, err = rh.findPeerAddrs(ctx, pi.ID)
 		if err != nil {
-			return err // couldnt find any :(
-		}
-		if pi2.ID != pi.ID {
-			err = fmt.Errorf("routing failure: provided addrs for different peer")
-			logRoutingErrDifferentPeers(ctx, pi.ID, pi2.ID, err)
 			return err
 		}
-		addrs = pi2.Addrs
 	}
 
 	// if we're here, we got some addrs. let's use our wrapped host to connect.
 	pi.Addrs = addrs
 	return rh.host.Connect(ctx, pi)
+}
+
+func (rh *RoutedHost) findPeerAddrs(ctx context.Context, id peer.ID) ([]ma.Multiaddr, error) {
+	pi, err := rh.route.FindPeer(ctx, id)
+	if err != nil {
+		return nil, err // couldnt find any :(
+	}
+
+	if pi.ID != id {
+		err = fmt.Errorf("routing failure: provided addrs for different peer")
+		logRoutingErrDifferentPeers(ctx, id, pi.ID, err)
+		return nil, err
+	}
+
+	return pi.Addrs, nil
 }
 
 func logRoutingErrDifferentPeers(ctx context.Context, wanted, got peer.ID, err error) {
@@ -119,6 +128,15 @@ func (rh *RoutedHost) RemoveStreamHandler(pid protocol.ID) {
 }
 
 func (rh *RoutedHost) NewStream(ctx context.Context, p peer.ID, pids ...protocol.ID) (inet.Stream, error) {
+	// check if we need to find some addresses for the peer through the routing system
+	if len(rh.Network().ConnsToPeer(p)) == 0 && len(rh.Peerstore().Addrs(p)) == 0 {
+		addrs, err := rh.findPeerAddrs(ctx, p)
+		if err != nil {
+			return nil, err
+		}
+		rh.Peerstore().AddAddrs(p, addrs, pstore.TempAddrTTL)
+	}
+
 	return rh.host.NewStream(ctx, p, pids...)
 }
 func (rh *RoutedHost) Close() error {
