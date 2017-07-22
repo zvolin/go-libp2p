@@ -128,13 +128,12 @@ func (rh *RoutedHost) RemoveStreamHandler(pid protocol.ID) {
 }
 
 func (rh *RoutedHost) NewStream(ctx context.Context, p peer.ID, pids ...protocol.ID) (inet.Stream, error) {
-	// check if we need to find some addresses for the peer through the routing system
-	if len(rh.Network().ConnsToPeer(p)) == 0 && len(rh.Peerstore().Addrs(p)) == 0 {
-		addrs, err := rh.findPeerAddrs(ctx, p)
-		if err != nil {
-			return nil, err
-		}
-		rh.Peerstore().AddAddrs(p, addrs, pstore.TempAddrTTL)
+	// Ensure we have a connection, with peer addresses resolved by the routing system (#207)
+	// It is not sufficient to let the underlying host connect, it will most likely not have
+	// any addresses for the peer without any prior connections.
+	err := rh.Connect(ctx, pstore.PeerInfo{ID: p})
+	if err != nil {
+		return nil, err
 	}
 
 	return rh.host.NewStream(ctx, p, pids...)
