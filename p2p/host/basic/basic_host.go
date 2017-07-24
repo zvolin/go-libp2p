@@ -9,6 +9,7 @@ import (
 
 	logging "github.com/ipfs/go-log"
 	goprocess "github.com/jbenet/goprocess"
+	circuit "github.com/libp2p/go-libp2p-circuit"
 	connmgr "github.com/libp2p/go-libp2p-connmgr"
 	metrics "github.com/libp2p/go-libp2p-metrics"
 	mstream "github.com/libp2p/go-libp2p-metrics/stream"
@@ -97,6 +98,12 @@ type HostOpts struct {
 
 	// ConnManager is a libp2p connection manager
 	ConnManager connmgr.ConnManager
+
+	// Relay indicates whether the host should use circuit relay transport
+	Relay bool
+
+	// RelayOpts are options for the relay transport; only meaningful when Relay=true
+	RelayOpts []circuit.RelayOpt
 }
 
 // NewHost constructs a new *BasicHost and activates it by attaching its stream and connection handlers to the given inet.Network.
@@ -143,9 +150,24 @@ func NewHost(net inet.Network, opts *HostOpts) *BasicHost {
 		h.cmgr = opts.ConnManager
 	}
 
+	var relayCtx context.Context
+	var relayCancel func()
+	if opts.Relay {
+		relayCtx, relayCancel = context.WithCancel(context.Background())
+		err := circuit.AddRelayTransport(relayCtx, h, opts.RelayOpts...)
+		if err != nil {
+			// perhaps inappropriate, but otherwise we have to change the interface
+			// to return an error, which will nost likely lead to a fatality anyway
+			panic(err)
+		}
+	}
+
 	h.proc = goprocess.WithTeardown(func() error {
 		if h.natmgr != nil {
 			h.natmgr.Close()
+		}
+		if relayCancel != nil {
+			relayCancel()
 		}
 		return h.Network().Close()
 	})
