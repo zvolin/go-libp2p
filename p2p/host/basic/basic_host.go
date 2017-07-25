@@ -107,7 +107,7 @@ type HostOpts struct {
 }
 
 // NewHost constructs a new *BasicHost and activates it by attaching its stream and connection handlers to the given inet.Network.
-func NewHost(net inet.Network, opts *HostOpts) *BasicHost {
+func NewHost(net inet.Network, opts *HostOpts) (*BasicHost, error) {
 	h := &BasicHost{
 		network:    net,
 		mux:        msmux.NewMultistreamMuxer(),
@@ -156,9 +156,7 @@ func NewHost(net inet.Network, opts *HostOpts) *BasicHost {
 		relayCtx, relayCancel = context.WithCancel(context.Background())
 		err := circuit.AddRelayTransport(relayCtx, h, opts.RelayOpts...)
 		if err != nil {
-			// perhaps inappropriate, but otherwise we have to change the interface
-			// to return an error, which will nost likely lead to a fatality anyway
-			panic(err)
+			return nil, err
 		}
 	}
 
@@ -175,7 +173,7 @@ func NewHost(net inet.Network, opts *HostOpts) *BasicHost {
 	net.SetConnHandler(h.newConnHandler)
 	net.SetStreamHandler(h.newStreamHandler)
 
-	return h
+	return h, nil
 }
 
 // New constructs and sets up a new *BasicHost with given Network and options.
@@ -200,7 +198,14 @@ func New(net inet.Network, opts ...interface{}) *BasicHost {
 		}
 	}
 
-	return NewHost(net, hostopts)
+	h, err := NewHost(net, hostopts)
+	if err != nil {
+		// this cannot happen with legacy options
+		// plus we want to keep the (deprecated) legacy interface unchanged
+		panic(err)
+	}
+
+	return h
 }
 
 // newConnHandler is the remote-opened conn handler for inet.Network
