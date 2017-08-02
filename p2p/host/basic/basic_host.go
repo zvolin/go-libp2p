@@ -100,7 +100,7 @@ type HostOpts struct {
 	ConnManager connmgr.ConnManager
 
 	// Relay indicates whether the host should use circuit relay transport
-	Relay bool
+	EnableRelay bool
 
 	// RelayOpts are options for the relay transport; only meaningful when Relay=true
 	RelayOpts []circuit.RelayOpt
@@ -152,13 +152,6 @@ func NewHost(net inet.Network, opts *HostOpts) (*BasicHost, error) {
 
 	var relayCtx context.Context
 	var relayCancel func()
-	if opts.Relay {
-		relayCtx, relayCancel = context.WithCancel(context.Background())
-		err := circuit.AddRelayTransport(relayCtx, h, opts.RelayOpts...)
-		if err != nil {
-			return nil, err
-		}
-	}
 
 	h.proc = goprocess.WithTeardown(func() error {
 		if h.natmgr != nil {
@@ -172,6 +165,15 @@ func NewHost(net inet.Network, opts *HostOpts) (*BasicHost, error) {
 
 	net.SetConnHandler(h.newConnHandler)
 	net.SetStreamHandler(h.newStreamHandler)
+
+	if opts.EnableRelay {
+		relayCtx, relayCancel = context.WithCancel(context.Background())
+		err := circuit.AddRelayTransport(relayCtx, h, opts.RelayOpts...)
+		if err != nil {
+			h.Close()
+			return nil, err
+		}
+	}
 
 	return h, nil
 }
