@@ -9,6 +9,7 @@ import (
 
 	logging "github.com/ipfs/go-log"
 	goprocess "github.com/jbenet/goprocess"
+	circuit "github.com/libp2p/go-libp2p-circuit"
 	connmgr "github.com/libp2p/go-libp2p-connmgr"
 	metrics "github.com/libp2p/go-libp2p-metrics"
 	mstream "github.com/libp2p/go-libp2p-metrics/stream"
@@ -97,10 +98,16 @@ type HostOpts struct {
 
 	// ConnManager is a libp2p connection manager
 	ConnManager connmgr.ConnManager
+
+	// Relay indicates whether the host should use circuit relay transport
+	EnableRelay bool
+
+	// RelayOpts are options for the relay transport; only meaningful when Relay=true
+	RelayOpts []circuit.RelayOpt
 }
 
 // NewHost constructs a new *BasicHost and activates it by attaching its stream and connection handlers to the given inet.Network.
-func NewHost(net inet.Network, opts *HostOpts) *BasicHost {
+func NewHost(ctx context.Context, net inet.Network, opts *HostOpts) (*BasicHost, error) {
 	h := &BasicHost{
 		network:    net,
 		mux:        msmux.NewMultistreamMuxer(),
@@ -143,9 +150,15 @@ func NewHost(net inet.Network, opts *HostOpts) *BasicHost {
 		h.cmgr = opts.ConnManager
 	}
 
+	var relayCtx context.Context
+	var relayCancel func()
+
 	h.proc = goprocess.WithTeardown(func() error {
 		if h.natmgr != nil {
 			h.natmgr.Close()
+		}
+		if relayCancel != nil {
+			relayCancel()
 		}
 		return h.Network().Close()
 	})
@@ -153,7 +166,16 @@ func NewHost(net inet.Network, opts *HostOpts) *BasicHost {
 	net.SetConnHandler(h.newConnHandler)
 	net.SetStreamHandler(h.newStreamHandler)
 
-	return h
+	if opts.EnableRelay {
+		relayCtx, relayCancel = context.WithCancel(ctx)
+		err := circuit.AddRelayTransport(relayCtx, h, opts.RelayOpts...)
+		if err != nil {
+			h.Close()
+			return nil, err
+		}
+	}
+
+	return h, nil
 }
 
 // New constructs and sets up a new *BasicHost with given Network and options.
@@ -178,7 +200,14 @@ func New(net inet.Network, opts ...interface{}) *BasicHost {
 		}
 	}
 
-	return NewHost(net, hostopts)
+	h, err := NewHost(context.Background(), net, hostopts)
+	if err != nil {
+		// this cannot happen with legacy options
+		// plus we want to keep the (deprecated) legacy interface unchanged
+		panic(err)
+	}
+
+	return h
 }
 
 // newConnHandler is the remote-opened conn handler for inet.Network
