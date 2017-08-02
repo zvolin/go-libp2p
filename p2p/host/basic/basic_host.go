@@ -107,7 +107,7 @@ type HostOpts struct {
 }
 
 // NewHost constructs a new *BasicHost and activates it by attaching its stream and connection handlers to the given inet.Network.
-func NewHost(net inet.Network, opts *HostOpts) (*BasicHost, error) {
+func NewHost(ctx context.Context, net inet.Network, opts *HostOpts) (*BasicHost, error) {
 	h := &BasicHost{
 		network:    net,
 		mux:        msmux.NewMultistreamMuxer(),
@@ -167,7 +167,7 @@ func NewHost(net inet.Network, opts *HostOpts) (*BasicHost, error) {
 	net.SetStreamHandler(h.newStreamHandler)
 
 	if opts.EnableRelay {
-		relayCtx, relayCancel = context.WithCancel(context.Background())
+		relayCtx, relayCancel = context.WithCancel(ctx)
 		err := circuit.AddRelayTransport(relayCtx, h, opts.RelayOpts...)
 		if err != nil {
 			h.Close()
@@ -200,7 +200,7 @@ func New(net inet.Network, opts ...interface{}) *BasicHost {
 		}
 	}
 
-	h, err := NewHost(net, hostopts)
+	h, err := NewHost(context.Background(), net, hostopts)
 	if err != nil {
 		// this cannot happen with legacy options
 		// plus we want to keep the (deprecated) legacy interface unchanged
