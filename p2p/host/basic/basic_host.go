@@ -452,6 +452,9 @@ func (h *BasicHost) resolveAddrs(ctx context.Context, pi pstore.PeerInfo) ([]ma.
 	var addrs []ma.Multiaddr
 	for _, addr := range pi.Addrs {
 		addrs = append(addrs, addr)
+		if !madns.Matches(addr) {
+			continue
+		}
 
 		reqaddr := addr.Encapsulate(p2paddr)
 		resaddrs, err := h.maResolver.Resolve(ctx, reqaddr)
