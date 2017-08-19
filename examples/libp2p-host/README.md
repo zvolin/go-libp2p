@@ -1,4 +1,5 @@
 # The libp2p 'host'
+
 For most applications, the host is the basic building block you'll need to get
 started. This guide will show how to construct and use a simple host.
 The host is an abstraction that manages services on top of a swarm. It provides
