@@ -88,6 +88,20 @@ $ go test ./p2p/<path of module you want to run tests for>
 
 ## Development
 
+### Dependencies
+
+While developing, you need to use gx to install and link your dependencies, to do that, run:
+
+```sh
+> make deps
+```
+
+Before commiting and pushing to Github, make sure to rewind the gx'ify of dependencies. You can do that with:
+
+```sh
+> make publish
+```
+
 ### Tests
 
 Running of individual tests is done through `go test <path to test>`
