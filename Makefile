@@ -2,7 +2,7 @@ gx:
 	go get github.com/whyrusleeping/gx
 	go get github.com/whyrusleeping/gx-go
 
-deps-examples: deps
+deps-protocol-muxing: deps
 	go get -u github.com/multiformats/go-multicodec
 	go get -u github.com/jbenet/go-msgio
 
@@ -12,4 +12,3 @@ deps: gx
 
 publish:
 	gx-go rewrite --undo
-
