@@ -48,7 +48,7 @@ libp2p is the product of a long, and arduous quest of understanding -- a deep di
 >
 > We will be writing a set of docs, posts, tutorials, and talks to explain what p2p is, why it is tremendously useful, and how it can help your existing and new projects. But in the meantime, check out
 >
-> - [**The libp2p Specification**](https://github.com/libp2p/specs), which grew into libp2p
+> - [**The libp2p Specification**](https://github.com/libp2p/specs)
 > - [**go-libp2p implementation**](https://github.com/libp2p/go-libp2p)
 > - [**js-libp2p implementation**](https://github.com/libp2p/js-libp2p)
 
@@ -59,7 +59,7 @@ There is currently only one bundle of `go-libp2p`, this package. This bundle is 
 
 ## Usage
 
-`go-libp2p` repo will be a place holder for the list of Go modules that compose Go libp2p, as well as its entry point.
+`go-libp2p` repo is a place holder for the list of Go modules that compose Go libp2p, as well as its entry point.
 
 ### Install
 
@@ -83,14 +83,14 @@ Examples can be found on the [examples folder](examples).
 ```bash
 $ cd $GOPATH/src/github.com/libp2p/go-libp2p
 $ make deps
-$ go test ./p2p/<path of module you want to run tests for>
+$ gx test ./p2p/<path of module you want to run tests for>
 ```
 
 ## Development
 
 ### Dependencies
 
-While developing, you need to use gx to install and link your dependencies, to do that, run:
+While developing, you need to use [gx to install and link your dependencies](https://github.com/whyrusleeping/gx#dependencies), to do that, run:
 
 ```sh
 > make deps
@@ -130,7 +130,7 @@ Guidelines:
 
 - read the [libp2p spec](https://github.com/libp2p/specs)
 - please make branches + pull-request, even if working on the main repository
-- ask questions or talk about things in [Issues](https://github.com/ipfs/go-ipfs/issues) or #ipfs on freenode.
+- ask questions or talk about things in [Issues](https://github.com/libp2p/go-libp2p/issues) or #ipfs on freenode.
 - ensure you are able to contribute (no legal issues please-- we use the DCO)
 - run `go fmt` before pushing any code
 - run `golint` and `go vet` too -- some things (like protobuf files) are expected to fail.
