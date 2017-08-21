@@ -78,14 +78,6 @@ There is currently only one bundle of `go-libp2p`, this package. This bundle is 
 
 Examples can be found on the [examples folder](examples).
 
-# Run tests
-
-```bash
-$ cd $GOPATH/src/github.com/libp2p/go-libp2p
-$ make deps
-$ gx test ./p2p/<path of module you want to run tests for>
-```
-
 ## Development
 
 ### Dependencies
@@ -105,6 +97,12 @@ Before commiting and pushing to Github, make sure to rewind the gx'ify of depend
 ### Tests
 
 Running of individual tests is done through `gx test <path to test>`
+
+```bash
+$ cd $GOPATH/src/github.com/libp2p/go-libp2p
+$ make deps
+$ gx test ./p2p/<path of module you want to run tests for>
+```
 
 ### Packages
 
