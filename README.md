@@ -104,11 +104,13 @@ Before commiting and pushing to Github, make sure to rewind the gx'ify of depend
 
 ### Tests
 
-Running of individual tests is done through `go test <path to test>`
+Running of individual tests is done through `gx test <path to test>`
 
 ### Packages
 
-List of packages currently in existence for libp2p
+> **WIP**
+
+List of packages currently in existence for libp2p:
 
 | Package            | Version | CI                  |
 |--------------------|---------|---------------------|
@@ -119,7 +121,7 @@ List of packages currently in existence for libp2p
 | **Crypto Channels**                                |
 | **Peer Routing**                                   |
 | **Content Routing**                                |
-| **Generics**                                       |
+| **Miscellaneous**                                  |
 | **Data Types**                                     |
 
 # Contribute
