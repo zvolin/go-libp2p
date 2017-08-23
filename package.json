@@ -151,9 +151,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmV2WTGC9xu6e8WoBa17mDEpdnCRbhSNxP9goqXAAC2reQ",
+      "hash": "QmdQcv14hCd41WEzNA4avJohJR5sdPqVgFtXZtDz6MTCKx",
       "name": "go-tcp-transport",
-      "version": "1.2.1"
+      "version": "1.2.2"
     },
     {
       "author": "whyrusleeping",
@@ -181,9 +181,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmQCeEJu7KJm2v29cQi1yg7Xa5tXGCzeenvKNyD9bZb5Mo",
+      "hash": "QmcYU4bjgs7dACwDWzfeYKgqkgbd5mKk2ZUCepYXhbtRSB",
       "name": "go-libp2p-conn",
-      "version": "1.6.8"
+      "version": "1.6.9"
     },
     {
       "author": "whyrusleeping",
@@ -211,9 +211,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmfGXKgqQmaPHDHPSG3Y9vCVtFZtFeRZJW7N1anXB5biRu",
+      "hash": "QmVJefKHXEx28RFpmj5GeRg43AqeBH3npPwvgJ875fBPm7",
       "name": "go-libp2p-swarm",
-      "version": "1.7.3"
+      "version": "1.7.4"
     },
     {
       "author": "whyrusleeping",
@@ -223,9 +223,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmZG4W8GR9FpC4z69Vab9ENtEoxKjDnTym5oa7Q3Yr7P4o",
+      "hash": "QmYdcTdkuCvFXLj2uejJF5aY3HWhtd8JLT4BjPxF9BNPYf",
       "name": "go-libp2p-netutil",
-      "version": "0.2.21"
+      "version": "0.2.22"
     },
     {
       "author": "whyrusleeping",
@@ -271,9 +271,9 @@
     },
     {
       "author": "vyzo",
-      "hash": "QmbVTkb8ihJNudRL4Vf9wjxMAapWxYdehrS7XBij31AGKM",
+      "hash": "QmYBGpZ3hV89RZTd3CTjjgjgcX64QnbcBS9dCqU7mCgS1n",
       "name": "go-libp2p-circuit",
-      "version": "1.1.4"
+      "version": "1.1.5"
     },
     {
       "author": "lgierth",
@@ -287,6 +287,6 @@
   "license": "MIT",
   "name": "go-libp2p",
   "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
-  "version": "4.5.1"
+  "version": "4.5.2"
 }
 
