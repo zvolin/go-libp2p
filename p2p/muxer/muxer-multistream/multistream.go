@@ -7,7 +7,7 @@ import (
 	"net"
 	"time"
 
-	smux "github.com/jbenet/go-stream-muxer"
+	smux "github.com/libp2p/go-stream-muxer"
 	mss "github.com/multiformats/go-multistream"
 )
 
