@@ -64,7 +64,7 @@ There is currently only one bundle of `go-libp2p`, this package. This bundle is 
 ### Install
 
 ```bash
-> go get -d github.com/libp2p/go-libp2p
+> go get -d github.com/libp2p/go-libp2p/...
 > cd $GOPATH/src/github.com/libp2p/go-libp2p
 > make
 > make deps
