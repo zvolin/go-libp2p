@@ -31,8 +31,12 @@ func EchoStreamHandler(stream inet.Stream) {
 	c := stream.Conn()
 	log.Debugf("%s echoing %s", c.LocalPeer(), c.RemotePeer())
 	go func() {
-		defer stream.Close()
-		io.Copy(stream, stream)
+		_, err := io.Copy(stream, stream)
+		if err == nil {
+			stream.Close()
+		} else {
+			stream.Reset()
+		}
 	}()
 }
 
