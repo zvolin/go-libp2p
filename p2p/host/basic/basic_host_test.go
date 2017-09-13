@@ -180,7 +180,7 @@ func TestHostProtoMismatch(t *testing.T) {
 
 	h1.SetStreamHandler("/super", func(s inet.Stream) {
 		t.Error("shouldnt get here")
-		s.Close()
+		s.Reset()
 	})
 
 	_, err := h2.NewStream(ctx, h1.ID(), "/foo", "/bar", "/baz/1.0.0")

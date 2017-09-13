@@ -240,7 +240,7 @@ func (h *BasicHost) newStreamHandler(s inet.Stream) {
 	if h.negtimeout > 0 {
 		if err := s.SetDeadline(time.Now().Add(h.negtimeout)); err != nil {
 			log.Error("setting stream deadline: ", err)
-			s.Close()
+			s.Reset()
 			return
 		}
 	}
@@ -257,7 +257,7 @@ func (h *BasicHost) newStreamHandler(s inet.Stream) {
 		} else {
 			log.Warning("protocol mux failed: %s (took %s)", err, took)
 		}
-		s.Close()
+		s.Reset()
 		return
 	}
 
@@ -269,7 +269,7 @@ func (h *BasicHost) newStreamHandler(s inet.Stream) {
 	if h.negtimeout > 0 {
 		if err := s.SetDeadline(time.Time{}); err != nil {
 			log.Error("resetting stream deadline: ", err)
-			s.Close()
+			s.Reset()
 			return
 		}
 	}
@@ -364,7 +364,7 @@ func (h *BasicHost) NewStream(ctx context.Context, p peer.ID, pids ...protocol.I
 
 	selected, err := msmux.SelectOneOf(protoStrs, s)
 	if err != nil {
-		s.Close()
+		s.Reset()
 		return nil, err
 	}
 	selpid := protocol.ID(selected)
