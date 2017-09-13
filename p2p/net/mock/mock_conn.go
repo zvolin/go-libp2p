@@ -2,7 +2,12 @@ package mocknet
 
 import (
 	"container/list"
+	"fmt"
+	"os"
+	"os/signal"
+	"runtime"
 	"sync"
+	"syscall"
 
 	process "github.com/jbenet/goprocess"
 	ic "github.com/libp2p/go-libp2p-crypto"
@@ -10,6 +15,19 @@ import (
 	peer "github.com/libp2p/go-libp2p-peer"
 	ma "github.com/multiformats/go-multiaddr"
 )
+
+func init() {
+	go func() {
+		sigs := make(chan os.Signal, 1)
+		signal.Notify(sigs, syscall.SIGQUIT)
+		buf := make([]byte, 1<<20)
+		for {
+			<-sigs
+			stacklen := runtime.Stack(buf, true)
+			fmt.Printf("=== received SIGQUIT ===\n*** goroutine dump...\n%s\n*** end\n", buf[:stacklen])
+		}
+	}()
+}
 
 // conn represents one side's perspective of a
 // live connection between two peers.
@@ -54,7 +72,7 @@ func (c *conn) Close() error {
 
 func (c *conn) teardown() error {
 	for _, s := range c.allStreams() {
-		s.Close()
+		s.Reset()
 	}
 	c.net.removeConn(c)
 	c.net.notifyAll(func(n inet.Notifiee) {
