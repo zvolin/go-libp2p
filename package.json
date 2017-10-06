@@ -205,9 +205,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmaSxYRuMq4pkpBBG2CYaRrPx2z7NmMVEs34b9g61biQA6",
+      "hash": "Qmc1XhrFEiSeBNn3mpfg6gEuYCt5im2gYmNVmncsvmpeAk",
       "name": "go-libp2p-host",
-      "version": "2.0.0"
+      "version": "2.1.1"
     },
     {
       "author": "whyrusleeping",
@@ -229,9 +229,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmPZRCaYeNLMo5GfcRS2rv9ZxVuXXt6MFg9dWLmgsdXKCw",
+      "hash": "QmQkeGXc9ZuQ5upVFpd2EjKvgw9aVh1BbtAgvNGVcebmmX",
       "name": "go-libp2p-blankhost",
-      "version": "0.2.0"
+      "version": "0.2.1"
     },
     {
       "author": "whyrusleeping",
@@ -259,27 +259,27 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmYUpfXEBqLdtiSUDzzc8hLfcELPHiPtANF12EpEX1WCVB",
-      "name": "go-libp2p-connmgr",
-      "version": "0.2.0"
-    },
-    {
-      "author": "whyrusleeping",
       "hash": "QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB",
       "name": "go-libp2p-peer",
       "version": "2.2.0"
     },
     {
       "author": "vyzo",
-      "hash": "QmbMNjK69isbpzVGKKrsnM7Sqyh3TVKAphRn5WuUhwTFbW",
+      "hash": "QmfHWhmJSJD9RjogJdPsb7wzJbUkxpZkctHvAfvJCTAP6X",
       "name": "go-libp2p-circuit",
-      "version": "2.0.2"
+      "version": "2.0.3"
     },
     {
       "author": "lgierth",
       "hash": "QmS7xUmsTdVNU2t1bPV6o9aXuXfufAjNGYgh2bcN2z9DAs",
       "name": "go-multiaddr-dns",
       "version": "0.2.0"
+    },
+    {
+      "author": "why",
+      "hash": "QmYkCrTwivapqdB3JbwvwvxymseahVkcm46ThRMAA24zCr",
+      "name": "go-libp2p-interface-connmgr",
+      "version": "0.0.2"
     }
   ],
   "gxVersion": "0.4.0",

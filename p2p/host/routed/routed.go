@@ -8,7 +8,7 @@ import (
 	host "github.com/libp2p/go-libp2p-host"
 
 	logging "github.com/ipfs/go-log"
-	connmgr "github.com/libp2p/go-libp2p-connmgr"
+	ifconnmgr "github.com/libp2p/go-libp2p-interface-connmgr"
 	lgbl "github.com/libp2p/go-libp2p-loggables"
 	inet "github.com/libp2p/go-libp2p-net"
 	peer "github.com/libp2p/go-libp2p-peer"
@@ -142,7 +142,7 @@ func (rh *RoutedHost) Close() error {
 	// no need to close IpfsRouting. we dont own it.
 	return rh.host.Close()
 }
-func (rh *RoutedHost) ConnManager() connmgr.ConnManager {
+func (rh *RoutedHost) ConnManager() ifconnmgr.ConnManager {
 	return rh.host.ConnManager()
 }
 
