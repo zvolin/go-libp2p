@@ -287,6 +287,6 @@
   "license": "MIT",
   "name": "go-libp2p",
   "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
-  "version": "5.0.3"
+  "version": "5.0.4"
 }
 
