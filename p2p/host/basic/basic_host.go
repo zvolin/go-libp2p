@@ -10,7 +10,7 @@ import (
 	logging "github.com/ipfs/go-log"
 	goprocess "github.com/jbenet/goprocess"
 	circuit "github.com/libp2p/go-libp2p-circuit"
-	connmgr "github.com/libp2p/go-libp2p-connmgr"
+	ifconnmgr "github.com/libp2p/go-libp2p-interface-connmgr"
 	metrics "github.com/libp2p/go-libp2p-metrics"
 	mstream "github.com/libp2p/go-libp2p-metrics/stream"
 	inet "github.com/libp2p/go-libp2p-net"
@@ -62,7 +62,7 @@ type BasicHost struct {
 	natmgr     NATManager
 	addrs      AddrsFactory
 	maResolver *madns.Resolver
-	cmgr       connmgr.ConnManager
+	cmgr       ifconnmgr.ConnManager
 
 	negtimeout time.Duration
 
@@ -104,7 +104,7 @@ type HostOpts struct {
 	BandwidthReporter metrics.Reporter
 
 	// ConnManager is a libp2p connection manager
-	ConnManager connmgr.ConnManager
+	ConnManager ifconnmgr.ConnManager
 
 	// Relay indicates whether the host should use circuit relay transport
 	EnableRelay bool
@@ -156,10 +156,10 @@ func NewHost(ctx context.Context, net inet.Network, opts *HostOpts) (*BasicHost,
 	}
 
 	if opts.ConnManager == nil {
-		// create 'disabled' conn manager for now
-		h.cmgr = connmgr.NewConnManager(0, 0, 0)
+		h.cmgr = &ifconnmgr.NullConnMgr{}
 	} else {
 		h.cmgr = opts.ConnManager
+		net.Notify(h.cmgr.Notifee())
 	}
 
 	var relayCtx context.Context
@@ -207,7 +207,7 @@ func New(net inet.Network, opts ...interface{}) *BasicHost {
 			hostopts.BandwidthReporter = o
 		case AddrsFactory:
 			hostopts.AddrsFactory = AddrsFactory(o)
-		case connmgr.ConnManager:
+		case ifconnmgr.ConnManager:
 			hostopts.ConnManager = o
 		case *madns.Resolver:
 			hostopts.MultiaddrResolver = o
@@ -504,7 +504,7 @@ func (h *BasicHost) dialPeer(ctx context.Context, p peer.ID) error {
 	return nil
 }
 
-func (h *BasicHost) ConnManager() connmgr.ConnManager {
+func (h *BasicHost) ConnManager() ifconnmgr.ConnManager {
 	return h.cmgr
 }
 
