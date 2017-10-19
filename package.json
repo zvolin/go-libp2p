@@ -109,9 +109,9 @@
       "version": "0.0.0"
     },
     {
-      "hash": "QmTMNkpso2WRMevXC8ZxgyBhJvoEHvk24SNeUr9Mf9UM1a",
+      "hash": "QmXZYkfBN1cABhBZRaEwLzgEB5B3nAGiJYCmhWbDW3cDus",
       "name": "go-peerstream",
-      "version": "2.0.2"
+      "version": "2.1.0"
     },
     {
       "author": "whyrusleeping",
@@ -211,9 +211,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmWpJ4y2vxJ6GZpPfQbpVpQxAYS3UeR6AKNbAHxw7wN3qw",
+      "hash": "QmdQFrFnPrKRQtpeHKjZ3cVNwxmGKKS2TvhJTuN9C9yduh",
       "name": "go-libp2p-swarm",
-      "version": "2.0.3"
+      "version": "2.0.5"
     },
     {
       "author": "whyrusleeping",
@@ -223,9 +223,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmdzuGp4a9pahgXuBeReHdYGUzdVX3FUCwfmWVo5mQfkTi",
+      "hash": "QmQGX417WoxKxDJeHqouMEmmH4G1RCENNSzkZYHrXy3Xb3",
       "name": "go-libp2p-netutil",
-      "version": "0.3.2"
+      "version": "0.3.3"
     },
     {
       "author": "whyrusleeping",
@@ -265,9 +265,9 @@
     },
     {
       "author": "vyzo",
-      "hash": "QmfHWhmJSJD9RjogJdPsb7wzJbUkxpZkctHvAfvJCTAP6X",
+      "hash": "Qmf7GSJ4omRJsvA9uzTqzbnVhq4RWLPzjzW4xJzUta4dKE",
       "name": "go-libp2p-circuit",
-      "version": "2.0.3"
+      "version": "2.0.4"
     },
     {
       "author": "lgierth",
@@ -287,6 +287,6 @@
   "license": "MIT",
   "name": "go-libp2p",
   "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
-  "version": "5.0.4"
+  "version": "5.0.5"
 }
 
