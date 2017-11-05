@@ -20,6 +20,7 @@ import (
 	yamux "github.com/whyrusleeping/go-smux-yamux"
 )
 
+// Config describes a set of settings for a libp2p node
 type Config struct {
 	Transports  []transport.Transport
 	Muxer       mux.Transport
@@ -30,11 +31,18 @@ type Config struct {
 	Reporter    metrics.Reporter
 }
 
-func Construct(ctx context.Context, cfg *Config) (host.Host, error) {
+func New(ctx context.Context) (host.Host, error) {
+	return NewWithCfg(ctx, DefaultConfig())
+}
+
+// Construct instantiates a libp2p host using information from the given
+// config. `nil` may be passed to use default options.
+func NewWithCfg(ctx context.Context, cfg *Config) (host.Host, error) {
 	if cfg == nil {
 		cfg = DefaultConfig()
 	}
 
+	// If no key was given, generate a random 2048 bit RSA key
 	if cfg.PeerKey == nil {
 		priv, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, rand.Reader)
 		if err != nil {
@@ -49,6 +57,7 @@ func Construct(ctx context.Context, cfg *Config) (host.Host, error) {
 		return nil, err
 	}
 
+	// Create a new blank peerstore if none was passed in
 	ps := cfg.Peerstore
 	if ps == nil {
 		ps = pstore.NewPeerstore()
@@ -70,14 +79,17 @@ func Construct(ctx context.Context, cfg *Config) (host.Host, error) {
 func DefaultMuxer() mux.Transport {
 	// Set up stream multiplexer
 	tpt := msmux.NewBlankTransport()
+
+	// By default, support yamux and multiplex
 	tpt.AddTransport("/yamux/1.0.0", yamux.DefaultTransport)
 	tpt.AddTransport("/mplex/6.3.0", mplex.DefaultTransport)
+
 	return tpt
 }
 
 func DefaultConfig() *Config {
-	// Create a multiaddress
-	addr, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/0")
+	// Create a multiaddress that listens on a random port on all interfaces
+	addr, err := ma.NewMultiaddr("/ip4/0.0.0.0/tcp/0")
 	if err != nil {
 		panic(err)
 	}
