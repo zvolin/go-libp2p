@@ -54,7 +54,7 @@ func TestHostSimple(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !bytes.Equal(buf1, buf2) {
-		t.Fatal("buf1 != buf2 -- %x != %x", buf1, buf2)
+		t.Fatalf("buf1 != buf2 -- %x != %x", buf1, buf2)
 	}
 
 	// get it from the pipe (tee)
@@ -63,7 +63,7 @@ func TestHostSimple(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !bytes.Equal(buf1, buf3) {
-		t.Fatal("buf1 != buf3 -- %x != %x", buf1, buf3)
+		t.Fatalf("buf1 != buf3 -- %x != %x", buf1, buf3)
 	}
 }
 
