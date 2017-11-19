@@ -205,7 +205,7 @@ func (pn *peernet) removeConn(c *conn) {
 
 	cs, found = pn.connsByPeer[c.remote]
 	if !found {
-		panic(fmt.Sprintf("attempting to remove a conn that doesnt exist %p", c.remote))
+		panic(fmt.Sprintf("attempting to remove a conn that doesnt exist %v", c.remote))
 	}
 	delete(cs, c)
 }

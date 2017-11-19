@@ -115,6 +115,7 @@ type HostOpts struct {
 
 // NewHost constructs a new *BasicHost and activates it by attaching its stream and connection handlers to the given inet.Network.
 func NewHost(ctx context.Context, net inet.Network, opts *HostOpts) (*BasicHost, error) {
+	ctx, cancel := context.WithCancel(ctx)
 	h := &BasicHost{
 		network:    net,
 		mux:        msmux.NewMultistreamMuxer(),
@@ -122,6 +123,14 @@ func NewHost(ctx context.Context, net inet.Network, opts *HostOpts) (*BasicHost,
 		addrs:      DefaultAddrsFactory,
 		maResolver: madns.DefaultResolver,
 	}
+
+	h.proc = goprocess.WithTeardown(func() error {
+		if h.natmgr != nil {
+			h.natmgr.Close()
+		}
+		cancel()
+		return h.Network().Close()
+	})
 
 	if opts.MultistreamMuxer != nil {
 		h.mux = opts.MultistreamMuxer
@@ -162,25 +171,11 @@ func NewHost(ctx context.Context, net inet.Network, opts *HostOpts) (*BasicHost,
 		net.Notify(h.cmgr.Notifee())
 	}
 
-	var relayCtx context.Context
-	var relayCancel func()
-
-	h.proc = goprocess.WithTeardown(func() error {
-		if h.natmgr != nil {
-			h.natmgr.Close()
-		}
-		if relayCancel != nil {
-			relayCancel()
-		}
-		return h.Network().Close()
-	})
-
 	net.SetConnHandler(h.newConnHandler)
 	net.SetStreamHandler(h.newStreamHandler)
 
 	if opts.EnableRelay {
-		relayCtx, relayCancel = context.WithCancel(ctx)
-		err := circuit.AddRelayTransport(relayCtx, h, opts.RelayOpts...)
+		err := circuit.AddRelayTransport(ctx, h, opts.RelayOpts...)
 		if err != nil {
 			h.Close()
 			return nil, err
