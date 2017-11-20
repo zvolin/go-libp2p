@@ -4,7 +4,7 @@ gx:
 
 deps-protocol-muxing: deps
 	go get -u github.com/multiformats/go-multicodec
-	go get -u github.com/jbenet/go-msgio
+	go get -u github.com/libp2p/go-msgio
 
 deps: gx 
 	gx --verbose install --global
