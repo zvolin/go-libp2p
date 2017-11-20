@@ -19,9 +19,9 @@
       "version": "0.1.1"
     },
     {
-      "hash": "QmRQhVisS8dmPbjBUthVkenn81pBxrx1GxE281csJhm2vL",
+      "hash": "QmWBug6eBS7AxRdCDVuSY5CnSit7cS2XnPFYJWqWDumhCG",
       "name": "go-msgio",
-      "version": "0.0.0"
+      "version": "0.0.3"
     },
     {
       "hash": "QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU",
@@ -133,9 +133,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmYnHb2Z93PJ52fxqhHyukKeutDkrQeVdruQPG2pZ9HhMR",
+      "hash": "QmbSkjJvDuxaZYtR46sF9ust7XY1hcg7DrA6Mxu4UiSWqs",
       "name": "go-libp2p-secio",
-      "version": "1.2.0"
+      "version": "1.2.2"
     },
     {
       "author": "whyrusleeping",
@@ -175,15 +175,15 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmWRCn8vruNAzHx8i6SAXinuheRitKEGu8c7m26stKvsYx",
+      "hash": "QmQgLZP9haZheimMHqqAjJh2LhRmNfEoZDfbtkpeMhi9xK",
       "name": "go-testutil",
-      "version": "1.1.11"
+      "version": "1.1.12"
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmTmknvYRdCyzsgEKWqq3Q7E2aPDEwFR9cNqBpgyQ2mGet",
+      "hash": "QmWUMfzE2RikVCwAtUCiZu7KijhnqRXKxriad9g6WaKgby",
       "name": "go-libp2p-conn",
-      "version": "1.7.0"
+      "version": "1.7.1"
     },
     {
       "author": "whyrusleeping",
@@ -211,9 +211,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmcnHXGwX6Yfqm7guiAjCujXg7RugKSaV1wj8RH2NTpNKK",
+      "hash": "QmU219N3jn7QadVCeBUqGnAkwoXoUomrCwDuVQVuL7PB5W",
       "name": "go-libp2p-swarm",
-      "version": "2.1.0"
+      "version": "2.1.1"
     },
     {
       "author": "whyrusleeping",
@@ -223,9 +223,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmcMGDy6GjF3UcJqZozUeDFXJqWo15ZLPRyJhqEhMZbxMo",
+      "hash": "QmUUNDRYXgfqdjxTg79ogkciczU5y4WY1tKMU2vEX9CRN7",
       "name": "go-libp2p-netutil",
-      "version": "0.3.4"
+      "version": "0.3.5"
     },
     {
       "author": "whyrusleeping",
@@ -265,9 +265,9 @@
     },
     {
       "author": "vyzo",
-      "hash": "QmTHDKDH8oqa3AnZDx4TH6ZUQG7MKHFAbSDMzh6zaLnQu5",
+      "hash": "QmUZJUk816s2aWLqWKYKAJWADdfftzUEtBA32mrz1EyjpT",
       "name": "go-libp2p-circuit",
-      "version": "2.0.5"
+      "version": "2.0.6"
     },
     {
       "author": "lgierth",
