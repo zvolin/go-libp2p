@@ -32,13 +32,88 @@ type Config struct {
 	DisableSecio bool
 }
 
-func New(ctx context.Context) (host.Host, error) {
-	return NewWithCfg(ctx, DefaultConfig())
+type Option func(cfg *Config) error
+
+func Transports(tpts []transport.Transport) Option {
+	return func(cfg *Config) error {
+		cfg.Transports = tpts
+		return nil
+	}
 }
 
-// Construct instantiates a libp2p host using information from the given
-// config. `nil` may be passed to use default options.
-func NewWithCfg(ctx context.Context, cfg *Config) (host.Host, error) {
+func ListenAddrStrings(s ...string) Option {
+	return func(cfg *Config) error {
+		for _, addrstr := range s {
+			a, err := ma.NewMultiaddr(addrstr)
+			if err != nil {
+				return err
+			}
+			cfg.ListenAddrs = append(cfg.ListenAddrs, a)
+		}
+		return nil
+	}
+}
+
+func ListenAddrs(addrs []ma.Multiaddr) Option {
+	return func(cfg *Config) error {
+		cfg.ListenAddrs = append(cfg.ListenAddrs, addrs...)
+		return nil
+	}
+}
+
+func NoSecio(cfg *Config) error {
+	cfg.DisableSecio = true
+	return nil
+}
+
+func WithMuxer(m mux.Transport) Option {
+	return func(cfg *Config) error {
+		cfg.Muxer = m
+		return nil
+	}
+}
+
+func WithPeerstore(ps pstore.Peerstore) Option {
+	return func(cfg *Config) error {
+		cfg.Peerstore = ps
+		return nil
+	}
+}
+
+func WithNetProtector(prot pnet.Protector) Option {
+	return func(cfg *Config) error {
+		cfg.Protector = prot
+		return nil
+	}
+}
+
+func WithBandwidthReporter(rep metrics.Reporter) Option {
+	return func(cfg *Config) error {
+		cfg.Reporter = rep
+		return nil
+	}
+}
+
+func New(ctx context.Context, opts ...Option) (host.Host, error) {
+	cfg := DefaultConfig()
+
+	for _, opt := range opts {
+		if err := opt(cfg); err != nil {
+			return nil, err
+		}
+	}
+
+	return newWithCfg(ctx, cfg)
+}
+
+func WithPeerKey(sk crypto.PrivKey) Option {
+	return func(cfg *Config) error {
+		cfg.PeerKey = sk
+		return nil
+	}
+}
+
+func newWithCfg(ctx context.Context, cfg *Config) (host.Host, error) {
 	if cfg == nil {
 		cfg = DefaultConfig()
 	}
