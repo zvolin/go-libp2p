@@ -22,13 +22,14 @@ import (
 
 // Config describes a set of settings for a libp2p node
 type Config struct {
-	Transports  []transport.Transport
-	Muxer       mux.Transport
-	ListenAddrs []ma.Multiaddr
-	PeerKey     crypto.PrivKey
-	Peerstore   pstore.Peerstore
-	Protector   pnet.Protector
-	Reporter    metrics.Reporter
+	Transports   []transport.Transport
+	Muxer        mux.Transport
+	ListenAddrs  []ma.Multiaddr
+	PeerKey      crypto.PrivKey
+	Peerstore    pstore.Peerstore
+	Protector    pnet.Protector
+	Reporter     metrics.Reporter
+	DisableSecio bool
 }
 
 func New(ctx context.Context) (host.Host, error) {
@@ -63,8 +64,11 @@ func NewWithCfg(ctx context.Context, cfg *Config) (host.Host, error) {
 		ps = pstore.NewPeerstore()
 	}
 
-	ps.AddPrivKey(pid, cfg.PeerKey)
-	ps.AddPubKey(pid, cfg.PeerKey.GetPublic())
+	// If secio is disabled, don't add our private key to the peerstore
+	if !cfg.DisableSecio {
+		ps.AddPrivKey(pid, cfg.PeerKey)
+		ps.AddPubKey(pid, cfg.PeerKey.GetPublic())
+	}
 
 	swrm, err := swarm.NewSwarmWithProtector(ctx, cfg.ListenAddrs, pid, ps, cfg.Protector, cfg.Muxer, cfg.Reporter)
 	if err != nil {
