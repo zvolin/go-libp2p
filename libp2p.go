@@ -3,6 +3,7 @@ package libp2p
 import (
 	"context"
 	"crypto/rand"
+	"fmt"
 
 	crypto "github.com/libp2p/go-libp2p-crypto"
 	host "github.com/libp2p/go-libp2p-host"
@@ -34,9 +35,9 @@ type Config struct {
 
 type Option func(cfg *Config) error
 
-func Transports(tpts []transport.Transport) Option {
+func Transports(tpts ...transport.Transport) Option {
 	return func(cfg *Config) error {
-		cfg.Transports = tpts
+		cfg.Transports = append(cfg.Transports, tpts...)
 		return nil
 	}
 }
@@ -54,70 +55,110 @@ func ListenAddrStrings(s ...string) Option {
 	}
 }
 
-func ListenAddrs(addrs []ma.Multiaddr) Option {
+func ListenAddrs(addrs ...ma.Multiaddr) Option {
 	return func(cfg *Config) error {
 		cfg.ListenAddrs = append(cfg.ListenAddrs, addrs...)
 		return nil
 	}
 }
 
-func NoSecio(cfg *Config) error {
-	cfg.DisableSecio = true
-	return nil
+type transportEncOpt int
+
+const (
+	EncPlaintext = transportEncOpt(0)
+	EncSecio     = transportEncOpt(1)
+)
+
+func TransportEncryption(tenc ...transportEncOpt) Option {
+	return func(cfg *Config) error {
+		if len(tenc) != 1 {
+			return fmt.Errorf("can only specify a single transport encryption option right now")
+		}
+
+		// TODO: actually make this pluggable, otherwise tls will get tricky
+		switch tenc[0] {
+		case EncPlaintext:
+			cfg.DisableSecio = true
+		case EncSecio:
+			// noop
+		default:
+			return fmt.Errorf("unrecognized transport encryption option: %d", tenc[0])
+		}
+		return nil
+	}
 }
 
-func WithMuxer(m mux.Transport) Option {
+func NoEncryption() Option {
+	return TransportEncryption(EncPlaintext)
+}
+
+func Muxer(m mux.Transport) Option {
 	return func(cfg *Config) error {
+		if cfg.Muxer != nil {
+			return fmt.Errorf("cannot specify multiple muxer options")
+		}
+
 		cfg.Muxer = m
 		return nil
 	}
 }
 
-func WithPeerstore(ps pstore.Peerstore) Option {
+func Peerstore(ps pstore.Peerstore) Option {
 	return func(cfg *Config) error {
+		if cfg.Peerstore != nil {
+			return fmt.Errorf("cannot specify multiple peerstore options")
+		}
+
 		cfg.Peerstore = ps
 		return nil
 	}
 }
 
-func WithNetProtector(prot pnet.Protector) Option {
+func PrivateNetwork(prot pnet.Protector) Option {
 	return func(cfg *Config) error {
+		if cfg.Protector != nil {
+			return fmt.Errorf("cannot specify multiple private network options")
+		}
+
 		cfg.Protector = prot
 		return nil
 	}
 }
 
-func WithBandwidthReporter(rep metrics.Reporter) Option {
+func BandwidthReporter(rep metrics.Reporter) Option {
 	return func(cfg *Config) error {
+		if cfg.Reporter != nil {
+			return fmt.Errorf("cannot specify multiple bandwidth reporter options")
+		}
+
 		cfg.Reporter = rep
 		return nil
 	}
 }
 
-func New(ctx context.Context, opts ...Option) (host.Host, error) {
-	cfg := DefaultConfig()
-
-	for _, opt := range opts {
-		if err := opt(cfg); err != nil {
-			return nil, err
-		}
-	}
-
-	return newWithCfg(ctx, cfg)
-}
-
-func WithPeerKey(sk crypto.PrivKey) Option {
+func Identity(sk crypto.PrivKey) Option {
 	return func(cfg *Config) error {
+		if cfg.PeerKey != nil {
+			return fmt.Errorf("cannot specify multiple identities")
+		}
+
 		cfg.PeerKey = sk
 		return nil
 	}
 }
 
-func newWithCfg(ctx context.Context, cfg *Config) (host.Host, error) {
-	if cfg == nil {
-		cfg = DefaultConfig()
+func New(ctx context.Context, opts ...Option) (host.Host, error) {
+	var cfg Config
+	for _, opt := range opts {
+		if err := opt(&cfg); err != nil {
+			return nil, err
+		}
 	}
 
+	return newWithCfg(ctx, &cfg)
+}
+
+func newWithCfg(ctx context.Context, cfg *Config) (host.Host, error) {
 	// If no key was given, generate a random 2048 bit RSA key
 	if cfg.PeerKey == nil {
 		priv, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, rand.Reader)
@@ -166,16 +207,15 @@ func DefaultMuxer() mux.Transport {
 	return tpt
 }
 
-func DefaultConfig() *Config {
+func Defaults(cfg *Config) error {
 	// Create a multiaddress that listens on a random port on all interfaces
 	addr, err := ma.NewMultiaddr("/ip4/0.0.0.0/tcp/0")
 	if err != nil {
-		panic(err)
+		return err
 	}
 
-	return &Config{
-		ListenAddrs: []ma.Multiaddr{addr},
-		Peerstore:   pstore.NewPeerstore(),
-		Muxer:       DefaultMuxer(),
-	}
+	cfg.ListenAddrs = []ma.Multiaddr{addr}
+	cfg.Peerstore = pstore.NewPeerstore()
+	cfg.Muxer = DefaultMuxer()
+	return nil
 }
