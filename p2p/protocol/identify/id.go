@@ -65,6 +65,7 @@ func NewIDService(h host.Host) *IDService {
 		currid: make(map[inet.Conn]chan struct{}),
 	}
 	h.SetStreamHandler(ID, s.RequestHandler)
+	h.Network().Notify((*netNotifiee)(s))
 	return s
 }
 
