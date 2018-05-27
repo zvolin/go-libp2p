@@ -84,11 +84,6 @@
       "version": "1.2.6"
     },
     {
-      "hash": "QmeYJHEk8UjVVZ4XCRTZe6dFQrb8pGWD81LYCgeLp8CvMB",
-      "name": "go-metrics",
-      "version": "0.0.0"
-    },
-    {
       "hash": "QmYvsG72GsfLgUeSojXArjnU6L4Wmwk7wuAxtNLuyXcc1T",
       "name": "randbo",
       "version": "0.0.0"
