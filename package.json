@@ -34,9 +34,9 @@
       "version": "1.0.0"
     },
     {
-      "hash": "QmTnsezaB1wWNRHeHnYrm8K4d5i9wtyj3GsqjC3Rt5b5v5",
+      "hash": "QmbXRda5H2K3MSQyWWxTMtd8DWuguEBUCe6hpxfXVpFUGj",
       "name": "go-multistream",
-      "version": "0.3.6"
+      "version": "0.3.7"
     },
     {
       "hash": "Qmf7HqcW7LtCi1W8y2bdx2eJpze74jkbKqpByxgXikdbLF",
@@ -171,9 +171,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmaHsbK8b39AzQWEwDsysCutdJXyfa3k9oFh1cr6dfMhHT",
+      "hash": "QmYSQpi68jBLVUx62u543RVvnjjaQQDDxyopWWG31kiUkG",
       "name": "go-libp2p-conn",
-      "version": "1.7.6"
+      "version": "1.7.7"
     },
     {
       "author": "whyrusleeping",
@@ -195,15 +195,15 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D",
+      "hash": "QmaSfSMvc1VPZ8JbMponFs4WHvF9FgEruF56opm5E1RgQA",
       "name": "go-libp2p-host",
-      "version": "2.1.7"
+      "version": "2.1.8"
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmRqfgh56f8CrqpwH7D2s6t8zQRsvPoftT3sp5Y6SUhNA3",
+      "hash": "QmWhhwxrH6msgQ3UFiDs2a5DQKwQQHroNJVkPkK8e8AuEX",
       "name": "go-libp2p-swarm",
-      "version": "2.1.7"
+      "version": "2.1.8"
     },
     {
       "author": "whyrusleeping",
@@ -213,15 +213,15 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "Qmb6BsZf6Y3kxffXMNTubGPF1w1bkHtpvhfYbmnwP3NQyw",
+      "hash": "QmYELA7ZYpWS1MYbpxEq1mMJsoBC33EvKfdWwfUkjc9wHP",
       "name": "go-libp2p-netutil",
-      "version": "0.3.11"
+      "version": "0.3.12"
     },
     {
       "author": "whyrusleeping",
-      "hash": "Qmc64U41EEB4nPG7wxjEqFwKJajS2f8kk5q2TvUrQf78Xu",
+      "hash": "QmYEmPwCBe7ZUFfuymozopHTuF3JXejvJPDAjwtyQCrsDi",
       "name": "go-libp2p-blankhost",
-      "version": "0.2.7"
+      "version": "0.2.8"
     },
     {
       "author": "whyrusleeping",
@@ -243,9 +243,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmVniQJkdzLZaZwzwMdd3dJTvWiJ1DQEkreVy6hs6h7Vk5",
+      "hash": "QmWzjXAyBTygw6CeCTUnhJzhFucfxY5FJivSoiGuiSbPjS",
       "name": "go-smux-multistream",
-      "version": "2.0.0"
+      "version": "2.0.1"
     },
     {
       "author": "whyrusleeping",
@@ -255,9 +255,9 @@
     },
     {
       "author": "vyzo",
-      "hash": "QmZRbCo2gw7ghw5m7L77a8FvvQTVr62J4hmy8ozpdq7dHF",
+      "hash": "QmcE2pXXX3aLmNFoh75F3qZ2k5KaicZjvbuGPtBZ225K12",
       "name": "go-libp2p-circuit",
-      "version": "2.0.12"
+      "version": "2.0.13"
     },
     {
       "author": "lgierth",
