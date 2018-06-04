@@ -201,9 +201,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmWhhwxrH6msgQ3UFiDs2a5DQKwQQHroNJVkPkK8e8AuEX",
+      "hash": "QmRpKdg1xs4Yyrn9yrVYRBp7AQqyRxMLpD6Jgp1eZAGqEr",
       "name": "go-libp2p-swarm",
-      "version": "2.1.8"
+      "version": "2.1.9"
     },
     {
       "author": "whyrusleeping",
@@ -213,9 +213,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmYELA7ZYpWS1MYbpxEq1mMJsoBC33EvKfdWwfUkjc9wHP",
+      "hash": "Qma2UuHusnaFV24DgeZ5hyrM9uc4UdyVaZbtn2FQsPRhES",
       "name": "go-libp2p-netutil",
-      "version": "0.3.12"
+      "version": "0.3.13"
     },
     {
       "author": "whyrusleeping",
@@ -231,9 +231,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmNWCEvi7bPRcvqAV8AKLGVNoQdArWi7NJayka2SM4XtRe",
+      "hash": "QmcsgrV3nCAKjiHKZhKVXWc4oY3WBECJCqahXEMpHeMrev",
       "name": "go-smux-yamux",
-      "version": "2.0.1"
+      "version": "2.0.3"
     },
     {
       "author": "whyrusleeping",
@@ -255,9 +255,9 @@
     },
     {
       "author": "vyzo",
-      "hash": "QmcE2pXXX3aLmNFoh75F3qZ2k5KaicZjvbuGPtBZ225K12",
+      "hash": "QmR5sXZi68rm9m2E3KiXj6hE5m3GeLaDjbLPUeV6W3MLR8",
       "name": "go-libp2p-circuit",
-      "version": "2.0.13"
+      "version": "2.0.14"
     },
     {
       "author": "lgierth",
@@ -295,6 +295,6 @@
   "license": "MIT",
   "name": "go-libp2p",
   "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
-  "version": "5.0.18"
+  "version": "5.0.19"
 }
 
