@@ -273,9 +273,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmenmFuirGzv8S1R3DyvbZ6tFmQapkGeDCebgYzni1Ntn3",
+      "hash": "QmeDXFtW7tXBzgu2bKFkHkcabw1QxiusmPbYU4XXiUuXDJ",
       "name": "go-smux-multiplex",
-      "version": "3.0.6"
+      "version": "3.0.7"
     },
     {
       "author": "multiformats",
@@ -295,6 +295,6 @@
   "license": "MIT",
   "name": "go-libp2p",
   "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
-  "version": "5.0.19"
+  "version": "5.0.20"
 }
 
