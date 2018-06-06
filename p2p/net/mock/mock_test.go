@@ -631,7 +631,8 @@ func TestStreamsWithLatency(t *testing.T) {
 	wg.Wait()
 
 	delta := time.Since(checkpoint)
-	if !within(delta, latency, time.Millisecond*50) {
-		t.Fatalf("Expected write to take ~%s, but took %s", latency.String(), delta.String())
+	tolerance := time.Millisecond * 100
+	if !within(delta, latency, tolerance) {
+		t.Fatalf("Expected write to take ~%s (+/- %s), but took %s", latency.String(), tolerance.String(), delta.String())
 	}
 }
