@@ -384,8 +384,7 @@ func (h *BasicHost) Connect(ctx context.Context, pi pstore.PeerInfo) error {
 	// absorb addresses into peerstore
 	h.Peerstore().AddAddrs(pi.ID, pi.Addrs, pstore.TempAddrTTL)
 
-	cs := h.Network().ConnsToPeer(pi.ID)
-	if len(cs) > 0 {
+	if h.Network().Connectedness(pi.ID) == inet.Connected {
 		return nil
 	}
 
