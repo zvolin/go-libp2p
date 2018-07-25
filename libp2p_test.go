@@ -46,7 +46,7 @@ func TestDefaultListenAddrs(t *testing.T) {
 	// Test 1: Listen addr should not set if user defined transport is passed.
 	h, err := New(
 		ctx,
-		Transport(tcp.TcpTransport{}),
+		Transport(tcp.NewTCPTransport),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -60,7 +60,7 @@ func TestDefaultListenAddrs(t *testing.T) {
 	// Test 2: User defined listener addrs should overwrite the default options.
 	h, err = New(
 		ctx,
-		Transport(tcp.TcpTransport{}),
+		Transport(tcp.NewTCPTransport),
 		ListenAddrStrings("/ip4/127.0.0.1/tcp/0"),
 	)
 	if err != nil {
