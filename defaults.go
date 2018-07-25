@@ -21,7 +21,7 @@ import (
 // security protocols.
 var DefaultSecurity = Security(secio.ID, secio.New)
 
-// DefaultMuxer configures libp2p to use the stream connection multiplexers.
+// DefaultMuxers configures libp2p to use the stream connection multiplexers.
 //
 // Use this option when you want to *extend* the set of multiplexers used by
 // libp2p instead of replacing them.
@@ -53,6 +53,7 @@ var RandomIdentity = func(cfg *Config) error {
 	return cfg.Apply(Identity(priv))
 }
 
+// DefaultListenAddrs configures libp2p to use default listen address
 var DefaultListenAddrs = func(cfg *Config) error {
 	defaultListenAddr, err := multiaddr.NewMultiaddr("/ip4/0.0.0.0/tcp/0")
 	if err != nil {
@@ -91,7 +92,7 @@ var defaults = []struct {
 	},
 	{
 		fallback: func(cfg *Config) bool { return cfg.ListenAddrs == nil },
-		opt:	  DefaultListenAddrs,
+		opt:      DefaultListenAddrs,
 	},
 }
 
