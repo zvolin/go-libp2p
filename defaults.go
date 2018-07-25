@@ -10,6 +10,7 @@ import (
 	secio "github.com/libp2p/go-libp2p-secio"
 	tcp "github.com/libp2p/go-tcp-transport"
 	ws "github.com/libp2p/go-ws-transport"
+	multiaddr "github.com/multiformats/go-multiaddr"
 	mplex "github.com/whyrusleeping/go-smux-multiplex"
 	yamux "github.com/whyrusleeping/go-smux-yamux"
 )
@@ -52,6 +53,14 @@ var RandomIdentity = func(cfg *Config) error {
 	return cfg.Apply(Identity(priv))
 }
 
+var DefaultListenAddrs = func(cfg *Config) error {
+	defaultListenAddr, err := multiaddr.NewMultiaddr("/ip4/0.0.0.0/tcp/0")
+	if err != nil {
+		return err
+	}
+	return cfg.Apply(ListenAddrs(defaultListenAddr))
+}
+
 // Complete list of default options and when to fallback on them.
 //
 // Please *DON'T* specify default options any other way. Putting this all here
@@ -79,6 +88,10 @@ var defaults = []struct {
 	{
 		fallback: func(cfg *Config) bool { return cfg.Peerstore == nil },
 		opt:      DefaultPeerstore,
+	},
+	{
+		fallback: func(cfg *Config) bool { return cfg.ListenAddrs == nil },
+		opt:	  DefaultListenAddrs,
 	},
 }
 
