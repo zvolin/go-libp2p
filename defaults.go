@@ -55,11 +55,19 @@ var RandomIdentity = func(cfg *Config) error {
 
 // DefaultListenAddrs configures libp2p to use default listen address
 var DefaultListenAddrs = func(cfg *Config) error {
-	defaultListenAddr, err := multiaddr.NewMultiaddr("/ip4/0.0.0.0/tcp/0")
+	defaultIP4ListenAddr, err := multiaddr.NewMultiaddr("/ip4/0.0.0.0/tcp/0")
 	if err != nil {
 		return err
 	}
-	return cfg.Apply(ListenAddrs(defaultListenAddr))
+
+	defaultIP6ListenAddr, err := multiaddr.NewMultiaddr("/ip6/0.0.0.0/tcp/0")
+	if err != nil {
+		return err
+	}
+	return cfg.Apply(ListenAddrs(
+		defaultIP4ListenAddr,
+		defaultIP6ListenAddr,
+	))
 }
 
 // Complete list of default options and when to fallback on them.
@@ -70,6 +78,10 @@ var defaults = []struct {
 	fallback func(cfg *Config) bool
 	opt      Option
 }{
+	{
+		fallback: func(cfg *Config) bool { return cfg.Transports == nil && cfg.ListenAddrs == nil },
+		opt:      DefaultListenAddrs,
+	},
 	{
 		fallback: func(cfg *Config) bool { return cfg.Transports == nil },
 		opt:      DefaultTransports,
@@ -89,10 +101,6 @@ var defaults = []struct {
 	{
 		fallback: func(cfg *Config) bool { return cfg.Peerstore == nil },
 		opt:      DefaultPeerstore,
-	},
-	{
-		fallback: func(cfg *Config) bool { return cfg.ListenAddrs == nil },
-		opt:      DefaultListenAddrs,
 	},
 }
 
