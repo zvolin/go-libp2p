@@ -43,8 +43,18 @@ func TestInsecure(t *testing.T) {
 func TestDefaultListenAddrs(t *testing.T) {
 	ctx := context.Background()
 
-	// Test 1: Listen addr should not set if user defined transport is passed.
-	h, err := New(
+	// Test 1: Setting the correct listen addresses if userDefined.Transport == nil && userDefined.ListenAddrs == nil
+	h, err := New(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(h.Addrs()) != 2 {
+		t.Error("expected 2 default listen addrs")
+	}
+	h.Close()
+
+	// Test 2: Listen addr should not set if user defined transport is passed.
+	h, err = New(
 		ctx,
 		Transport(tcp.NewTCPTransport),
 	)
@@ -57,7 +67,7 @@ func TestDefaultListenAddrs(t *testing.T) {
 	}
 	h.Close()
 
-	// Test 2: User defined listener addrs should overwrite the default options.
+	// Test 3: User defined listener addrs should overwrite the default options.
 	h, err = New(
 		ctx,
 		Transport(tcp.NewTCPTransport),
