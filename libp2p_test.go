@@ -3,6 +3,7 @@ package libp2p
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -43,14 +44,19 @@ func TestInsecure(t *testing.T) {
 func TestDefaultListenAddrs(t *testing.T) {
 	ctx := context.Background()
 
+	re := regexp.MustCompile("/ip[4|6]/0.0.0.0/tcp/")
+
 	// Test 1: Setting the correct listen addresses if userDefined.Transport == nil && userDefined.ListenAddrs == nil
 	h, err := New(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(h.Addrs()) != 2 {
-		t.Error("expected 2 default listen addrs")
+	for _, addr := range h.Network().ListenAddresses() {
+		if re.FindStringSubmatchIndex(addr.String()) == nil {
+			t.Error("expected ip4 or ip6 interface")
+		}
 	}
+
 	h.Close()
 
 	// Test 2: Listen addr should not set if user defined transport is passed.
@@ -62,23 +68,8 @@ func TestDefaultListenAddrs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(h.Addrs()) != 0 {
+	if len(h.Network().ListenAddresses()) != 0 {
 		t.Error("expected zero listen addrs as none is set with user defined transport")
-	}
-	h.Close()
-
-	// Test 3: User defined listener addrs should overwrite the default options.
-	h, err = New(
-		ctx,
-		Transport(tcp.NewTCPTransport),
-		ListenAddrStrings("/ip4/127.0.0.1/tcp/0"),
-	)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if len(h.Addrs()) != 1 {
-		t.Error("expected one listen addr")
 	}
 	h.Close()
 }
