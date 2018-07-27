@@ -44,7 +44,7 @@ func TestInsecure(t *testing.T) {
 func TestDefaultListenAddrs(t *testing.T) {
 	ctx := context.Background()
 
-	re := regexp.MustCompile("/ip[4|6]/0.0.0.0/tcp/")
+	re := regexp.MustCompile("/(ip)[4|6]/((0.0.0.0)|(::))/tcp/")
 
 	// Test 1: Setting the correct listen addresses if userDefined.Transport == nil && userDefined.ListenAddrs == nil
 	h, err := New(ctx)
