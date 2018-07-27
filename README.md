@@ -77,7 +77,7 @@ There is currently only one bundle of `go-libp2p`, this package. This bundle is 
 
 ### Examples
 
-Examples can be found on the [examples folder](examples).
+Examples can be found in the [examples repo](https://github.com/libp2p/go-libp2p-examples).
 
 ## Development
 
