@@ -60,7 +60,7 @@ var DefaultListenAddrs = func(cfg *Config) error {
 		return err
 	}
 
-	defaultIP6ListenAddr, err := multiaddr.NewMultiaddr("/ip6/0.0.0.0/tcp/0")
+	defaultIP6ListenAddr, err := multiaddr.NewMultiaddr("/ip6/::/tcp/0")
 	if err != nil {
 		return err
 	}
