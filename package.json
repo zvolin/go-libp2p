@@ -162,12 +162,6 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmQvJiADDe7JR4m968MwXobTCCzUqQkP87aRHe29MEBGHV",
-      "name": "go-logging",
-      "version": "0.0.0"
-    },
-    {
-      "author": "whyrusleeping",
       "hash": "QmWzjXAyBTygw6CeCTUnhJzhFucfxY5FJivSoiGuiSbPjS",
       "name": "go-smux-multistream",
       "version": "2.0.1"
@@ -201,12 +195,6 @@
       "hash": "QmZHiqdRuNXujvSPNu1ZWxxzV6a2WhoZpfYkesdgyaKF9f",
       "name": "go-smux-multiplex",
       "version": "3.0.11"
-    },
-    {
-      "author": "multiformats",
-      "hash": "QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV",
-      "name": "go-multicodec",
-      "version": "0.1.5"
     },
     {
       "author": "whyrusleeping",
@@ -243,12 +231,6 @@
       "hash": "Qma7AuxEA7dd1wAy95hTxXgxy4q7mU4Pyd1x4PRAzGP1fs",
       "name": "go-libp2p-transport-upgrader",
       "version": "0.1.5"
-    },
-    {
-      "author": "google",
-      "hash": "QmSSeQqc5QeuefkaM6JFV5tSF9knLUkXKVhW1eYRiqe72W",
-      "name": "uuid",
-      "version": "0.1.0"
     }
   ],
   "gxVersion": "0.4.0",
