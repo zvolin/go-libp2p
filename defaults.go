@@ -27,7 +27,7 @@ var DefaultSecurity = Security(secio.ID, secio.New)
 // libp2p instead of replacing them.
 var DefaultMuxers = ChainOptions(
 	Muxer("/yamux/1.0.0", yamux.DefaultTransport),
-	Muxer("/mplex/6.3.0", mplex.DefaultTransport),
+	Muxer("/mplex/6.7.0", mplex.DefaultTransport),
 )
 
 // DefaultTransports are the default libp2p transports.
