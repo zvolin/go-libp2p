@@ -38,13 +38,9 @@
     ["libp2p/go-libp2p-protocol", "go-libp2p-protocol"],
 
     "Content Routing",
-    ["libp2p/interface-content-routing", "interface-content-routing"],
 
     "Peer Routing",
-    ["libp2p/interface-peer-routing", "interface-peer-routing"],
 
-    "Record Store",
-    ["libp2p/interface-record-store", "interface-record-store"],
 
     "Miscellaneous",
     ["libp2p/go-libp2p-crypto", "go-libp2p-crypto"],
