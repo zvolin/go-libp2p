@@ -109,6 +109,8 @@ $ gx test ./p2p/<path of module you want to run tests for>
 
 ### Packages
 
+> This table is generated using the module [`package-table`](https://github.com/ipfs-shipyard/package-table) with `package-table --data=package-list.json`.
+
 List of packages currently in existence for libp2p:
 
 | Name | CI | Coverage |
@@ -159,8 +161,6 @@ List of packages currently in existence for libp2p:
 | [`go-maddr-filter`](//github.com/libp2p/go-maddr-filter) | [![Travis CI](https://travis-ci.org/libp2p/go-maddr-filter.svg?branch=master)](https://travis-ci.org/libp2p/go-maddr-filter) | [![codecov](https://codecov.io/gh/libp2p/go-maddr-filter/branch/master/graph/badge.svg)](https://codecov.io/gh/libp2p/go-maddr-filter) |
 | [`go-libp2p-netutil`](//github.com/libp2p/go-libp2p-netutil) | [![Travis CI](https://travis-ci.org/libp2p/go-libp2p-netutil.svg?branch=master)](https://travis-ci.org/libp2p/go-libp2p-netutil) | [![codecov](https://codecov.io/gh/libp2p/go-libp2p-netutil/branch/master/graph/badge.svg)](https://codecov.io/gh/libp2p/go-libp2p-netutil) |
 | [`go-testutil`](//github.com/libp2p/go-testutil) | [![Travis CI](https://travis-ci.org/libp2p/go-testutil.svg?branch=master)](https://travis-ci.org/libp2p/go-testutil) | [![codecov](https://codecov.io/gh/libp2p/go-testutil/branch/master/graph/badge.svg)](https://codecov.io/gh/libp2p/go-testutil) |
-
-> This table is generated using the module `package-table` with `package-table --data=package-list.json`.
 
 # Contribute
 
