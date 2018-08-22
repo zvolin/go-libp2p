@@ -111,7 +111,7 @@ $ gx test ./p2p/<path of module you want to run tests for>
 
 List of packages currently in existence for libp2p:
 
-| Package | CI | Coverage |
+| Name | CI | Coverage |
 | ---------|---------|--------- |
 | **Libp2p** |
 | [`interface-libp2p`](//github.com/libp2p/interface-libp2p) | [![jenkins](https://ci.ipfs.team/buildStatus/icon?job=libp2p/interface-libp2p/master)](https://ci.ipfs.team/job/libp2p/job/interface-libp2p/job/master/) | [![codecov](https://codecov.io/gh/libp2p/interface-libp2p/branch/master/graph/badge.svg)](https://codecov.io/gh/libp2p/interface-libp2p) |
