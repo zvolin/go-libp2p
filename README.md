@@ -14,8 +14,6 @@
 
 <p align="center">
   <a href="https://travis-ci.org/libp2p/go-libp2p"><img src="https://travis-ci.org/libp2p/go-libp2p.svg?branch=master" /></a>
-  <!--<a href="https://circleci.com/gh/libp2p/go-libp2p"><img src="https://circleci.com/gh/libp2p/go-libp2p.svg?style=svg" /></a>-->
-  <!--<a href="https://coveralls.io/github/libp2p/go-libp2p?branch=master"><img src="https://coveralls.io/repos/github/libp2p/go-libp2p/badge.svg?branch=master"></a>-->
   <br>
   <a href="https://github.com/RichardLitt/standard-readme"><img src="https://img.shields.io/badge/standard--readme-OK-green.svg?style=flat-square" /></a>
   <a href="https://godoc.org/github.com/libp2p/go-libp2p"><img src="https://godoc.org/github.com/ipfs/go-libp2p?status.svg" /></a>
@@ -116,13 +114,10 @@ List of packages currently in existence for libp2p:
 | Name | CI/Travis | CI/Jenkins | Coverage |
 | ---------|---------|---------|--------- |
 | **Libp2p** |
-| [`interface-libp2p`](//github.com/libp2p/interface-libp2p) |  |  |  |
 | [`libp2p`](//github.com/libp2p/go-libp2p) | [![Travis CI](https://travis-ci.org/libp2p/go-libp2p.svg?branch=master)](https://travis-ci.org/libp2p/go-libp2p) | [![jenkins](https://ci.ipfs.team/buildStatus/icon?job=libp2p/go-libp2p/master)](https://ci.ipfs.team/job/libp2p/job/go-libp2p/job/master/) | [![codecov](https://codecov.io/gh/libp2p/go-libp2p/branch/master/graph/badge.svg)](https://codecov.io/gh/libp2p/go-libp2p) |
 | **Connection** |
-| [`interface-connection`](//github.com/libp2p/interface-connection) |  |  |  |
 | [`go-libp2p-net`](//github.com/libp2p/go-libp2p-net) | [![Travis CI](https://travis-ci.org/libp2p/go-libp2p-net.svg?branch=master)](https://travis-ci.org/libp2p/go-libp2p-net) | [![jenkins](https://ci.ipfs.team/buildStatus/icon?job=libp2p/go-libp2p-net/master)](https://ci.ipfs.team/job/libp2p/job/go-libp2p-net/job/master/) | [![codecov](https://codecov.io/gh/libp2p/go-libp2p-net/branch/master/graph/badge.svg)](https://codecov.io/gh/libp2p/go-libp2p-net) |
 | **Transport** |
-| [`interface-transport`](//github.com/libp2p/interface-transport) |  |  |  |
 | [`go-ws-transport`](//github.com/libp2p/go-ws-transport) | [![Travis CI](https://travis-ci.org/libp2p/go-ws-transport.svg?branch=master)](https://travis-ci.org/libp2p/go-ws-transport) | [![jenkins](https://ci.ipfs.team/buildStatus/icon?job=libp2p/go-ws-transport/master)](https://ci.ipfs.team/job/libp2p/job/go-ws-transport/job/master/) | [![codecov](https://codecov.io/gh/libp2p/go-ws-transport/branch/master/graph/badge.svg)](https://codecov.io/gh/libp2p/go-ws-transport) |
 | [`go-libp2p-transport`](//github.com/libp2p/go-libp2p-transport) | [![Travis CI](https://travis-ci.org/libp2p/go-libp2p-transport.svg?branch=master)](https://travis-ci.org/libp2p/go-libp2p-transport) | [![jenkins](https://ci.ipfs.team/buildStatus/icon?job=libp2p/go-libp2p-transport/master)](https://ci.ipfs.team/job/libp2p/job/go-libp2p-transport/job/master/) | [![codecov](https://codecov.io/gh/libp2p/go-libp2p-transport/branch/master/graph/badge.svg)](https://codecov.io/gh/libp2p/go-libp2p-transport) |
 | [`go-tcp-transport`](//github.com/libp2p/go-tcp-transport) | [![Travis CI](https://travis-ci.org/libp2p/go-tcp-transport.svg?branch=master)](https://travis-ci.org/libp2p/go-tcp-transport) | [![jenkins](https://ci.ipfs.team/buildStatus/icon?job=libp2p/go-tcp-transport/master)](https://ci.ipfs.team/job/libp2p/job/go-tcp-transport/job/master/) | [![codecov](https://codecov.io/gh/libp2p/go-tcp-transport/branch/master/graph/badge.svg)](https://codecov.io/gh/libp2p/go-tcp-transport) |
@@ -130,6 +125,7 @@ List of packages currently in existence for libp2p:
 | **Crypto Channels** |
 | [`go-libp2p-secio`](//github.com/libp2p/go-libp2p-secio) | [![Travis CI](https://travis-ci.org/libp2p/go-libp2p-secio.svg?branch=master)](https://travis-ci.org/libp2p/go-libp2p-secio) | [![jenkins](https://ci.ipfs.team/buildStatus/icon?job=libp2p/go-libp2p-secio/master)](https://ci.ipfs.team/job/libp2p/job/go-libp2p-secio/job/master/) | [![codecov](https://codecov.io/gh/libp2p/go-libp2p-secio/branch/master/graph/badge.svg)](https://codecov.io/gh/libp2p/go-libp2p-secio) |
 | **Stream Muxers** |
+| [`interface-stream-muxer`](//github.com/libp2p/interface-stream-muxer) |  |  |  |
 | [`go-stream-muxer`](//github.com/libp2p/go-stream-muxer) | [![Travis CI](https://travis-ci.org/libp2p/go-stream-muxer.svg?branch=master)](https://travis-ci.org/libp2p/go-stream-muxer) | [![jenkins](https://ci.ipfs.team/buildStatus/icon?job=libp2p/go-stream-muxer/master)](https://ci.ipfs.team/job/libp2p/job/go-stream-muxer/job/master/) | [![codecov](https://codecov.io/gh/libp2p/go-stream-muxer/branch/master/graph/badge.svg)](https://codecov.io/gh/libp2p/go-stream-muxer) |
 | **Discovery** |
 | [`interface-peer-discovery`](//github.com/libp2p/interface-peer-discovery) |  |  |  |
@@ -141,11 +137,7 @@ List of packages currently in existence for libp2p:
 | [`go-libp2p-peerstore`](//github.com/libp2p/go-libp2p-peerstore) | [![Travis CI](https://travis-ci.org/libp2p/go-libp2p-peerstore.svg?branch=master)](https://travis-ci.org/libp2p/go-libp2p-peerstore) | [![jenkins](https://ci.ipfs.team/buildStatus/icon?job=libp2p/go-libp2p-peerstore/master)](https://ci.ipfs.team/job/libp2p/job/go-libp2p-peerstore/job/master/) | [![codecov](https://codecov.io/gh/libp2p/go-libp2p-peerstore/branch/master/graph/badge.svg)](https://codecov.io/gh/libp2p/go-libp2p-peerstore) |
 | [`go-libp2p-protocol`](//github.com/libp2p/go-libp2p-protocol) | [![Travis CI](https://travis-ci.org/libp2p/go-libp2p-protocol.svg?branch=master)](https://travis-ci.org/libp2p/go-libp2p-protocol) | [![jenkins](https://ci.ipfs.team/buildStatus/icon?job=libp2p/go-libp2p-protocol/master)](https://ci.ipfs.team/job/libp2p/job/go-libp2p-protocol/job/master/) | [![codecov](https://codecov.io/gh/libp2p/go-libp2p-protocol/branch/master/graph/badge.svg)](https://codecov.io/gh/libp2p/go-libp2p-protocol) |
 | **Content Routing** |
-| [`interface-content-routing`](//github.com/libp2p/interface-content-routing) |  |  |  |
 | **Peer Routing** |
-| [`interface-peer-routing`](//github.com/libp2p/interface-peer-routing) |  |  |  |
-| **Record Store** |
-| [`interface-record-store`](//github.com/libp2p/interface-record-store) |  |  |  |
 | **Miscellaneous** |
 | [`go-libp2p-crypto`](//github.com/libp2p/go-libp2p-crypto) | [![Travis CI](https://travis-ci.org/libp2p/go-libp2p-crypto.svg?branch=master)](https://travis-ci.org/libp2p/go-libp2p-crypto) | [![jenkins](https://ci.ipfs.team/buildStatus/icon?job=libp2p/go-libp2p-crypto/master)](https://ci.ipfs.team/job/libp2p/job/go-libp2p-crypto/job/master/) | [![codecov](https://codecov.io/gh/libp2p/go-libp2p-crypto/branch/master/graph/badge.svg)](https://codecov.io/gh/libp2p/go-libp2p-crypto) |
 | [`go-libp2p-interface-connmgr`](//github.com/libp2p/go-libp2p-interface-connmgr) | [![Travis CI](https://travis-ci.org/libp2p/go-libp2p-interface-connmgr.svg?branch=master)](https://travis-ci.org/libp2p/go-libp2p-interface-connmgr) | [![jenkins](https://ci.ipfs.team/buildStatus/icon?job=libp2p/go-libp2p-interface-connmgr/master)](https://ci.ipfs.team/job/libp2p/job/go-libp2p-interface-connmgr/job/master/) | [![codecov](https://codecov.io/gh/libp2p/go-libp2p-interface-connmgr/branch/master/graph/badge.svg)](https://codecov.io/gh/libp2p/go-libp2p-interface-connmgr) |
