@@ -3,60 +3,73 @@
     "Name",
     "CI/Travis",
     "CI/Jenkins",
-    "Coverage"
+    "Coverage",
+    "Description"
   ],
   "rows": [
     "Libp2p",
-    ["libp2p/go-libp2p", "libp2p"],
+    ["libp2p/go-libp2p", "go-libp2p", "go-libp2p entry point"],
+    ["libp2p/go-libp2p-host", "go-libp2p-host", "libp2p \"host\" interface"],
+    ["libp2p/go-libp2p-blankhost", "minimal implementation of the \"host\" interface"],
 
-    "Connection",
-    ["libp2p/go-libp2p-net", "go-libp2p-net"],
+    "Network",
+    ["libp2p/go-libp2p-net", "go-libp2p-net", "libp2p connection and \"network\" interfaces"],
+    ["libp2p/go-libp2p-swarm", "go-libp2p-swarm", "reference implementation"],
 
     "Transport",
-    ["libp2p/go-ws-transport", "go-ws-transport"],
-    ["libp2p/go-libp2p-transport", "go-libp2p-transport"],
-    ["libp2p/go-tcp-transport", "go-tcp-transport"],
-    ["libp2p/go-libp2p-transport-upgrader", "go-libp2p-transport-upgrader"],
+    ["libp2p/go-libp2p-transport", "go-libp2p-transport", "interfaces"],
+    ["libp2p/go-ws-transport", "go-ws-transport", "WebSocket transport"],
+    ["libp2p/go-tcp-transport", "go-tcp-transport", "TCP transport"],
+    ["libp2p/go-libp2p-quic-transport", "go-libp2p-quic-transport", "QUIC transport"],
+    ["libp2p/go-libp2p-circuit", "go-libp2p-circuit", "relay transport"],
+    ["libp2p/go-libp2p-transport-upgrader", "go-libp2p-transport-upgrader", "helpers for implementing new transports"],
+    ["libp2p/go-libp2p-reuseport-transport", "go-libp2p-reuseport-transport", "partial transport for building transports that reuse ports"],
 
     "Crypto Channels",
-    ["libp2p/go-libp2p-secio", "go-libp2p-secio"],
+    ["libp2p/go-libp2p-security", "go-conn-security", "interfaces"],
+    ["libp2p/go-libp2p-secio", "go-libp2p-secio", "SecIO crypto channel"],
+    ["libp2p/go-conn-security-multistream", "go-conn-security-multistream", "multistream multiplexed meta crypto channel"],
+
+    "Private Network",
+    ["libp2p/go-libp2p-interface-pnet", "go-libp2p-interface-pnet", "interfaces"],
+    ["libp2p/go-libp2p-pnet", "go-libp2p-pnet", "reference implementation"],
 
     "Stream Muxers",
-    ["libp2p/interface-stream-muxer", "interface-stream-muxer"],
-    ["libp2p/go-stream-muxer", "go-stream-muxer"],
-
-    "Discovery",
-    ["libp2p/interface-peer-discovery", "interface-peer-discovery"],
+    ["libp2p/go-stream-muxer", "go-stream-muxer", "interfaces"],
+    ["whyrusleeping/go-smux-yamux", "go-smux-yamux", "YAMUX stream multiplexer"],
+    ["whyrusleeping/go-smux-mplex", "go-smux-mplex", "MPLEX stream multiplexer"],
 
     "NAT Traversal",
-    ["libp2p/go-libp2p-circuit", "go-libp2p-circuit"],
     ["libp2p/go-libp2p-nat", "go-libp2p-nat"],
+
+    "Peerstore",
+    ["libp2p/go-libp2p-peerstore", "go-libp2p-peerstore", "interfaces and reference implementation"],
+
+    "Connection Manager",
+    ["libp2p/go-libp2p-interface-connmgr", "go-libp2p-interface-connmgr", "interface"],
+    ["libp2p/go-libp2p-connmgr", "go-libp2p-connmgr", "reference implementation"],
     
     "Data Types",
-    ["libp2p/go-libp2p-peer", "go-libp2p-peer"],
-    ["libp2p/go-libp2p-peerstore", "go-libp2p-peerstore"],
-    ["libp2p/go-libp2p-protocol", "go-libp2p-protocol"],
+    ["libp2p/go-libp2p-peer", "go-libp2p-peer", "libp2p peer-ID datatype"],
+    ["libp2p/go-libp2p-crypto", "go-libp2p-crypto", "libp2p key types"],
+    ["libp2p/go-libp2p-protocol", "go-libp2p-protocol", "libp2p protocol datatype"],
+    ["libp2p/go-libp2p-kbucket", "go-libp2p-kbucket", "Kademila routing table helper types"],
 
-    "Content Routing",
-
-    "Peer Routing",
-
+    "Routing",
+    ["libp2p/go-libp2p-routing", "go-libp2p-routing", "routing interfaces"],
+    ["libp2p/go-libp2p-record", "go-libp2p-record", "record type and validator logic"],
+    ["libp2p/go-libp2p-routing-helpers", "go-libp2p-routing-helpers", "helpers for composing routers"],
+    ["libp2p/go-libp2p-kad-dht", "go-libp2p-kad-dht", "Kademlia-like router"],
+    ["libp2p/go-libp2p-pubsub-router", "go-libp2p-pubsub-router", "record-store over pubsub adapter"],
 
     "Miscellaneous",
-    ["libp2p/go-libp2p-crypto", "go-libp2p-crypto"],
-    ["libp2p/go-libp2p-interface-connmgr", "go-libp2p-interface-connmgr"],
-    ["libp2p/go-libp2p-swarm", "go-libp2p-swarm"],
-    ["libp2p/go-libp2p-host", "go-libp2p-host"],
-    ["libp2p/go-libp2p-blankhost", "go-libp2p-blankhost"],
-    ["libp2p/go-conn-security-multistream", "go-conn-security-multistream"],
-    ["libp2p/go-conn-security", "go-conn-security"],
-    ["libp2p/go-libp2p-interface-pnet", "go-libp2p-interface-pnet"],
-    ["libp2p/go-libp2p-metrics", "go-libp2p-metrics"],
+    ["libp2p/go-libp2p-metrics", "go-libp2p-metrics", "libp2p metrics interfaces/collectors"],
+    ["libp2p/go-msgio", "go-msgio", "length prefixed data channel"],
     
     "Utilities",
-    ["libp2p/go-libp2p-loggables", "go-libp2p-loggables"],
-    ["libp2p/go-maddr-filter", "go-maddr-filter"],
-    ["libp2p/go-libp2p-netutil", "go-libp2p-netutil"],
-    ["libp2p/go-testutil", "go-testutil"]
+    ["libp2p/go-libp2p-loggables", "go-libp2p-loggables", "logging helpers"],
+    ["libp2p/go-maddr-filter", "go-maddr-filter", "multiaddr filtering helpers"],
+    ["libp2p/go-libp2p-netutil", "go-libp2p-netutil", "misc utilities"],
+    ["libp2p/go-testutil", "go-testutil", "misc utilities"]
   ]
 }
