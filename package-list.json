@@ -10,7 +10,7 @@
     "Libp2p",
     ["libp2p/go-libp2p", "go-libp2p", "go-libp2p entry point"],
     ["libp2p/go-libp2p-host", "go-libp2p-host", "libp2p \"host\" interface"],
-    ["libp2p/go-libp2p-blankhost", "minimal implementation of the \"host\" interface"],
+    ["libp2p/go-libp2p-blankhost", "go-libp2p-blankhost", "minimal implementation of the \"host\" interface"],
 
     "Network",
     ["libp2p/go-libp2p-net", "go-libp2p-net", "libp2p connection and \"network\" interfaces"],
