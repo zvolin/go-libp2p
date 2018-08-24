@@ -57,18 +57,13 @@
     ["libp2p/go-libp2p-routing-helpers", "go-libp2p-routing-helpers", "helpers for composing routers"],
     ["libp2p/go-libp2p-kad-dht", "go-libp2p-kad-dht", "Kademlia-like router"],
     ["libp2p/go-libp2p-pubsub-router", "go-libp2p-pubsub-router", "record-store over pubsub adapter"],
-    ["libp2p/go-libp2p-coral-dht", "go-libp2p-coral-dht", "CoralDHT implementation of the routing interfaces"],
 
     "Consensus",
     ["libp2p/go-libp2p-consensus", "go-libp2p-consensus", "consensus protocols interfaces"],
     ["libp2p/go-libp2p-raft", "go-libp2p-raft", "consensus implementation over raft"],
 
     "Pubsub",
-    ["libp2p/go-libp2p-pubsub", "go-libp2p-pubsub", "pubsub interfaces"],
     ["libp2p/go-floodsub", "go-floodsub", "basic implementation of pubsub driven by flooding"],
-
-    "Protocols",
-    ["libp2p/go-libp2p-ping", "go-libp2p-ping", "a ping-pong protocol implementation"],
 
     "Metrics",
     ["libp2p/go-libp2p-metrics", "go-libp2p-metrics", "libp2p metrics interfaces/collectors"],
@@ -95,7 +90,6 @@
 
     "Testing and examples",
     ["libp2p/go-testutil", "go-testutil", "a collection of testing utilities for ipfs and libp2p"],
-    ["libp2p/go-libp2p-dummy-conn", "go-libp2p-dummy-conn", "a dummy libp2p connection for testing"],
     ["libp2p/go-libp2p-examples", "go-libp2p-examples", "go-libp2p examples and tutorials"],
     ["libp2p/go-libp2p-circuit-progs", "go-libp2p-circuit-progs", "testing programs for go-libp2p-circuit"]
 
