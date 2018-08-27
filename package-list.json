@@ -72,7 +72,7 @@
     ["libp2p/go-libp2p-peer", "go-libp2p-peer", "libp2p peer-ID datatype"],
     ["libp2p/go-libp2p-crypto", "go-libp2p-crypto", "libp2p key types"],
     ["libp2p/go-libp2p-protocol", "go-libp2p-protocol", "libp2p protocol datatype"],
-    ["libp2p/go-libp2p-kbucket", "go-libp2p-kbucket", "Kademila routing table helper types"],
+    ["libp2p/go-libp2p-kbucket", "go-libp2p-kbucket", "Kademlia routing table helper types"],
     
     "Utilities/miscellaneous",
     ["libp2p/go-libp2p-loggables", "go-libp2p-loggables", "logging helpers"],
