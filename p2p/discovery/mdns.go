@@ -17,6 +17,11 @@ import (
 	"github.com/whyrusleeping/mdns"
 )
 
+func init() {
+	// don't let mdns use logging...
+	mdns.DisableLogging = true
+}
+
 var log = logging.Logger("mdns")
 
 const ServiceTag = "_ipfs-discovery._udp"
@@ -61,9 +66,6 @@ func getDialableListenAddrs(ph host.Host) ([]*net.TCPAddr, error) {
 }
 
 func NewMdnsService(ctx context.Context, peerhost host.Host, interval time.Duration, serviceTag string) (Service, error) {
-
-	// don't let mdns use logging...
-	mdns.DisableLogging = true
 
 	var ipaddrs []net.IP
 	port := 4001
