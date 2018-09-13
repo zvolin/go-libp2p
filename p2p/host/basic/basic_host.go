@@ -474,10 +474,11 @@ func mergeAddrs(addrLists ...[]ma.Multiaddr) (uniqueAddrs []ma.Multiaddr) {
 	exists := make(map[string]bool)
 	for _, addrList := range addrLists {
 		for _, addr := range addrList {
-			if exists[addr.String()] {
+			k := string(addr.Bytes())
+			if exists[k] {
 				continue
 			}
-			exists[addr.String()] = true
+			exists[k] = true
 			uniqueAddrs = append(uniqueAddrs, addr)
 		}
 	}
