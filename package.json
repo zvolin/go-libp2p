@@ -127,9 +127,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmScWrjfrMXw8AuBjtdDgdt97SuRhvf4KfR4y8djfNXCKT",
+      "hash": "QmcoQ3D7ypAFWSWexqhC9uSCeNrNhoYQGLJNBzUkDEf1CB",
       "name": "go-libp2p-nat",
-      "version": "0.8.6"
+      "version": "0.8.7"
     },
     {
       "author": "whyrusleeping",
