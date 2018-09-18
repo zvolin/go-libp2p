@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	net "github.com/libp2p/go-libp2p-net"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
 	ma "github.com/multiformats/go-multiaddr"
 )
@@ -16,10 +17,12 @@ const ActivationThresh = 4
 // - have been observed at least once recently (1h), because our position in the
 //   network, or network port mapppings, may have changed.
 type ObservedAddr struct {
-	Addr      ma.Multiaddr
-	SeenBy    map[string]time.Time
-	LastSeen  time.Time
-	Activated bool
+	Addr          ma.Multiaddr // observed address by peers
+	InternalAddr  ma.Multiaddr // corresponding internal address
+	SeenBy        map[string]time.Time
+	LastSeen      time.Time
+	ConnDirection net.Direction
+	Activated     bool
 }
 
 func (oa *ObservedAddr) TryActivate(ttl time.Duration) bool {
@@ -70,7 +73,9 @@ func (oas *ObservedAddrSet) Addrs() []ma.Multiaddr {
 	return addrs
 }
 
-func (oas *ObservedAddrSet) Add(addr ma.Multiaddr, observer ma.Multiaddr) {
+func (oas *ObservedAddrSet) Add(observed, local, observer ma.Multiaddr,
+	direction net.Direction) {
+
 	oas.Lock()
 	defer oas.Unlock()
 
@@ -80,14 +85,16 @@ func (oas *ObservedAddrSet) Add(addr ma.Multiaddr, observer ma.Multiaddr) {
 		oas.ttl = pstore.OwnObservedAddrTTL
 	}
 
-	s := addr.String()
+	s := observed.String()
 	oa, found := oas.addrs[s]
 
 	// first time seeing address.
 	if !found {
 		oa = &ObservedAddr{
-			Addr:   addr,
-			SeenBy: make(map[string]time.Time),
+			Addr:          observed,
+			InternalAddr:  local,
+			SeenBy:        make(map[string]time.Time),
+			ConnDirection: direction,
 		}
 		oas.addrs[s] = oa
 	}
