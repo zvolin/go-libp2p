@@ -11,25 +11,27 @@ import (
 
 const ActivationThresh = 4
 
+type observation struct {
+	seenTime      time.Time
+	connDirection net.Direction
+}
+
 // ObservedAddr is an entry for an address reported by our peers.
 // We only use addresses that:
 // - have been observed at least 4 times in last 1h. (counter symmetric nats)
 // - have been observed at least once recently (1h), because our position in the
 //   network, or network port mapppings, may have changed.
 type ObservedAddr struct {
-	Addr          ma.Multiaddr // observed address by peers
-	InternalAddr  ma.Multiaddr // corresponding internal address
-	SeenBy        map[string]time.Time
-	LastSeen      time.Time
-	ConnDirection net.Direction
-	Activated     bool
+	Addr     ma.Multiaddr
+	SeenBy   map[string]observation // peer(observer) address -> observation info
+	LastSeen time.Time
 }
 
-func (oa *ObservedAddr) TryActivate(ttl time.Duration) bool {
+func (oa *ObservedAddr) activated(ttl time.Duration) bool {
 	// cleanup SeenBy set
 	now := time.Now()
-	for k, t := range oa.SeenBy {
-		if now.Sub(t) > ttl*ActivationThresh {
+	for k, ob := range oa.SeenBy {
+		if now.Sub(ob.seenTime) > ttl*ActivationThresh {
 			delete(oa.SeenBy, k)
 		}
 	}
@@ -44,32 +46,37 @@ func (oa *ObservedAddr) TryActivate(ttl time.Duration) bool {
 type ObservedAddrSet struct {
 	sync.Mutex // guards whole datastruct.
 
-	addrs map[string]*ObservedAddr
+	// local(internal) address -> list of observed(external) addresses
+	addrs map[string][]*ObservedAddr
 	ttl   time.Duration
 }
 
-func (oas *ObservedAddrSet) Addrs() []ma.Multiaddr {
+// Addrs return all activated observed addresses
+func (oas *ObservedAddrSet) Addrs() (addrs []ma.Multiaddr) {
 	oas.Lock()
 	defer oas.Unlock()
 
 	// for zero-value.
-	if oas.addrs == nil {
+	if len(oas.addrs) == 0 {
 		return nil
 	}
 
 	now := time.Now()
-	addrs := make([]ma.Multiaddr, 0, len(oas.addrs))
-	for s, a := range oas.addrs {
-		// remove timed out addresses.
-		if now.Sub(a.LastSeen) > oas.ttl {
-			delete(oas.addrs, s)
-			continue
+	filteredAddrMap := make(map[string][]*ObservedAddr)
+	for local, observedAddrs := range oas.addrs {
+		filteredAddrs := make([]*ObservedAddr, 0, len(observedAddrs))
+		for _, a := range observedAddrs {
+			// leave only alive observed addresses
+			if now.Sub(a.LastSeen) <= oas.ttl {
+				filteredAddrs = append(filteredAddrs, a)
+				if a.activated(oas.ttl) {
+					addrs = append(addrs, a.Addr)
+				}
+			}
 		}
-
-		if a.Activated || a.TryActivate(oas.ttl) {
-			addrs = append(addrs, a.Addr)
-		}
+		filteredAddrMap[local] = filteredAddrs
 	}
+	oas.addrs = filteredAddrMap
 	return addrs
 }
 
@@ -81,27 +88,43 @@ func (oas *ObservedAddrSet) Add(observed, local, observer ma.Multiaddr,
 
 	// for zero-value.
 	if oas.addrs == nil {
-		oas.addrs = make(map[string]*ObservedAddr)
+		oas.addrs = make(map[string][]*ObservedAddr)
 		oas.ttl = pstore.OwnObservedAddrTTL
 	}
 
-	s := observed.String()
-	oa, found := oas.addrs[s]
-
-	// first time seeing address.
-	if !found {
-		oa = &ObservedAddr{
-			Addr:          observed,
-			InternalAddr:  local,
-			SeenBy:        make(map[string]time.Time),
-			ConnDirection: direction,
-		}
-		oas.addrs[s] = oa
+	now := time.Now()
+	observerString := observerGroup(observer)
+	localString := local.String()
+	observedAddr := &ObservedAddr{
+		Addr: observed,
+		SeenBy: map[string]observation{
+			observerString: {
+				seenTime:      now,
+				connDirection: direction,
+			},
+		},
+		LastSeen: now,
 	}
 
-	// mark the observer
-	oa.SeenBy[observerGroup(observer)] = time.Now()
-	oa.LastSeen = time.Now()
+	observedAddrs, found := oas.addrs[localString]
+	// map key not exist yet, init with new values
+	if !found {
+		oas.addrs[localString] = []*ObservedAddr{observedAddr}
+		return
+	}
+	// check if observed address seen yet, if so, update it
+	for i, previousObserved := range observedAddrs {
+		if previousObserved.Addr.Equal(observed) {
+			observedAddrs[i].SeenBy[observerString] = observation{
+				seenTime:      now,
+				connDirection: direction,
+			}
+			observedAddrs[i].LastSeen = now
+			return
+		}
+	}
+	// observed address not seen yet, append it
+	oas.addrs[localString] = append(oas.addrs[localString], observedAddr)
 }
 
 // observerGroup is a function that determines what part of
