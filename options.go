@@ -257,7 +257,7 @@ func NATManager(nm config.NATManagerC) Option {
 // This will both clear any configured listen addrs and prevent libp2p from
 // applying the default listen address option. It also disables relay, unless the
 // user explicitly specifies with an option, as the transport creates an implicit
-// listen address that would make the node diable through any relay it was connected to.
+// listen address that would make the node dialable through any relay it was connected to.
 var NoListenAddrs = func(cfg *Config) error {
 	cfg.ListenAddrs = []ma.Multiaddr{}
 	if !cfg.RelayCustom {
