@@ -62,7 +62,6 @@ func (oas *ObservedAddrSet) Addrs() (addrs []ma.Multiaddr) {
 	}
 
 	now := time.Now()
-	filteredAddrMap := make(map[string][]*ObservedAddr)
 	for local, observedAddrs := range oas.addrs {
 		filteredAddrs := make([]*ObservedAddr, 0, len(observedAddrs))
 		for _, a := range observedAddrs {
@@ -74,9 +73,8 @@ func (oas *ObservedAddrSet) Addrs() (addrs []ma.Multiaddr) {
 				}
 			}
 		}
-		filteredAddrMap[local] = filteredAddrs
+		oas.addrs[local] = filteredAddrs
 	}
-	oas.addrs = filteredAddrMap
 	return addrs
 }
 
@@ -95,36 +93,28 @@ func (oas *ObservedAddrSet) Add(observed, local, observer ma.Multiaddr,
 	now := time.Now()
 	observerString := observerGroup(observer)
 	localString := local.String()
-	observedAddr := &ObservedAddr{
-		Addr: observed,
-		SeenBy: map[string]observation{
-			observerString: {
-				seenTime:      now,
-				connDirection: direction,
-			},
-		},
-		LastSeen: now,
+	ob := observation{
+		seenTime:      now,
+		connDirection: direction,
 	}
 
-	observedAddrs, found := oas.addrs[localString]
-	// map key not exist yet, init with new values
-	if !found {
-		oas.addrs[localString] = []*ObservedAddr{observedAddr}
-		return
-	}
+	observedAddrs := oas.addrs[localString]
 	// check if observed address seen yet, if so, update it
 	for i, previousObserved := range observedAddrs {
 		if previousObserved.Addr.Equal(observed) {
-			observedAddrs[i].SeenBy[observerString] = observation{
-				seenTime:      now,
-				connDirection: direction,
-			}
+			observedAddrs[i].SeenBy[observerString] = ob
 			observedAddrs[i].LastSeen = now
 			return
 		}
 	}
 	// observed address not seen yet, append it
-	oas.addrs[localString] = append(oas.addrs[localString], observedAddr)
+	oas.addrs[localString] = append(oas.addrs[localString], &ObservedAddr{
+		Addr: observed,
+		SeenBy: map[string]observation{
+			observerString: ob,
+		},
+		LastSeen: now,
+	})
 }
 
 // observerGroup is a function that determines what part of
