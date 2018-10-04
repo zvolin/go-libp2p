@@ -61,9 +61,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmUdVuLDQCQD4WPBpgDsbBAaqui3GW4d7exBHK2PUKRQpv",
+      "hash": "QmNkxudvyUjdKw5ComDSCbJTHCjrjNGYjEAUdhoEUUjFsX",
       "name": "go-libp2p-secio",
-      "version": "2.0.11"
+      "version": "2.0.12"
     },
     {
       "author": "whyrusleeping",
@@ -121,9 +121,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmcyQj1V6Ht8uSrRqj865UXGUo5Sc8GxNA4U8bLQxCSmfX",
+      "hash": "QmcALnLPFXgLLaZkXzGv99yt8xPfiWqFTumiXpWBJbU9cY",
       "name": "go-libp2p-swarm",
-      "version": "3.0.14"
+      "version": "3.0.15"
     },
     {
       "author": "whyrusleeping",
@@ -169,9 +169,9 @@
     },
     {
       "author": "vyzo",
-      "hash": "QmeBpq5pAf2yaVdbpaKVcijEXu1QVjnDqPqYq4MACaEHLo",
+      "hash": "QmPq6vgdtDmuui5FU9qskJE7ijpmJKZ9rfmtdMW2jPvaos",
       "name": "go-libp2p-circuit",
-      "version": "2.2.3"
+      "version": "2.2.4"
     },
     {
       "author": "lgierth",
@@ -238,6 +238,6 @@
   "license": "MIT",
   "name": "go-libp2p",
   "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
-  "version": "6.0.14"
+  "version": "6.0.15"
 }
 
