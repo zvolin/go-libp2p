@@ -90,6 +90,11 @@ func (rh *RoutedHost) Connect(ctx context.Context, pi pstore.PeerInfo) error {
 			continue
 		}
 
+		if relayID == pi.ID {
+			// it's an old style p2p-circuit address that includes the peer
+			continue
+		}
+
 		if len(rh.Peerstore().Addrs(relayID)) > 0 {
 			// we already have addrs for this relay
 			continue
