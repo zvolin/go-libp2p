@@ -68,8 +68,8 @@ func (rh *RoutedHost) Connect(ctx context.Context, pi pstore.PeerInfo) error {
 		}
 	}
 
-	// Issue 448: if our address set includes specific relay addrs, we need
-	// to make sure the relay's addr itself is in the peerstore or else
+	// Issue 448: if our address set includes routed specific relay addrs,
+	// we need to make sure the relay's addr itself is in the peerstore or else
 	// we wont be able to dial it.
 	for _, addr := range addrs {
 		_, err := addr.ValueForProtocol(circuit.P_CIRCUIT)
@@ -78,20 +78,16 @@ func (rh *RoutedHost) Connect(ctx context.Context, pi pstore.PeerInfo) error {
 			continue
 		}
 
-		relay, err := addr.ValueForProtocol(ma.P_P2P)
-		if err != nil {
-			// not a specific relay address
+		if addr.Protocols()[0].Code != ma.P_P2P {
+			// not a routed relay specific address
 			continue
 		}
+
+		relay, _ := addr.ValueForProtocol(ma.P_P2P)
 
 		relayID, err := peer.IDFromString(relay)
 		if err != nil {
 			log.Debugf("failed to parse relay ID in address %s: %s", relay, err)
-			continue
-		}
-
-		if relayID == pi.ID {
-			// it's an old style p2p-circuit address that includes the peer
 			continue
 		}
 
