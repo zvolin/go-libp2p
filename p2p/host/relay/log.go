@@ -4,4 +4,4 @@ import (
 	logging "github.com/ipfs/go-log"
 )
 
-var log = logging.Logger("relay")
+var log = logging.Logger("autorelay")
