@@ -40,7 +40,7 @@ type AutoRelayHost struct {
 }
 
 func NewAutoRelayHost(ctx context.Context, bhost *basic.BasicHost, discover discovery.Discoverer) *AutoRelayHost {
-	autonat := autonat.NewAutoNAT(ctx, bhost)
+	autonat := autonat.NewAutoNAT(ctx, bhost, bhost.AllAddrs)
 	h := &AutoRelayHost{
 		BasicHost:  bhost,
 		discover:   discover,
