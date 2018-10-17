@@ -19,7 +19,11 @@ import (
 	manet "github.com/multiformats/go-multiaddr-net"
 )
 
-var DesiredRelays = 3
+var (
+	DesiredRelays = 3
+
+	BootDelay = 90 * time.Second
+)
 
 // AutoRelayHost is a Host that uses relays for connectivity when a NAT is detected.
 type AutoRelayHost struct {
@@ -63,7 +67,7 @@ func (h *AutoRelayHost) hostAddrs(addrs []ma.Multiaddr) []ma.Multiaddr {
 
 func (h *AutoRelayHost) background(ctx context.Context) {
 	select {
-	case <-time.After(autonat.AutoNATBootDelay + 30*time.Second):
+	case <-time.After(autonat.AutoNATBootDelay + BootDelay):
 	case <-ctx.Done():
 		return
 	}
