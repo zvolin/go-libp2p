@@ -199,12 +199,12 @@ func (h *AutoRelayHost) doUpdateAddrs() {
 		}
 	}
 
-	circuit, err := ma.NewMultiaddr("/p2p-circuit")
-	if err != nil {
-		panic(err)
-	}
-
 	for _, pi := range h.relays {
+		circuit, err := ma.NewMultiaddr(fmt.Sprintf("/ipfs/%s/p2p-circuit", pi.ID.Pretty()))
+		if err != nil {
+			panic(err)
+		}
+
 		for _, addr := range pi.Addrs {
 			if !manet.IsPrivateAddr(addr) {
 				pub := addr.Encapsulate(circuit)
