@@ -63,7 +63,7 @@
     ["libp2p/go-libp2p-raft", "go-libp2p-raft", "consensus implementation over raft"],
 
     "Pubsub",
-    ["libp2p/go-floodsub", "go-floodsub", "basic implementation of pubsub driven by flooding"],
+    ["libp2p/go-libp2p-pubsub", "go-libp2p-pubsub", "multiple pubsub over libp2p implementations"],
 
     "RPC",
     ["libp2p/go-libp2p-gorpc", "go-libp2p-gorpc", "a simple RPC library for libp2p"],
