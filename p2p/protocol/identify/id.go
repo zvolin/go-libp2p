@@ -149,15 +149,17 @@ func (ids *IDService) pushHandler(s inet.Stream) {
 
 func (ids *IDService) Push() {
 	for _, p := range ids.Host.Network().Peers() {
-		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-		s, err := ids.Host.NewStream(ctx, p, IDPush)
-		cancel()
-		if err != nil {
-			log.Debugf("error opening push stream: %s", err.Error())
-			continue
-		}
+		go func(p peer.ID) {
+			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+			defer cancel()
+			s, err := ids.Host.NewStream(ctx, p, IDPush)
+			if err != nil {
+				log.Debugf("error opening push stream: %s", err.Error())
+				return
+			}
 
-		ids.requestHandler(s)
+			ids.requestHandler(s)
+		}(p)
 	}
 }
 
