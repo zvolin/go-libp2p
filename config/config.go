@@ -44,8 +44,9 @@ type Config struct {
 	Insecure           bool
 	Protector          pnet.Protector
 
-	Relay     bool
-	RelayOpts []circuit.RelayOpt
+	RelayCustom bool
+	Relay       bool
+	RelayOpts   []circuit.RelayOpt
 
 	ListenAddrs  []ma.Multiaddr
 	AddrsFactory bhost.AddrsFactory
