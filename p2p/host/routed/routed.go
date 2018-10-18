@@ -102,7 +102,7 @@ func (rh *RoutedHost) Connect(ctx context.Context, pi pstore.PeerInfo) error {
 			continue
 		}
 
-		rh.Peerstore().AddAddrs(relayID, relayAddrs, pstore.AddressTTL)
+		rh.Peerstore().AddAddrs(relayID, relayAddrs, pstore.TempAddrTTL)
 	}
 
 	// if we're here, we got some addrs. let's use our wrapped host to connect.
