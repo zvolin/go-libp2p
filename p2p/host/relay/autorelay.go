@@ -22,7 +22,7 @@ import (
 var (
 	DesiredRelays = 3
 
-	BootDelay = 90 * time.Second
+	BootDelay = 60 * time.Second
 )
 
 // AutoRelayHost is a Host that uses relays for connectivity when a NAT is detected.
