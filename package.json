@@ -169,9 +169,9 @@
     },
     {
       "author": "vyzo",
-      "hash": "Qma2mxvX5zvPEmjXC4CktjExnRjVp4DFcog4GNubpqSXsD",
+      "hash": "Qmbqn6qCocM5Dk9idyUw6wU1vsZCd1aZ3yJpwPA27YpE6J",
       "name": "go-libp2p-circuit",
-      "version": "2.2.8"
+      "version": "2.3.0"
     },
     {
       "author": "lgierth",
