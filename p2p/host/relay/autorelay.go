@@ -10,6 +10,7 @@ import (
 	basic "github.com/libp2p/go-libp2p/p2p/host/basic"
 
 	autonat "github.com/libp2p/go-libp2p-autonat"
+	_ "github.com/libp2p/go-libp2p-circuit"
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	host "github.com/libp2p/go-libp2p-host"
 	inet "github.com/libp2p/go-libp2p-net"
@@ -23,7 +24,17 @@ var (
 	DesiredRelays = 3
 
 	BootDelay = 60 * time.Second
+
+	unspecificRelay ma.Multiaddr
 )
+
+func init() {
+	var err error
+	unspecificRelay, err = ma.NewMultiaddr("/p2p-circuit")
+	if err != nil {
+		panic(err)
+	}
+}
 
 // AutoRelayHost is a Host that uses relays for connectivity when a NAT is detected.
 type AutoRelayHost struct {
@@ -61,7 +72,7 @@ func (h *AutoRelayHost) hostAddrs(addrs []ma.Multiaddr) []ma.Multiaddr {
 	if h.addrs != nil && h.autonat.Status() == autonat.NATStatusPrivate {
 		return h.addrs
 	} else {
-		return h.addrsF(addrs)
+		return filterUnspecificRelay(h.addrsF(addrs))
 	}
 }
 
@@ -164,7 +175,7 @@ func (h *AutoRelayHost) doUpdateAddrs() {
 	h.mx.Lock()
 	defer h.mx.Unlock()
 
-	addrs := h.addrsF(h.AllAddrs())
+	addrs := filterUnspecificRelay(h.addrsF(h.AllAddrs()))
 	raddrs := make([]ma.Multiaddr, 0, len(addrs)+len(h.relays))
 
 	// remove our public addresses from the list and replace them by just the public IP
@@ -214,6 +225,17 @@ func (h *AutoRelayHost) doUpdateAddrs() {
 	}
 
 	h.addrs = raddrs
+}
+
+func filterUnspecificRelay(addrs []ma.Multiaddr) []ma.Multiaddr {
+	res := make([]ma.Multiaddr, 0, len(addrs))
+	for _, addr := range addrs {
+		if addr.Equal(unspecificRelay) {
+			continue
+		}
+		res = append(res, addr)
+	}
+	return res
 }
 
 func shuffleRelays(pis []pstore.PeerInfo) {
