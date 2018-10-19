@@ -116,7 +116,8 @@ func (h *AutoRelayHost) findRelays(ctx context.Context) {
 	h.mx.Unlock()
 
 	limit := 20
-	for ; need > limit; limit *= 2 {
+	if need > limit/2 {
+		limit = 2 * need
 	}
 
 	dctx, cancel := context.WithTimeout(ctx, 60*time.Second)
