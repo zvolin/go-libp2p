@@ -264,7 +264,7 @@ func Ping(enable bool) Option {
 func Routing(rt config.RoutingC) Option {
 	return func(cfg *Config) error {
 		if cfg.Routing != nil {
-			return fmt.Errorf("cannot specified multiple routing options")
+			return fmt.Errorf("cannot specify multiple routing options")
 		}
 		cfg.Routing = rt
 		return nil
