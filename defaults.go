@@ -75,6 +75,11 @@ var DefaultEnableRelay = func(cfg *Config) error {
 	return cfg.Apply(EnableRelay())
 }
 
+// DefaultEnablePing enables the ping service by default
+var DefaultEnablePing = func(cfg *Config) error {
+	return cfg.Apply(Ping(true))
+}
+
 // Complete list of default options and when to fallback on them.
 //
 // Please *DON'T* specify default options any other way. Putting this all here
@@ -110,6 +115,10 @@ var defaults = []struct {
 	{
 		fallback: func(cfg *Config) bool { return !cfg.RelayCustom },
 		opt:      DefaultEnableRelay,
+	},
+	{
+		fallback: func(cfg *Config) bool { return !cfg.PingCustom },
+		opt:      DefaultEnablePing,
 	},
 }
 
