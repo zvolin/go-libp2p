@@ -160,7 +160,7 @@ func TestAutoRelay(t *testing.T) {
 	haveRelay := false
 	for _, addr := range h3.Addrs() {
 		_, err := addr.ValueForProtocol(circuit.P_CIRCUIT)
-		if err != nil {
+		if err == nil {
 			haveRelay = true
 			break
 		}
@@ -174,7 +174,7 @@ func TestAutoRelay(t *testing.T) {
 	var raddrs []ma.Multiaddr
 	for _, addr := range h3.Addrs() {
 		_, err := addr.ValueForProtocol(circuit.P_CIRCUIT)
-		if err != nil {
+		if err == nil {
 			raddrs = append(raddrs, addr)
 		}
 	}
