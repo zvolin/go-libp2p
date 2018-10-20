@@ -21,6 +21,7 @@ import (
 	peer "github.com/libp2p/go-libp2p-peer"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
 	routing "github.com/libp2p/go-libp2p-routing"
+	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr-net"
 )
 
@@ -150,10 +151,12 @@ func TestAutoRelay(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	h4, err := libp2p.New(ctx, libp2p.EnableRelay())
 
 	connect(t, h1, h3)
 	time.Sleep(3 * time.Second)
 
+	// verify that we advertise relay addrs
 	haveRelay := false
 	for _, addr := range h3.Addrs() {
 		_, err := addr.ValueForProtocol(circuit.P_CIRCUIT)
@@ -165,5 +168,19 @@ func TestAutoRelay(t *testing.T) {
 
 	if !haveRelay {
 		t.Fatal("No relay addrs advertised")
+	}
+
+	// check that we can connect through the relay
+	var raddrs []ma.Multiaddr
+	for _, addr := range h3.Addrs() {
+		_, err := addr.ValueForProtocol(circuit.P_CIRCUIT)
+		if err != nil {
+			raddrs = append(raddrs, addr)
+		}
+	}
+
+	err = h4.Connect(ctx, pstore.PeerInfo{h3.ID(), raddrs})
+	if err != nil {
+		t.Fatal(err)
 	}
 }
