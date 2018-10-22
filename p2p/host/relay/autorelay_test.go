@@ -8,7 +8,6 @@ import (
 	"time"
 
 	libp2p "github.com/libp2p/go-libp2p"
-	config "github.com/libp2p/go-libp2p/config"
 	relay "github.com/libp2p/go-libp2p/p2p/host/relay"
 
 	ggio "github.com/gogo/protobuf/io"
@@ -137,7 +136,7 @@ func TestAutoRelay(t *testing.T) {
 	defer cancel()
 
 	mtab := newMockRoutingTable()
-	makeRouting := func(h host.Host) (config.Routing, error) {
+	makeRouting := func(h host.Host) (libp2p.BasicRouting, error) {
 		mr := newMockRouting(h, mtab)
 		return mr, nil
 	}

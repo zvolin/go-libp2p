@@ -35,12 +35,12 @@ type AddrsFactory = bhost.AddrsFactory
 // NATManagerC is a NATManager constructor.
 type NATManagerC func(inet.Network) bhost.NATManager
 
-type Routing interface {
+type BasicRouting interface {
 	routing.ContentRouting
 	routing.PeerRouting
 }
 
-type RoutingC func(host.Host) (Routing, error)
+type RoutingC func(host.Host) (BasicRouting, error)
 
 // Config describes a set of settings for a libp2p node
 //
