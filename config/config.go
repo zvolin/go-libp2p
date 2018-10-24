@@ -57,8 +57,7 @@ type Config struct {
 	Peerstore   pstore.Peerstore
 	Reporter    metrics.Reporter
 
-	PingCustom bool
-	Ping       bool
+	DisablePing bool
 }
 
 // NewNode constructs a new libp2p Host from the Config.
@@ -105,7 +104,7 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 		ConnManager:  cfg.ConnManager,
 		AddrsFactory: cfg.AddrsFactory,
 		NATManager:   cfg.NATManager,
-		EnablePing:   cfg.Ping,
+		EnablePing:   !cfg.DisablePing,
 	})
 	if err != nil {
 		swrm.Close()
