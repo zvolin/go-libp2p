@@ -56,6 +56,11 @@ func (s *stream) Write(p []byte) (n int, err error) {
 	l := s.conn.link
 	delay := l.GetLatency() + l.RateLimit(len(p))
 	t := time.Now().Add(delay)
+
+	// Copy it.
+	cpy := make([]byte, len(p))
+	copy(cpy, p)
+
 	select {
 	case <-s.closed: // bail out if we're closing.
 		return 0, s.writeErr
