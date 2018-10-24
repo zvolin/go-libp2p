@@ -20,6 +20,10 @@ import (
 	manet "github.com/multiformats/go-multiaddr-net"
 )
 
+const (
+	RelayRenezvous = "/libp2p/relay"
+)
+
 var (
 	DesiredRelays = 3
 
@@ -121,7 +125,7 @@ func (h *AutoRelayHost) findRelays(ctx context.Context) {
 	}
 
 	dctx, cancel := context.WithTimeout(ctx, 60*time.Second)
-	pis, err := discovery.FindPeers(dctx, h.discover, "/libp2p/relay", limit)
+	pis, err := discovery.FindPeers(dctx, h.discover, RelayRenezvous, limit)
 	cancel()
 	if err != nil {
 		log.Debugf("error discovering relays: %s", err.Error())
