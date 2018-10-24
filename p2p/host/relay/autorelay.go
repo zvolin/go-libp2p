@@ -157,6 +157,9 @@ func (h *AutoRelayHost) findRelays(ctx context.Context) {
 		h.relays[pi.ID] = pi
 		h.mx.Unlock()
 
+		// tag the connection as very important
+		h.ConnManager().TagPeer(pi.ID, "relay", 42)
+
 		update++
 		need--
 		if need == 0 {
