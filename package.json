@@ -9,11 +9,6 @@
   },
   "gxDependencies": [
     {
-      "hash": "QmcrrEpx3VMUbrbgVroH3YiYyUS5c4YAykzyPJWKspUYLa",
-      "name": "go-semver",
-      "version": "0.0.0"
-    },
-    {
       "hash": "QmekaTKpWkYGcn4ZEC5PwJDRCQHapwugmmG86g2Xpz5GBH",
       "name": "mdns",
       "version": "0.2.0"
