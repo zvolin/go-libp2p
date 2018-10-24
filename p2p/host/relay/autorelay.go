@@ -222,7 +222,7 @@ func (h *AutoRelayHost) doUpdateAddrs() {
 
 	// add relay specific addrs to the list
 	for _, pi := range h.relays {
-		circuit, err := ma.NewMultiaddr(fmt.Sprintf("/ipfs/%s/p2p-circuit", pi.ID.Pretty()))
+		circuit, err := ma.NewMultiaddr(fmt.Sprintf("/p2p/%s/p2p-circuit", pi.ID.Pretty()))
 		if err != nil {
 			panic(err)
 		}
