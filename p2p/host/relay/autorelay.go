@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	RelayRenezvous = "/libp2p/relay"
+	RelayRendezvous = "/libp2p/relay"
 )
 
 var (
@@ -125,7 +125,7 @@ func (h *AutoRelayHost) findRelays(ctx context.Context) {
 	}
 
 	dctx, cancel := context.WithTimeout(ctx, 60*time.Second)
-	pis, err := discovery.FindPeers(dctx, h.discover, RelayRenezvous, limit)
+	pis, err := discovery.FindPeers(dctx, h.discover, RelayRendezvous, limit)
 	cancel()
 	if err != nil {
 		log.Debugf("error discovering relays: %s", err.Error())

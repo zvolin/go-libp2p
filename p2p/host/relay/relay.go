@@ -25,7 +25,7 @@ func NewRelayHost(ctx context.Context, bhost *basic.BasicHost, advertise discove
 		advertise: advertise,
 	}
 	bhost.AddrsFactory = h.hostAddrs
-	discovery.Advertise(ctx, advertise, RelayRenezvous)
+	discovery.Advertise(ctx, advertise, RelayRendezvous)
 	return h
 }
 
