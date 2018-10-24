@@ -255,8 +255,7 @@ func NATManager(nm config.NATManagerC) Option {
 // Ping will configure libp2p to support the ping service; enable by default.
 func Ping(enable bool) Option {
 	return func(cfg *Config) error {
-		cfg.PingCustom = true
-		cfg.Ping = enable
+		cfg.DisablePing = !enable
 		return nil
 	}
 }
