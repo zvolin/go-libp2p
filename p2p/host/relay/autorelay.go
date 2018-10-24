@@ -184,6 +184,15 @@ func (h *AutoRelayHost) updateAddrs() {
 	h.PushIdentify()
 }
 
+// This function updates our NATed advertised addrs (h.addrs)
+// The public addrs are rewritten so that they only retain the public IP part; they
+// become undialable but are useful as a hint to the dialer to determine whether or not
+// to dial private addrs.
+// The non-public addrs are included verbatim so that peers behind the same NAT/firewall
+// can still dial us directly.
+// On top of those, we add the relay-specific addrs for the relays to which we are
+// connected. For each non-private relay addr, we encapsulate the p2p-circuit addr
+// through which we can be dialed.
 func (h *AutoRelayHost) doUpdateAddrs() {
 	h.mx.Lock()
 	defer h.mx.Unlock()
