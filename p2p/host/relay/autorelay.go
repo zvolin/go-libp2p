@@ -132,9 +132,7 @@ func (h *AutoRelayHost) findRelays(ctx context.Context) {
 		return
 	}
 
-	// TODO better relay selection strategy; this just selects random relays
-	//      but we should probably use ping latency as the selection metric
-	shuffleRelays(pis)
+	pis = h.selectRelays(pis)
 
 	update := 0
 
@@ -169,6 +167,13 @@ func (h *AutoRelayHost) findRelays(ctx context.Context) {
 	if update > 0 || h.addrs == nil {
 		h.updateAddrs()
 	}
+}
+
+func (h *AutoRelayHost) selectRelays(pis []pstore.PeerInfo) []pstore.PeerInfo {
+	// TODO better relay selection strategy; this just selects random relays
+	//      but we should probably use ping latency as the selection metric
+	shuffleRelays(pis)
+	return pis
 }
 
 func (h *AutoRelayHost) updateAddrs() {
