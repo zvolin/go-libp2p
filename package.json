@@ -229,15 +229,15 @@
     },
     {
       "author": "vyzo",
-      "hash": "QmYwn471zWPm7dLaEtNWMUj9ytMDFwnpFy1uMQDK3BZ4xj",
+      "hash": "QmfWLPvbWEHjMbEsLwCzg3igdeijJHDWhLth3k9E3imdEL",
       "name": "go-libp2p-discovery",
-      "version": "1.0.0"
+      "version": "1.0.1"
     },
     {
       "author": "vyzo",
-      "hash": "QmNtEW59XTrreF9U4NAjYUmixEJ56HnfiJCj1p97bFnah2",
+      "hash": "QmUn8mtaf4tTFwKnFRzkNYYLc8XEo3yz6qBfp5ShVB1HYZ",
       "name": "go-libp2p-autonat",
-      "version": "1.0.0"
+      "version": "1.0.1"
     }
   ],
   "gxVersion": "0.4.0",
