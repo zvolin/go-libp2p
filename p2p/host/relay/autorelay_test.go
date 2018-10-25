@@ -178,7 +178,7 @@ func TestAutoRelay(t *testing.T) {
 		}
 	}
 
-	err = h4.Connect(ctx, pstore.PeerInfo{h3.ID(), raddrs})
+	err = h4.Connect(ctx, pstore.PeerInfo{ID: h3.ID(), Addrs: raddrs})
 	if err != nil {
 		t.Fatal(err)
 	}
