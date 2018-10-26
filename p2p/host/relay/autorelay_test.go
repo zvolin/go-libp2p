@@ -152,16 +152,33 @@ func TestAutoRelay(t *testing.T) {
 	}
 	h4, err := libp2p.New(ctx, libp2p.EnableRelay())
 
-	connect(t, h1, h3)
-	time.Sleep(3 * time.Second)
-
-	// verify that we advertise relay addrs
-	haveRelay := false
+	// verify that we don't advertise relay addrs initially
 	for _, addr := range h3.Addrs() {
 		_, err := addr.ValueForProtocol(circuit.P_CIRCUIT)
 		if err == nil {
+			t.Fatal("relay addr advertised before auto detection")
+		}
+	}
+
+	// connect to AutoNAT and let detection/discovery work its magic
+	connect(t, h1, h3)
+	time.Sleep(3 * time.Second)
+
+	// verify that we now advertise relay addrs (but not unspecific relay addrs)
+	unspecificRelay, err := ma.NewMultiaddr("/p2p-circuit")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	haveRelay := false
+	for _, addr := range h3.Addrs() {
+		if addr.Equal(unspecificRelay) {
+			t.Fatal("unspecific relay addr advertised")
+		}
+
+		_, err := addr.ValueForProtocol(circuit.P_CIRCUIT)
+		if err == nil {
 			haveRelay = true
-			break
 		}
 	}
 
@@ -169,7 +186,7 @@ func TestAutoRelay(t *testing.T) {
 		t.Fatal("No relay addrs advertised")
 	}
 
-	// check that we can connect through the relay
+	// verify that we can connect through the relay
 	var raddrs []ma.Multiaddr
 	for _, addr := range h3.Addrs() {
 		_, err := addr.ValueForProtocol(circuit.P_CIRCUIT)
@@ -181,5 +198,22 @@ func TestAutoRelay(t *testing.T) {
 	err = h4.Connect(ctx, pstore.PeerInfo{ID: h3.ID(), Addrs: raddrs})
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	// verify that we have pushed relay addrs to connected peers
+	haveRelay = false
+	for _, addr := range h1.Peerstore().Addrs(h3.ID()) {
+		if addr.Equal(unspecificRelay) {
+			t.Fatal("unspecific relay addr advertised")
+		}
+
+		_, err := addr.ValueForProtocol(circuit.P_CIRCUIT)
+		if err == nil {
+			haveRelay = true
+		}
+	}
+
+	if !haveRelay {
+		t.Fatal("No relay addrs pushed")
 	}
 }
