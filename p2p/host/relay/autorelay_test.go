@@ -26,7 +26,7 @@ import (
 
 // test specific parameters
 func init() {
-	autonat.AutoNATIdentifyDelay = 10 * time.Millisecond
+	autonat.AutoNATIdentifyDelay = 100 * time.Millisecond
 	autonat.AutoNATBootDelay = 1 * time.Second
 	relay.BootDelay = 1 * time.Second
 	manet.Private4 = []*net.IPNet{}
