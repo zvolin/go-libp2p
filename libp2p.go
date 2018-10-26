@@ -15,9 +15,6 @@ type Config = config.Config
 // (`libp2p.New`).
 type Option = config.Option
 
-// BasicRouting is the combination of PeerRouting and ContentRouting
-type BasicRouting = config.BasicRouting
-
 // ChainOptions chains multiple options into a single option.
 func ChainOptions(opts ...Option) Option {
 	return func(cfg *Config) error {

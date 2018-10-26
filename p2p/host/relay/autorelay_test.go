@@ -136,7 +136,7 @@ func TestAutoRelay(t *testing.T) {
 	defer cancel()
 
 	mtab := newMockRoutingTable()
-	makeRouting := func(h host.Host) (libp2p.BasicRouting, error) {
+	makeRouting := func(h host.Host) (routing.PeerRouting, error) {
 		mr := newMockRouting(h, mtab)
 		return mr, nil
 	}

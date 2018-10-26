@@ -35,12 +35,7 @@ type AddrsFactory = bhost.AddrsFactory
 // NATManagerC is a NATManager constructor.
 type NATManagerC func(inet.Network) bhost.NATManager
 
-type BasicRouting interface {
-	routing.ContentRouting
-	routing.PeerRouting
-}
-
-type RoutingC func(host.Host) (BasicRouting, error)
+type RoutingC func(host.Host) (routing.PeerRouting, error)
 
 // Config describes a set of settings for a libp2p node
 //
@@ -178,21 +173,24 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 			return nil, err
 		}
 
-		if cfg.Relay {
-			discovery := discovery.NewRoutingDiscovery(router)
+		crouter, ok := router.(routing.ContentRouting)
+		if ok {
+			if cfg.Relay {
+				discovery := discovery.NewRoutingDiscovery(crouter)
 
-			hop := false
-			for _, opt := range cfg.RelayOpts {
-				if opt == circuit.OptHop {
-					hop = true
-					break
+				hop := false
+				for _, opt := range cfg.RelayOpts {
+					if opt == circuit.OptHop {
+						hop = true
+						break
+					}
 				}
-			}
 
-			if hop {
-				h = relay.NewRelayHost(swrm.Context(), h.(*bhost.BasicHost), discovery)
-			} else {
-				h = relay.NewAutoRelayHost(swrm.Context(), h.(*bhost.BasicHost), discovery)
+				if hop {
+					h = relay.NewRelayHost(swrm.Context(), h.(*bhost.BasicHost), discovery)
+				} else {
+					h = relay.NewAutoRelayHost(swrm.Context(), h.(*bhost.BasicHost), discovery)
+				}
 			}
 		}
 
