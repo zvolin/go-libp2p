@@ -258,6 +258,7 @@ func (h *BasicHost) newStreamHandler(s inet.Stream) {
 }
 
 // PushIdentify pushes an identify update through the identify push protocol
+// Warning: this interface is unstable and may disappear in the future.
 func (h *BasicHost) PushIdentify() {
 	h.ids.Push()
 }
