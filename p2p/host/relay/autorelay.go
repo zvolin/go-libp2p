@@ -55,15 +55,14 @@ type AutoRelayHost struct {
 }
 
 func NewAutoRelayHost(ctx context.Context, bhost *basic.BasicHost, discover discovery.Discoverer) *AutoRelayHost {
-	autonat := autonat.NewAutoNAT(ctx, bhost, bhost.AllAddrs)
 	h := &AutoRelayHost{
 		BasicHost:  bhost,
 		discover:   discover,
-		autonat:    autonat,
 		addrsF:     bhost.AddrsFactory,
 		relays:     make(map[peer.ID]pstore.PeerInfo),
 		disconnect: make(chan struct{}, 1),
 	}
+	h.autonat = autonat.NewAutoNAT(ctx, bhost, h.baseAddrs)
 	bhost.AddrsFactory = h.hostAddrs
 	bhost.Network().Notify(h)
 	go h.background(ctx)
@@ -78,6 +77,10 @@ func (h *AutoRelayHost) hostAddrs(addrs []ma.Multiaddr) []ma.Multiaddr {
 	} else {
 		return filterUnspecificRelay(h.addrsF(addrs))
 	}
+}
+
+func (h *AutoRelayHost) baseAddrs() []ma.Multiaddr {
+	return filterUnspecificRelay(h.addrsF(h.AllAddrs()))
 }
 
 func (h *AutoRelayHost) background(ctx context.Context) {
@@ -197,7 +200,7 @@ func (h *AutoRelayHost) doUpdateAddrs() {
 	h.mx.Lock()
 	defer h.mx.Unlock()
 
-	addrs := filterUnspecificRelay(h.addrsF(h.AllAddrs()))
+	addrs := h.baseAddrs()
 	raddrs := make([]ma.Multiaddr, 0, len(addrs)+len(h.relays))
 
 	// remove our public addresses from the list and replace them by just the public IP
