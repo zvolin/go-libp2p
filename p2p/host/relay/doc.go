@@ -3,6 +3,8 @@ The relay package contains host implementations that automatically
 advertise relay addresses when the presence of NAT is detected. This
 feature is dubbed `autorelay`.
 
+Warning: the internal interfaces are unstable.
+
 System Components:
 - AutoNATService instances -- see https://github.com/libp2p/go-libp2p-autonat-svc
 - One or more relays, instances of `RelayHost`
