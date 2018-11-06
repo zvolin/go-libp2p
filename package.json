@@ -226,6 +226,18 @@
       "hash": "QmdxUuburamoF6zF9qjeQC4WYcWGbWuRmdLacMEsW8ioD8",
       "name": "gogo-protobuf",
       "version": "0.0.0"
+    },
+    {
+      "author": "vyzo",
+      "hash": "QmT8eNT96scr6wcrARzyxrCcsBAPKn9GkEx2TeXZniHiMP",
+      "name": "go-libp2p-discovery",
+      "version": "1.0.2"
+    },
+    {
+      "author": "vyzo",
+      "hash": "QmU2XQcwPxikg1jZqDBMFgLQVan7zjT2HtQWrWui3vbUVS",
+      "name": "go-libp2p-autonat",
+      "version": "1.0.2"
     }
   ],
   "gxVersion": "0.4.0",
