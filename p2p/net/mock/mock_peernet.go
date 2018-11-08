@@ -118,6 +118,10 @@ func (pn *peernet) DialPeer(ctx context.Context, p peer.ID) (inet.Conn, error) {
 }
 
 func (pn *peernet) connect(p peer.ID) (*conn, error) {
+	if p == pn.peer {
+		return nil, fmt.Errorf("attempted to dial self %s", p)
+	}
+
 	// first, check if we already have live connections
 	pn.RLock()
 	cs, found := pn.connsByPeer[p]
