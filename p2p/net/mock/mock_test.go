@@ -582,6 +582,14 @@ func TestLimitedStreams(t *testing.T) {
 		t.Fatal("Expected 2ish seconds but got ", time.Since(before))
 	}
 }
+func TestFuzzManyPeers(t *testing.T) {
+	for i := 0; i < 50000; i++ {
+		_, err := FullMeshConnected(context.Background(), 2)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+}
 
 func TestStreamsWithLatency(t *testing.T) {
 	latency := time.Millisecond * 500
