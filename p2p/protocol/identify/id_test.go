@@ -88,7 +88,7 @@ func subtestIDService(t *testing.T) {
 	// Forget the first one.
 	testKnowsAddrs(t, h2, h1p, addrs[:len(addrs)-1])
 
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(1 * time.Second)
 
 	// Forget the rest.
 	testKnowsAddrs(t, h1, h2p, []ma.Multiaddr{})
@@ -113,7 +113,6 @@ func testKnowsAddrs(t *testing.T, h host.Host, p peer.ID, expected []ma.Multiadd
 	for _, addr := range expected {
 		if _, found := have[addr.String()]; !found {
 			t.Errorf("%s did not have addr for %s: %s", h.ID(), p, addr)
-			// panic("ahhhhhhh")
 		}
 	}
 }
