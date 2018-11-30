@@ -186,9 +186,11 @@ func (ids *IDService) populateMessage(mes *pb.Identify, c inet.Conn) {
 
 	// set our public key
 	ownKey := ids.Host.Peerstore().PubKey(ids.Host.ID())
-	if ownKey == nil {
+	prKey := ids.Host.Peerstore().PrivKey(ids.Host.ID())
+
+	if ownKey == nil && prKey != nil {
 		log.Errorf("did not have own public key in Peerstore")
-	} else {
+	} else if ownKey != nil {
 		if kb, err := ownKey.Bytes(); err != nil {
 			log.Errorf("failed to convert key to bytes")
 		} else {
