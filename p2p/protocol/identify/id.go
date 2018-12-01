@@ -186,11 +186,18 @@ func (ids *IDService) populateMessage(mes *pb.Identify, c inet.Conn) {
 
 	// set our public key
 	ownKey := ids.Host.Peerstore().PubKey(ids.Host.ID())
-	prKey := ids.Host.Peerstore().PrivKey(ids.Host.ID())
 
-	if ownKey == nil && prKey != nil {
-		log.Errorf("did not have own public key in Peerstore")
+	// check if we even have a public key.
+	if ownKey == nil {
+		// public key is nil. We are either using insecure transport or something erratic happened.
+		// check if we're even operating in "secure mode"
+		if ids.Host.Peerstore().PrivKey(ids.Host.ID()) != nil {
+			// private key is present. But NO public key. Something bad happened.
+			log.Errorf("did not have own public key in Peerstore")
+		}
+		// if neither of the key is present it is safe to assume that we are using an insecure transport.
 	} else if ownKey != nil {
+		// public key is present. Safe to proceed.
 		if kb, err := ownKey.Bytes(); err != nil {
 			log.Errorf("failed to convert key to bytes")
 		} else {
