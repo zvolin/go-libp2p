@@ -31,8 +31,11 @@ func NewRelayHost(ctx context.Context, bhost *basic.BasicHost, advertise discove
 	}
 	bhost.AddrsFactory = h.hostAddrs
 	go func() {
-		time.Sleep(AdvertiseBootDelay)
-		discovery.Advertise(ctx, advertise, RelayRendezvous)
+		select {
+		case <-time.After(AdvertiseBootDelay):
+			discovery.Advertise(ctx, advertise, RelayRendezvous)
+		case <-ctx.Done():
+		}
 	}()
 	return h
 }
