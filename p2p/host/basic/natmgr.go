@@ -43,7 +43,7 @@ type natManager struct {
 
 	ready chan struct{} // closed once the nat is ready to process port mappings
 
-	refreshMu sync.Mutex
+	syncMu sync.Mutex
 
 	proc goprocess.Process // natManager has a process + children. can be closed.
 }
@@ -111,11 +111,13 @@ func (nmgr *natManager) discoverNAT() {
 		// we need to sign up here to avoid missing some notifs
 		// before the NAT has been found.
 		nmgr.net.Notify((*nmgrNetNotifiee)(nmgr))
-		nmgr.refresh()
+		nmgr.sync()
 	})
 }
 
-func (nmgr *natManager) refresh() {
+// syncs the current NAT mappings, removing any outdated mappings and adding any
+// new mappings.
+func (nmgr *natManager) sync() {
 	nat := nmgr.NAT()
 	if nat == nil {
 		// Nothing to do.
@@ -123,8 +125,8 @@ func (nmgr *natManager) refresh() {
 	}
 
 	nmgr.proc.Go(func(_ goprocess.Process) {
-		nmgr.refreshMu.Lock()
-		defer nmgr.refreshMu.Unlock()
+		nmgr.syncMu.Lock()
+		defer nmgr.syncMu.Unlock()
 
 		ports := map[string]map[int]bool{
 			"tcp": map[int]bool{},
@@ -228,11 +230,11 @@ func (nn *nmgrNetNotifiee) natManager() *natManager {
 }
 
 func (nn *nmgrNetNotifiee) Listen(n inet.Network, addr ma.Multiaddr) {
-	nn.natManager().refresh()
+	nn.natManager().sync()
 }
 
 func (nn *nmgrNetNotifiee) ListenClose(n inet.Network, addr ma.Multiaddr) {
-	nn.natManager().refresh()
+	nn.natManager().sync()
 }
 
 func (nn *nmgrNetNotifiee) Connected(inet.Network, inet.Conn)      {}
