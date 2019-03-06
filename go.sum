@@ -108,6 +108,8 @@ github.com/libp2p/go-libp2p-metrics v0.0.1 h1:yumdPC/P2VzINdmcKZd0pciSUCpou+s0lw
 github.com/libp2p/go-libp2p-metrics v0.0.1/go.mod h1:jQJ95SXXA/K1VZi13h52WZMa9ja78zjyy5rspMsC/08=
 github.com/libp2p/go-libp2p-nat v0.0.1 h1:on/zju7XE+JXc8gH+vTKmIh2UJFC1K8kGnJYluQrlz4=
 github.com/libp2p/go-libp2p-nat v0.0.1/go.mod h1:4L6ajyUIlJvx1Cbh5pc6Ma6vMDpKXf3GgLO5u7W0oQ4=
+github.com/libp2p/go-libp2p-nat v0.0.2 h1:sKI5hiCsGFhuEKdXMsF9mywQu2qhfoIGX6a+VG6zelE=
+github.com/libp2p/go-libp2p-nat v0.0.2/go.mod h1:QrjXQSD5Dj4IJOdEcjHRkWTSomyxRo6HnUkf/TfQpLQ=
 github.com/libp2p/go-libp2p-net v0.0.1 h1:xJ4Vh4yKF/XKb8fd1Ev0ebAGzVjMxXzrxG2kjtU+F5Q=
 github.com/libp2p/go-libp2p-net v0.0.1/go.mod h1:Yt3zgmlsHOgUWSXmt5V/Jpz9upuJBE8EgNU9DrCcR8c=
 github.com/libp2p/go-libp2p-netutil v0.0.1 h1:LgD6+skofkOx8z6odD9+MZHKjupv3ng1u6KRhaADTnA=
