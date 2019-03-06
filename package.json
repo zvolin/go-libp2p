@@ -235,9 +235,9 @@
     },
     {
       "author": "vyzo",
-      "hash": "QmZjvy5eqc1T9VbFe5KBiDryUJSRNbSbHZD7JMc6CeUXuu",
+      "hash": "QmUkgXU9YiNQG1jMjc2cscD96BcLWSocrXFXtZvyobBeGE",
       "name": "go-libp2p-autonat",
-      "version": "1.0.12"
+      "version": "1.0.13"
     },
     {
       "hash": "QmYxUdYY9S6yg5tSPVin5GFTvtfsLauVcr7reHDD3dM8xf",
@@ -250,6 +250,5 @@
   "license": "MIT",
   "name": "go-libp2p",
   "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
-  "version": "6.0.39"
+  "version": "6.0.40"
 }
-
