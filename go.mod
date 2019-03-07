@@ -42,6 +42,6 @@ require (
 	github.com/multiformats/go-multistream v0.0.1
 	github.com/whyrusleeping/go-smux-multiplex v3.0.16+incompatible
 	github.com/whyrusleeping/go-smux-multistream v2.0.2+incompatible
-	github.com/whyrusleeping/go-smux-yamux v2.0.8+incompatible
+	github.com/whyrusleeping/go-smux-yamux v2.0.9+incompatible
 	github.com/whyrusleeping/mdns v0.0.0-20180901202407-ef14215e6b30
 )
