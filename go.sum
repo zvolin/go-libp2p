@@ -202,6 +202,8 @@ github.com/whyrusleeping/go-smux-multistream v2.0.2+incompatible h1:BdYHctE9HJZL
 github.com/whyrusleeping/go-smux-multistream v2.0.2+incompatible/go.mod h1:dRWHHvc4HDQSHh9gbKEBbUZ+f2Q8iZTPG3UOGYODxSQ=
 github.com/whyrusleeping/go-smux-yamux v2.0.8+incompatible h1:IGm/UP/JpEFS6D787sZnZg7RA6fZIR9c/Ms9DeAVNuk=
 github.com/whyrusleeping/go-smux-yamux v2.0.8+incompatible/go.mod h1:6qHUzBXUbB9MXmw3AUdB52L8sEb/hScCqOdW2kj/wuI=
+github.com/whyrusleeping/go-smux-yamux v2.0.9+incompatible h1:nVkExQ7pYlN9e45LcqTCOiDD0904fjtm0flnHZGbXkw=
+github.com/whyrusleeping/go-smux-yamux v2.0.9+incompatible/go.mod h1:6qHUzBXUbB9MXmw3AUdB52L8sEb/hScCqOdW2kj/wuI=
 github.com/whyrusleeping/mafmt v1.2.8 h1:TCghSl5kkwEE0j+sU/gudyhVMRlpBin8fMBBHg59EbA=
 github.com/whyrusleeping/mafmt v1.2.8/go.mod h1:faQJFPbLSxzD9xpA02ttW/tS9vZykNvXwGvqIpk20FA=
 github.com/whyrusleeping/mdns v0.0.0-20180901202407-ef14215e6b30 h1:nMCC9Pwz1pxfC1Y6mYncdk+kq8d5aLx0Q+/gyZGE44M=
