@@ -122,7 +122,7 @@ func (h *AutoRelayHost) findRelays(ctx context.Context) {
 		limit = 2 * need
 	}
 
-	dctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	dctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	pis, err := discovery.FindPeers(dctx, h.discover, RelayRendezvous, limit)
 	cancel()
 	if err != nil {
