@@ -85,13 +85,32 @@ func (h *AutoRelayHost) background(ctx context.Context) {
 		return
 	}
 
+	// when true, we need to identify push
+	push := false
+
 	for {
 		wait := autonat.AutoNATRefreshInterval
 		switch h.autonat.Status() {
 		case autonat.NATStatusUnknown:
 			wait = autonat.AutoNATRetryInterval
+
 		case autonat.NATStatusPublic:
+			// invalidate addrs
+			h.mx.Lock()
+			if h.addrs != nil {
+				h.addrs = nil
+				push = true
+			}
+			h.mx.Unlock()
+
+			// if we had previously announced relay addrs, push our public addrs
+			if push {
+				push = false
+				h.PushIdentify()
+			}
+
 		case autonat.NATStatusPrivate:
+			push = false // clear, findRelays pushes as needed
 			h.findRelays(ctx)
 		}
 
@@ -99,7 +118,10 @@ func (h *AutoRelayHost) background(ctx context.Context) {
 		case <-h.disconnect:
 			// invalidate addrs
 			h.mx.Lock()
-			h.addrs = nil
+			if h.addrs != nil {
+				h.addrs = nil
+				push = true
+			}
 			h.mx.Unlock()
 		case <-time.After(wait):
 		case <-ctx.Done():
