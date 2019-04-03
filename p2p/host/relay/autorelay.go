@@ -28,7 +28,7 @@ const (
 var (
 	DesiredRelays = 3
 
-	BootDelay = 60 * time.Second
+	BootDelay = 30 * time.Second
 
 	unspecificRelay = ma.StringCast("/p2p-circuit")
 )
