@@ -99,8 +99,12 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 	}
 
 	if !cfg.Insecure {
-		cfg.Peerstore.AddPrivKey(pid, cfg.PeerKey)
-		cfg.Peerstore.AddPubKey(pid, cfg.PeerKey.GetPublic())
+		if err := cfg.Peerstore.AddPrivKey(pid, cfg.PeerKey); err != nil {
+			return nil, err
+		}
+		if err := cfg.Peerstore.AddPubKey(pid, cfg.PeerKey.GetPublic()); err != nil {
+			return nil, err
+		}
 	}
 
 	// TODO: Make the swarm implementation configurable.
