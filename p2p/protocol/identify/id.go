@@ -240,6 +240,11 @@ func (ids *IDService) consumeMessage(mes *pb.Identify, c inet.Conn) {
 
 	// NOTE: Do not add `c.RemoteMultiaddr()` to the peerstore if the remote
 	// peer doesn't tell us to do so. Otherwise, we'll advertise it.
+	//
+	// This can cause an "addr-splosion" issue where the network will slowly
+	// gossip and collect observed but unadvertised addresses. Given a NAT
+	// that picks random source ports, this can cause DHT nodes to collect
+	// many undialable addresses for other peers.
 
 	// Extend the TTLs on the known (probably) good addresses.
 	// Taking the lock ensures that we don't concurrently process a disconnect.
@@ -412,6 +417,11 @@ func (ids *IDService) consumeObservedAddress(observed []byte, c inet.Conn) {
 	log.Debugf("identify identifying observed multiaddr: %s %s", c.LocalMultiaddr(), ifaceaddrs)
 	if !addrInAddrs(c.LocalMultiaddr(), ifaceaddrs) && !addrInAddrs(c.LocalMultiaddr(), ids.Host.Network().ListenAddresses()) {
 		// not in our list
+		return
+	}
+
+	if !HasConsistentTransport(maddr, ids.Host.Addrs()) {
+		log.Debugf("ignoring observed multiaddr that doesn't match the transports of any addresses we're announcing", c.RemoteMultiaddr())
 		return
 	}
 
