@@ -269,6 +269,12 @@ func (ar *AutoRelay) Disconnected(net inet.Network, c inet.Conn) {
 
 	ar.mx.Lock()
 	defer ar.mx.Unlock()
+
+	if ar.host.Network().Connectedness(p) == inet.Connected {
+		// We have a second connection.
+		return
+	}
+
 	if _, ok := ar.relays[p]; ok {
 		delete(ar.relays, p)
 		select {
