@@ -128,7 +128,7 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 		// TODO: We shouldn't be doing this here.
 		oldFactory := h.AddrsFactory
 		h.AddrsFactory = func(addrs []ma.Multiaddr) []ma.Multiaddr {
-			return relay.Filter(oldFactory(addrs))
+			return oldFactory(relay.Filter(addrs))
 		}
 	}
 
