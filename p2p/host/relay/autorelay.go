@@ -136,7 +136,7 @@ func (ar *AutoRelay) findRelays(ctx context.Context) {
 	need := DesiredRelays - len(ar.relays)
 	ar.mx.Unlock()
 
-	limit := 20
+	limit := 50
 	if need > limit/2 {
 		limit = 2 * need
 	}
