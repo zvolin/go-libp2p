@@ -235,7 +235,7 @@ func DisableRelay() Option {
 //    (circuit.OptHop is passed to EnableRelay), this node will advertise itself
 //    as a public relay using the provided routing system.
 // 2. When this libp2p node is _not_ configured as a relay "hop", it will
-//    automatically if it is unreachable (e.g., behind a NAT). If so, it will
+//    automatically detect if it is unreachable (e.g., behind a NAT). If so, it will
 //    find, configure, and announce a set of public relays.
 func EnableAutoRelay() Option {
 	return func(cfg *Config) error {
