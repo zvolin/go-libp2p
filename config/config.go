@@ -218,16 +218,8 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 
 		if hop {
 			// advertise ourselves
-			// TODO: Why do we only do this when EnableAutoRelay is
-			// set? This has absolutely _nothing_ to do with
-			// autorelay.
 			relay.Advertise(ctx, discovery)
 		} else {
-			// TODO
-			// 1. Stop abusing contexts like this.
-			// 2. Introduce a service management system (e.g.,
-			// uber's fx) so we can actually manage the lifetime of
-			// this service.
 			_ = relay.NewAutoRelay(swrm.Context(), h, discovery, router)
 		}
 	}
