@@ -1,9 +1,11 @@
 package identify
 
 import (
+	"sync"
 	"testing"
 	"time"
 
+	detectrace "github.com/ipfs/go-detect-race"
 	net "github.com/libp2p/go-libp2p-net"
 	ma "github.com/multiformats/go-multiaddr"
 )
@@ -116,4 +118,52 @@ func TestObsAddrSet(t *testing.T) {
 	if !addrsMarch(oas.Addrs(), nil) {
 		t.Error("addrs should have timed out")
 	}
+}
+
+func TestAddAddrsProfile(b *testing.T) {
+	if detectrace.WithRace() {
+		b.Skip("test too slow when the race detector is running")
+	}
+	m := func(s string) ma.Multiaddr {
+		m, err := ma.NewMultiaddr(s)
+		if err != nil {
+			b.Fatal(err)
+		}
+		return m
+	}
+	oas := &ObservedAddrSet{}
+
+	add := func(oas *ObservedAddrSet, observed, observer ma.Multiaddr) {
+		dummyLocal := m("/ip4/127.0.0.1/tcp/10086")
+		dummyDirection := net.DirOutbound
+
+		oas.Add(observed, dummyLocal, observer, dummyDirection)
+	}
+
+	a1 := m("/ip4/1.2.3.4/tcp/1231")
+	a2 := m("/ip4/1.2.3.4/tcp/1232")
+	a3 := m("/ip4/1.2.3.4/tcp/1233")
+	a4 := m("/ip4/1.2.3.4/tcp/1234")
+	a5 := m("/ip4/1.2.3.4/tcp/1235")
+
+	b1 := m("/ip4/1.2.3.6/tcp/1236")
+	b2 := m("/ip4/1.2.3.7/tcp/1237")
+	b3 := m("/ip4/1.2.3.8/tcp/1237")
+	b4 := m("/ip4/1.2.3.9/tcp/1237")
+	b5 := m("/ip4/1.2.3.10/tcp/1237")
+
+	_ = []ma.Multiaddr{a1, a2, a3, a4, a5, b1, b2, b3, b4, b5}
+
+	var wg sync.WaitGroup
+	for i := 0; i < 1000; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := 0; j < 10000; j++ {
+				add(oas, a1, b1)
+			}
+		}()
+	}
+
+	wg.Wait()
 }

@@ -119,6 +119,14 @@ func (oas *ObservedAddrSet) Addrs() (addrs []ma.Multiaddr) {
 func (oas *ObservedAddrSet) Add(observed, local, observer ma.Multiaddr,
 	direction net.Direction) {
 
+	now := time.Now()
+	observerString := observerGroup(observer)
+	localString := string(local.Bytes())
+	ob := observation{
+		seenTime:      now,
+		connDirection: direction,
+	}
+
 	oas.Lock()
 	defer oas.Unlock()
 
@@ -126,14 +134,6 @@ func (oas *ObservedAddrSet) Add(observed, local, observer ma.Multiaddr,
 	if oas.addrs == nil {
 		oas.addrs = make(map[string][]*ObservedAddr)
 		oas.ttl = pstore.OwnObservedAddrTTL
-	}
-
-	now := time.Now()
-	observerString := observerGroup(observer)
-	localString := string(local.Bytes())
-	ob := observation{
-		seenTime:      now,
-		connDirection: direction,
 	}
 
 	observedAddrs := oas.addrs[localString]
