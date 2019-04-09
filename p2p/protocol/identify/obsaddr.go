@@ -160,7 +160,11 @@ func (oas *ObservedAddrSet) gc() {
 				filteredAddrs = append(filteredAddrs, a)
 			}
 		}
-		oas.addrs[local] = filteredAddrs
+		if len(filteredAddrs) > 0 {
+			oas.addrs[local] = filteredAddrs
+		} else {
+			delete(oas.addrs, local)
+		}
 	}
 }
 
