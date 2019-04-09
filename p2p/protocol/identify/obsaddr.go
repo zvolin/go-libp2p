@@ -70,20 +70,10 @@ func (oas *ObservedAddrSet) AddrsFor(addr ma.Multiaddr) (addrs []ma.Multiaddr) {
 	}
 
 	now := time.Now()
-	filteredAddrs := make([]*ObservedAddr, 0, len(observedAddrs))
 	for _, a := range observedAddrs {
-		// leave only alive observed addresses
-		if now.Sub(a.LastSeen) <= oas.ttl {
-			filteredAddrs = append(filteredAddrs, a)
-			if a.activated(oas.ttl) {
-				addrs = append(addrs, a.Addr)
-			}
+		if now.Sub(a.LastSeen) <= oas.ttl && a.activated(oas.ttl) {
+			addrs = append(addrs, a.Addr)
 		}
-	}
-	if len(filteredAddrs) > 0 {
-		oas.addrs[key] = filteredAddrs
-	} else {
-		delete(oas.addrs, key)
 	}
 
 	return addrs
@@ -100,18 +90,12 @@ func (oas *ObservedAddrSet) Addrs() (addrs []ma.Multiaddr) {
 	}
 
 	now := time.Now()
-	for local, observedAddrs := range oas.addrs {
-		filteredAddrs := make([]*ObservedAddr, 0, len(observedAddrs))
+	for _, observedAddrs := range oas.addrs {
 		for _, a := range observedAddrs {
-			// leave only alive observed addresses
-			if now.Sub(a.LastSeen) <= oas.ttl {
-				filteredAddrs = append(filteredAddrs, a)
-				if a.activated(oas.ttl) {
-					addrs = append(addrs, a.Addr)
-				}
+			if now.Sub(a.LastSeen) <= oas.ttl && a.activated(oas.ttl) {
+				addrs = append(addrs, a.Addr)
 			}
 		}
-		oas.addrs[local] = filteredAddrs
 	}
 	return addrs
 }
