@@ -1,6 +1,7 @@
 package identify
 
 import (
+	"context"
 	"sync"
 	"testing"
 	"time"
@@ -52,7 +53,9 @@ func TestObsAddrSet(t *testing.T) {
 	b4 := m("/ip4/1.2.3.9/tcp/1237")
 	b5 := m("/ip4/1.2.3.10/tcp/1237")
 
-	oas := &ObservedAddrSet{}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	oas := NewObservedAddrSet(ctx)
 
 	if !addrsMarch(oas.Addrs(), nil) {
 		t.Error("addrs should be empty")
@@ -63,6 +66,7 @@ func TestObsAddrSet(t *testing.T) {
 		dummyDirection := net.DirOutbound
 
 		oas.Add(observed, dummyLocal, observer, dummyDirection)
+		time.Sleep(1 * time.Millisecond) // let the worker run
 	}
 
 	add(oas, a1, a4)
@@ -131,13 +135,17 @@ func TestAddAddrsProfile(b *testing.T) {
 		}
 		return m
 	}
-	oas := &ObservedAddrSet{}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	oas := NewObservedAddrSet(ctx)
 
 	add := func(oas *ObservedAddrSet, observed, observer ma.Multiaddr) {
 		dummyLocal := m("/ip4/127.0.0.1/tcp/10086")
 		dummyDirection := net.DirOutbound
 
 		oas.Add(observed, dummyLocal, observer, dummyDirection)
+		time.Sleep(1 * time.Millisecond) // let the worker run
 	}
 
 	a1 := m("/ip4/1.2.3.4/tcp/1231")

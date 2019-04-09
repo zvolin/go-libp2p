@@ -26,8 +26,8 @@ func subtestIDService(t *testing.T) {
 	h1p := h1.ID()
 	h2p := h2.ID()
 
-	ids1 := identify.NewIDService(h1)
-	ids2 := identify.NewIDService(h2)
+	ids1 := identify.NewIDService(ctx, h1)
+	ids2 := identify.NewIDService(ctx, h2)
 
 	testKnowsAddrs(t, h1, h2p, []ma.Multiaddr{}) // nothing
 	testKnowsAddrs(t, h2, h1p, []ma.Multiaddr{}) // nothing
