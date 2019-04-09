@@ -53,7 +53,7 @@ type newObservation struct {
 // ObservedAddrSet keeps track of a set of ObservedAddrs
 // the zero-value is ready to be used.
 type ObservedAddrSet struct {
-	sync.Mutex // guards whole datastruct.
+	sync.RWMutex // guards whole datastruct.
 
 	// local(internal) address -> list of observed(external) addresses
 	addrs map[string][]*ObservedAddr
@@ -76,8 +76,8 @@ func NewObservedAddrSet(ctx context.Context) *ObservedAddrSet {
 // AddrsFor return all activated observed addresses associated with the given
 // (resolved) listen address.
 func (oas *ObservedAddrSet) AddrsFor(addr ma.Multiaddr) (addrs []ma.Multiaddr) {
-	oas.Lock()
-	defer oas.Unlock()
+	oas.RLock()
+	defer oas.RUnlock()
 
 	if len(oas.addrs) == 0 {
 		return nil
@@ -101,8 +101,8 @@ func (oas *ObservedAddrSet) AddrsFor(addr ma.Multiaddr) (addrs []ma.Multiaddr) {
 
 // Addrs return all activated observed addresses
 func (oas *ObservedAddrSet) Addrs() (addrs []ma.Multiaddr) {
-	oas.Lock()
-	defer oas.Unlock()
+	oas.RLock()
+	defer oas.RUnlock()
 
 	if len(oas.addrs) == 0 {
 		return nil
@@ -220,11 +220,7 @@ func (oas *ObservedAddrSet) SetTTL(ttl time.Duration) {
 }
 
 func (oas *ObservedAddrSet) TTL() time.Duration {
-	oas.Lock()
-	defer oas.Unlock()
-	// for zero-value.
-	if oas.addrs == nil {
-		oas.ttl = pstore.OwnObservedAddrTTL
-	}
+	oas.RLock()
+	defer oas.RUnlock()
 	return oas.ttl
 }
