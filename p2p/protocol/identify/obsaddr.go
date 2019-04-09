@@ -66,6 +66,7 @@ type ObservedAddrSet struct {
 func NewObservedAddrSet(ctx context.Context) *ObservedAddrSet {
 	oas := &ObservedAddrSet{
 		addrs: make(map[string][]*ObservedAddr),
+		ttl:   pstore.OwnObservedAddrTTL,
 		wch:   make(chan newObservation, 1),
 	}
 	go oas.worker(ctx)
@@ -78,7 +79,6 @@ func (oas *ObservedAddrSet) AddrsFor(addr ma.Multiaddr) (addrs []ma.Multiaddr) {
 	oas.Lock()
 	defer oas.Unlock()
 
-	// for zero-value.
 	if len(oas.addrs) == 0 {
 		return nil
 	}
@@ -104,7 +104,6 @@ func (oas *ObservedAddrSet) Addrs() (addrs []ma.Multiaddr) {
 	oas.Lock()
 	defer oas.Unlock()
 
-	// for zero-value.
 	if len(oas.addrs) == 0 {
 		return nil
 	}
@@ -178,12 +177,6 @@ func (oas *ObservedAddrSet) doAdd(observed, local, observer ma.Multiaddr,
 
 	oas.Lock()
 	defer oas.Unlock()
-
-	// for zero-value.
-	if oas.addrs == nil {
-		oas.addrs = make(map[string][]*ObservedAddr)
-		oas.ttl = pstore.OwnObservedAddrTTL
-	}
 
 	observedAddrs := oas.addrs[localString]
 	// check if observed address seen yet, if so, update it
