@@ -67,7 +67,7 @@ func NewObservedAddrSet(ctx context.Context) *ObservedAddrSet {
 	oas := &ObservedAddrSet{
 		addrs: make(map[string][]*ObservedAddr),
 		ttl:   pstore.OwnObservedAddrTTL,
-		wch:   make(chan newObservation, 1),
+		wch:   make(chan newObservation, 16),
 	}
 	go oas.worker(ctx)
 	return oas
