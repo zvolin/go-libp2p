@@ -1,6 +1,7 @@
 package identify
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -10,6 +11,8 @@ import (
 )
 
 const ActivationThresh = 4
+
+var GCInterval = 10 * time.Minute
 
 type observation struct {
 	seenTime      time.Time
@@ -42,6 +45,11 @@ func (oa *ObservedAddr) activated(ttl time.Duration) bool {
 	return len(oa.SeenBy) >= ActivationThresh
 }
 
+type newObservation struct {
+	observed, local, observer ma.Multiaddr
+	direction                 net.Direction
+}
+
 // ObservedAddrSet keeps track of a set of ObservedAddrs
 // the zero-value is ready to be used.
 type ObservedAddrSet struct {
@@ -50,6 +58,18 @@ type ObservedAddrSet struct {
 	// local(internal) address -> list of observed(external) addresses
 	addrs map[string][]*ObservedAddr
 	ttl   time.Duration
+
+	// this is the worker channel
+	wch chan newObservation
+}
+
+func NewObservedAddrSet(ctx context.Context) *ObservedAddrSet {
+	oas := &ObservedAddrSet{
+		addrs: make(map[string][]*ObservedAddr),
+		wch:   make(chan newObservation, 1),
+	}
+	go oas.worker(ctx)
+	return oas
 }
 
 // AddrsFor return all activated observed addresses associated with the given
@@ -101,6 +121,51 @@ func (oas *ObservedAddrSet) Addrs() (addrs []ma.Multiaddr) {
 }
 
 func (oas *ObservedAddrSet) Add(observed, local, observer ma.Multiaddr,
+	direction net.Direction) {
+	select {
+	case oas.wch <- newObservation{observed: observed, local: local, observer: observer, direction: direction}:
+	default:
+		log.Debugf("dropping address observation of %s; buffer full", observed)
+	}
+}
+
+func (oas *ObservedAddrSet) worker(ctx context.Context) {
+	ticker := time.NewTicker(GCInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case obs := <-oas.wch:
+			oas.doAdd(obs.observed, obs.local, obs.observer, obs.direction)
+
+		case <-ticker.C:
+			oas.gc()
+
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+func (oas *ObservedAddrSet) gc() {
+	oas.Lock()
+	defer oas.Unlock()
+
+	now := time.Now()
+	for local, observedAddrs := range oas.addrs {
+		// TODO we can do this without allocating by compacting the array in place
+		filteredAddrs := make([]*ObservedAddr, 0, len(observedAddrs))
+		for _, a := range observedAddrs {
+			// leave only alive observed addresses
+			if now.Sub(a.LastSeen) <= oas.ttl {
+				filteredAddrs = append(filteredAddrs, a)
+			}
+		}
+		oas.addrs[local] = filteredAddrs
+	}
+}
+
+func (oas *ObservedAddrSet) doAdd(observed, local, observer ma.Multiaddr,
 	direction net.Direction) {
 
 	now := time.Now()

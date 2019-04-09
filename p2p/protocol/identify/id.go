@@ -53,15 +53,16 @@ type IDService struct {
 
 	// our own observed addresses.
 	// TODO: instead of expiring, remove these when we disconnect
-	observedAddrs ObservedAddrSet
+	observedAddrs *ObservedAddrSet
 }
 
 // NewIDService constructs a new *IDService and activates it by
 // attaching its stream handler to the given host.Host.
-func NewIDService(h host.Host) *IDService {
+func NewIDService(ctx context.Context, h host.Host) *IDService {
 	s := &IDService{
-		Host:   h,
-		currid: make(map[inet.Conn]chan struct{}),
+		Host:          h,
+		currid:        make(map[inet.Conn]chan struct{}),
+		observedAddrs: NewObservedAddrSet(ctx),
 	}
 	h.SetStreamHandler(ID, s.requestHandler)
 	h.SetStreamHandler(IDPush, s.pushHandler)
