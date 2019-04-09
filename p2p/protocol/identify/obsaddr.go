@@ -167,7 +167,8 @@ func (oas *ObservedAddrSet) Add(observed, local, observer ma.Multiaddr,
 // IP addresses. In practice, this is what we want.
 func observerGroup(m ma.Multiaddr) string {
 	//TODO: If IPv6 rolls out we should mark /64 routing zones as one group
-	return ma.Split(m)[0].String()
+	first, _ := ma.SplitFirst(m)
+	return string(first.Bytes())
 }
 
 func (oas *ObservedAddrSet) SetTTL(ttl time.Duration) {
