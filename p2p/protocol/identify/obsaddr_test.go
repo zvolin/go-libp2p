@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	detectrace "github.com/ipfs/go-detect-race"
 	net "github.com/libp2p/go-libp2p-net"
 	ma "github.com/multiformats/go-multiaddr"
 )
@@ -120,6 +121,9 @@ func TestObsAddrSet(t *testing.T) {
 }
 
 func TestAddAddrsProfile(b *testing.T) {
+	if detectrace.WithRace() {
+		b.Skip("test too slow when the race detector is running")
+	}
 	m := func(s string) ma.Multiaddr {
 		m, err := ma.NewMultiaddr(s)
 		if err != nil {
