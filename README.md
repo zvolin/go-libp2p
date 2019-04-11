@@ -105,6 +105,8 @@ Ending gx support does not mean that existing gx builds will break. Because gx r
 
 However, new changes to go-libp2p will not be published via gx, and users are encouraged to adopt gomod to stay up-to-date.
 
+If you experience any issues migrating from gx to gomod, please [join the discussion at the libp2p forums](https://discuss.libp2p.io/t/gomod-and-go-libp2p/44).
+
 ### Tests
 
 `go test ./...` will run all tests in the repo. 
