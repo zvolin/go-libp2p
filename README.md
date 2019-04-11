@@ -83,29 +83,31 @@ Examples can be found in the [examples repo](https://github.com/libp2p/go-libp2p
 
 ## Development
 
-### Dependencies
+### Using the libp2p workspace
 
-While developing, you need to use [gx to install and link your dependencies](https://github.com/whyrusleeping/gx#dependencies), to do that, run:
+While developing, you may need to make changes to several modules at once, or you may want changes made locally in one module to be available for import by another.
 
-```sh
-> make deps
-```
+The [go libp2p workspace](https://github.com/libp2p/workspace-go-libp2p) provides a developer-oriented view of the modules that comprise go-libp2p. 
 
-Before commiting and pushing to Github, make sure to rewind the gx'ify of dependencies. You can do that with:
+Using the tooling in the workspace repository, you can checkout all of go-libp2p's module repos and enter "local mode", which adds [replace directives](https://github.com/golang/go/wiki/Modules#gomod) to the go.mod files in each local working copy. When you build locally, the libp2p depdendencies will be resolved from your local working copies.
 
-```sh
-> make publish
-```
+Once you've committed your changes, you can switch back to "remote mode", which removes the replace directives and pulls imports from the main go module cache.
+
+See the [workspace repo](https://github.com/libp2p/workspace-go-libp2p) for more information.
+
+### About gx
+
+Before adopting gomod, libp2p used [gx](https://github.com/whyrusleeping/gx) to manage dependencies using [IPFS](https://ipfs.io).
+
+Due to the difficulties in keeping both dependency management solutions up-to-date, gx support was ended in April 2019.
+
+Ending gx support does not mean that existing gx builds will break. Because gx references dependencies by their immutable IPFS hash, any currently working gx builds will continue to work for as long as the dependencies are resolvable in IPFS.
+
+However, new changes to go-libp2p will not be published via gx, and users are encouraged to adopt gomod to stay up-to-date.
 
 ### Tests
 
-Running of individual tests is done through `gx test <path to test>`
-
-```bash
-$ cd $GOPATH/src/github.com/libp2p/go-libp2p
-$ make deps
-$ gx test ./p2p/<path of module you want to run tests for>
-```
+`go test ./...` will run all tests in the repo. 
 
 ### Packages
 
