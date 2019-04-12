@@ -121,6 +121,8 @@ github.com/libp2p/go-libp2p-peer v0.0.1 h1:0qwAOljzYewINrU+Kndoc+1jAL7vzY/oY2Go4
 github.com/libp2p/go-libp2p-peer v0.0.1/go.mod h1:nXQvOBbwVqoP+T5Y5nCjeH4sP9IX/J0AMzcDUVruVoo=
 github.com/libp2p/go-libp2p-peerstore v0.0.1 h1:twKovq8YK5trLrd3nB7PD2Zu9JcyAIdm7Bz9yBWjhq8=
 github.com/libp2p/go-libp2p-peerstore v0.0.1/go.mod h1:RabLyPVJLuNQ+GFyoEkfi8H4Ti6k/HtZJ7YKgtSq+20=
+github.com/libp2p/go-libp2p-peerstore v0.0.2 h1:Lirt3A1Oq11jszJ4SPNBo8chNv61UWXE538KUEGxTVk=
+github.com/libp2p/go-libp2p-peerstore v0.0.2/go.mod h1:RabLyPVJLuNQ+GFyoEkfi8H4Ti6k/HtZJ7YKgtSq+20=
 github.com/libp2p/go-libp2p-protocol v0.0.1 h1:+zkEmZ2yFDi5adpVE3t9dqh/N9TbpFWywowzeEzBbLM=
 github.com/libp2p/go-libp2p-protocol v0.0.1/go.mod h1:Af9n4PiruirSDjHycM1QuiMi/1VZNHYcK8cLgFJLZ4s=
 github.com/libp2p/go-libp2p-routing v0.0.1 h1:hPMAWktf9rYi3ME4MG48qE7dq1ofJxiQbfdvpNntjhc=
