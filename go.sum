@@ -93,8 +93,8 @@ github.com/libp2p/go-libp2p-autonat v0.0.4 h1:cZzdB9KW1ZkHnSjLCB6aFNw47XS4r+SecC
 github.com/libp2p/go-libp2p-autonat v0.0.4/go.mod h1:fs71q5Xk+pdnKU014o2iq1RhMs9/PMaG5zXRFNnIIT4=
 github.com/libp2p/go-libp2p-blankhost v0.0.1 h1:/mZuuiwntNR8RywnCFlGHLKrKLYne+qciBpQXWqp5fk=
 github.com/libp2p/go-libp2p-blankhost v0.0.1/go.mod h1:Ibpbw/7cPPYwFb7PACIWdvxxv0t0XCCI10t7czjAjTc=
-github.com/libp2p/go-libp2p-circuit v0.0.3 h1:FKhhuMOegdNIEbXkZsClEiqXJr+NmR+REmQRiMgtSyA=
-github.com/libp2p/go-libp2p-circuit v0.0.3/go.mod h1:p1cHJnB9xnX5/1vZLkXgKwmNEOQQuF/Hp+SkATXnXYk=
+github.com/libp2p/go-libp2p-circuit v0.0.4 h1:yOgEadnSVFj3e9KLBuLG+edqCImeav0VXxXvcimpOUQ=
+github.com/libp2p/go-libp2p-circuit v0.0.4/go.mod h1:p1cHJnB9xnX5/1vZLkXgKwmNEOQQuF/Hp+SkATXnXYk=
 github.com/libp2p/go-libp2p-crypto v0.0.1 h1:JNQd8CmoGTohO/akqrH16ewsqZpci2CbgYH/LmYl8gw=
 github.com/libp2p/go-libp2p-crypto v0.0.1/go.mod h1:yJkNyDmO341d5wwXxDUGO0LykUVT72ImHNUqh5D/dBE=
 github.com/libp2p/go-libp2p-discovery v0.0.1 h1:VkjCKmJQMwpDUwtA8Qc1z3TQAHJgQ5nGQ6cdN0wQXOw=
