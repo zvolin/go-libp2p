@@ -289,6 +289,9 @@ func (h *BasicHost) PushIdentify() {
 }
 
 func (h *BasicHost) background(ctx context.Context) {
+	// wait a bit for the host to initialize (avoid race with libp2p constructor)
+	time.Sleep(1 * time.Second)
+
 	// periodically schedules an IdentifyPush to update our peers for changes
 	// in our address set (if needed)
 	ticker := time.NewTicker(1 * time.Minute)
