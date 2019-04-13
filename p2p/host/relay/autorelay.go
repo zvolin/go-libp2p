@@ -136,10 +136,7 @@ func (ar *AutoRelay) findRelays(ctx context.Context) {
 	need := DesiredRelays - len(ar.relays)
 	ar.mx.Unlock()
 
-	limit := 50
-	if need > limit/2 {
-		limit = 2 * need
-	}
+	limit := 1000
 
 	dctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	pis, err := discovery.FindPeers(dctx, ar.discover, RelayRendezvous, limit)
