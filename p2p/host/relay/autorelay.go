@@ -158,7 +158,7 @@ func (ar *AutoRelay) findRelays(ctx context.Context) {
 		}
 		ar.mx.Unlock()
 
-		cctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+		cctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 
 		if len(pi.Addrs) == 0 {
 			pi, err = ar.router.FindPeer(cctx, pi.ID)
