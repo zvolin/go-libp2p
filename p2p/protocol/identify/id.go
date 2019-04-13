@@ -156,19 +156,35 @@ func (ids *IDService) pushHandler(s inet.Stream) {
 }
 
 func (ids *IDService) Push() {
+	var wg sync.WaitGroup
+
+	// we could make this context timeout-less since we are only opening a new
+	// stream over an existing connection. This would avoid the need for the
+	// supervisory goroutine below, but timeout-less contexts in network operations
+	// make me nervous.
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx = inet.WithNoDial(ctx, "identify push")
+
 	for _, p := range ids.Host.Network().Peers() {
+		wg.Add(1)
 		go func(p peer.ID) {
-			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-			defer cancel()
+			defer wg.Done()
+
 			s, err := ids.Host.NewStream(ctx, p, IDPush)
 			if err != nil {
-				log.Debugf("error opening push stream: %s", err.Error())
+				log.Debugf("error opening push stream to %s: %s", p, err.Error())
 				return
 			}
 
 			ids.requestHandler(s)
 		}(p)
 	}
+
+	// this supervisory goroutine is necessary to cancel the context
+	go func() {
+		wg.Wait()
+		cancel()
+	}()
 }
 
 func (ids *IDService) populateMessage(mes *pb.Identify, c inet.Conn) {
