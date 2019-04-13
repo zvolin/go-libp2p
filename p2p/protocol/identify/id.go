@@ -47,6 +47,8 @@ const transientTTL = 10 * time.Second
 type IDService struct {
 	Host host.Host
 
+	ctx context.Context
+
 	// connections undergoing identification
 	// for wait purposes
 	currid map[inet.Conn]chan struct{}
@@ -64,6 +66,7 @@ type IDService struct {
 func NewIDService(ctx context.Context, h host.Host) *IDService {
 	s := &IDService{
 		Host:          h,
+		ctx:           ctx,
 		currid:        make(map[inet.Conn]chan struct{}),
 		observedAddrs: NewObservedAddrSet(ctx),
 	}
@@ -162,7 +165,7 @@ func (ids *IDService) Push() {
 	// stream over an existing connection. This would avoid the need for the
 	// supervisory goroutine below, but timeout-less contexts in network operations
 	// make me nervous.
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(ids.ctx, 15*time.Second)
 	ctx = inet.WithNoDial(ctx, "identify push")
 
 	for _, p := range ids.Host.Network().Peers() {
