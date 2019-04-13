@@ -72,7 +72,8 @@ type BasicHost struct {
 
 	proc goprocess.Process
 
-	bgcancel  func()
+	ctx       context.Context
+	cancel    func()
 	mx        sync.Mutex
 	lastAddrs []ma.Multiaddr
 }
@@ -171,8 +172,8 @@ func NewHost(ctx context.Context, net inet.Network, opts *HostOpts) (*BasicHost,
 	net.SetStreamHandler(h.newStreamHandler)
 
 	bgctx, cancel := context.WithCancel(ctx)
-	h.bgcancel = cancel
-	go h.background(bgctx)
+	h.ctx = bgctx
+	h.cancel = cancel
 
 	return h, nil
 }
@@ -212,6 +213,11 @@ func New(net inet.Network, opts ...interface{}) *BasicHost {
 	}
 
 	return h
+}
+
+// Start starts background tasks in the host
+func (h *BasicHost) Start() {
+	go h.background()
 }
 
 // newConnHandler is the remote-opened conn handler for inet.Network
@@ -288,10 +294,7 @@ func (h *BasicHost) PushIdentify() {
 	}
 }
 
-func (h *BasicHost) background(ctx context.Context) {
-	// wait a bit for the host to initialize (avoid race with libp2p constructor)
-	time.Sleep(1 * time.Second)
-
+func (h *BasicHost) background() {
 	// periodically schedules an IdentifyPush to update our peers for changes
 	// in our address set (if needed)
 	ticker := time.NewTicker(1 * time.Minute)
@@ -309,7 +312,7 @@ func (h *BasicHost) background(ctx context.Context) {
 		case <-ticker.C:
 			h.PushIdentify()
 
-		case <-ctx.Done():
+		case <-h.ctx.Done():
 			return
 		}
 	}
@@ -719,7 +722,7 @@ func (h *BasicHost) AllAddrs() []ma.Multiaddr {
 
 // Close shuts down the Host's services (network, etc).
 func (h *BasicHost) Close() error {
-	h.bgcancel()
+	h.cancel()
 	return h.proc.Close()
 }
 
