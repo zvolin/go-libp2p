@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net"
+	"sync"
 	"time"
 
 	logging "github.com/ipfs/go-log"
@@ -70,6 +71,10 @@ type BasicHost struct {
 	negtimeout time.Duration
 
 	proc goprocess.Process
+
+	bgcancel  func()
+	mx        sync.Mutex
+	lastAddrs []ma.Multiaddr
 }
 
 // HostOpts holds options that can be passed to NewHost in order to
@@ -164,6 +169,11 @@ func NewHost(ctx context.Context, net inet.Network, opts *HostOpts) (*BasicHost,
 
 	net.SetConnHandler(h.newConnHandler)
 	net.SetStreamHandler(h.newStreamHandler)
+
+	bgctx, cancel := context.WithCancel(ctx)
+	h.bgcancel = cancel
+	go h.background(bgctx)
+
 	return h, nil
 }
 
@@ -263,7 +273,67 @@ func (h *BasicHost) newStreamHandler(s inet.Stream) {
 // PushIdentify pushes an identify update through the identify push protocol
 // Warning: this interface is unstable and may disappear in the future.
 func (h *BasicHost) PushIdentify() {
-	h.ids.Push()
+	push := false
+
+	h.mx.Lock()
+	addrs := h.Addrs()
+	if !sameAddrs(addrs, h.lastAddrs) {
+		push = true
+		h.lastAddrs = addrs
+	}
+	h.mx.Unlock()
+
+	if push {
+		h.ids.Push()
+	}
+}
+
+func (h *BasicHost) background(ctx context.Context) {
+	// periodically schedules an IdentifyPush to update our peers for changes
+	// in our address set (if needed)
+	ticker := time.NewTicker(1 * time.Minute)
+	defer ticker.Stop()
+
+	// initialize lastAddrs
+	h.mx.Lock()
+	if h.lastAddrs == nil {
+		h.lastAddrs = h.Addrs()
+	}
+	h.mx.Unlock()
+
+	for {
+		select {
+		case <-ticker.C:
+			h.PushIdentify()
+
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+func sameAddrs(a, b []ma.Multiaddr) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	// this is O(n*m), might be worth using a map to turn into O(n+m)
+	for _, addr := range a {
+		if !findAddr(addr, b) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func findAddr(addr ma.Multiaddr, addrs []ma.Multiaddr) bool {
+	for _, xaddr := range addrs {
+		if addr.Equal(xaddr) {
+			return true
+		}
+	}
+	return false
 }
 
 // ID returns the (local) peer.ID associated with this Host
@@ -646,6 +716,7 @@ func (h *BasicHost) AllAddrs() []ma.Multiaddr {
 
 // Close shuts down the Host's services (network, etc).
 func (h *BasicHost) Close() error {
+	h.bgcancel()
 	return h.proc.Close()
 }
 
