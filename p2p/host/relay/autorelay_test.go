@@ -29,7 +29,7 @@ func init() {
 	autonat.AutoNATIdentifyDelay = 1 * time.Second
 	autonat.AutoNATBootDelay = 2 * time.Second
 	relay.BootDelay = 1 * time.Second
-	relay.AdvertiseBootDelay = 1 * time.Millisecond
+	relay.AdvertiseBootDelay = 100 * time.Millisecond
 	manet.Private4 = []*net.IPNet{}
 }
 
