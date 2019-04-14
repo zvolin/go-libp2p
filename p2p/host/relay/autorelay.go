@@ -286,7 +286,6 @@ func (ar *AutoRelay) doUpdateAddrs() {
 // addrsplosion. For the latter, we use the following heuristic:
 // - if the address set includes a (tcp) address with the default port 4001,
 //   we remove all tcp addrs with a different port
-// - Otherwise we remove all addrs with ephemeral ports (>= 32768)
 func cleanupAddressSet(pi pstore.PeerInfo) pstore.PeerInfo {
 	// pass-1: find default port
 	has4001 := false
@@ -313,9 +312,9 @@ func cleanupAddressSet(pi pstore.PeerInfo) pstore.PeerInfo {
 			continue
 		}
 
-		port, err := tcpPort(addr)
-		if err == nil {
-			if (has4001 && port != 4001) || port >= 32768 {
+		if has4001 {
+			port, err := tcpPort(addr)
+			if err == nil && port != 4001 {
 				continue
 			}
 		}
