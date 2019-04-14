@@ -129,8 +129,10 @@ func (ar *AutoRelay) background(ctx context.Context) {
 }
 
 func (ar *AutoRelay) findRelays(ctx context.Context) {
+again:
 	ar.mx.Lock()
-	if len(ar.relays) >= DesiredRelays {
+	haveRelays := len(ar.relays)
+	if haveRelays >= DesiredRelays {
 		ar.mx.Unlock()
 		return
 	}
@@ -169,6 +171,7 @@ func (ar *AutoRelay) findRelays(ctx context.Context) {
 		log.Debugf("connected to relay %s", pi.ID)
 		ar.mx.Lock()
 		ar.relays[pi.ID] = pi
+		haveRelays++
 		ar.mx.Unlock()
 
 		// tag the connection as very important
@@ -179,6 +182,13 @@ func (ar *AutoRelay) findRelays(ctx context.Context) {
 		if need == 0 {
 			break
 		}
+	}
+
+	if haveRelays == 0 {
+		// we failed to find any relays and we are not connected to any!
+		// wait a little and try again, the discovery query might have returned only dead peers
+		time.Sleep(30 * time.Second)
+		goto again
 	}
 
 	if update > 0 || ar.addrs == nil {
