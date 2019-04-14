@@ -187,8 +187,12 @@ again:
 	if haveRelays == 0 {
 		// we failed to find any relays and we are not connected to any!
 		// wait a little and try again, the discovery query might have returned only dead peers
-		time.Sleep(30 * time.Second)
-		goto again
+		select {
+		case <-time.After(30 * time.Second):
+			goto again
+		case <-ctx.Done():
+			return
+		}
 	}
 
 	if update > 0 || ar.addrs == nil {
