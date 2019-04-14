@@ -147,8 +147,7 @@ func (ar *AutoRelay) findRelays(ctx context.Context) {
 		return
 	}
 
-	pis = ar.selectRelays(pis)
-
+	pis = ar.selectRelays(ctx, pis, 20)
 	update := 0
 
 	for _, pi := range pis {
@@ -159,25 +158,7 @@ func (ar *AutoRelay) findRelays(ctx context.Context) {
 		}
 		ar.mx.Unlock()
 
-		cctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-
-		if len(pi.Addrs) == 0 {
-			pi, err = ar.router.FindPeer(cctx, pi.ID)
-			if err != nil {
-				log.Debugf("error finding relay peer %s: %s", pi.ID, err.Error())
-				cancel()
-				continue
-			}
-		}
-
-		cleanupAddressSet(&pi)
-
-		if len(pi.Addrs) == 0 {
-			log.Debugf("no usable addresses for relay peer %s", pi.ID)
-			cancel()
-			continue
-		}
-
+		cctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 		err = ar.host.Connect(cctx, pi)
 		cancel()
 		if err != nil {
@@ -205,11 +186,51 @@ func (ar *AutoRelay) findRelays(ctx context.Context) {
 	}
 }
 
-func (ar *AutoRelay) selectRelays(pis []pstore.PeerInfo) []pstore.PeerInfo {
+func (ar *AutoRelay) selectRelays(ctx context.Context, pis []pstore.PeerInfo, count int) []pstore.PeerInfo {
 	// TODO better relay selection strategy; this just selects random relays
 	//      but we should probably use ping latency as the selection metric
 	shuffleRelays(pis)
-	return pis
+
+	if len(pis) < count {
+		count = len(pis)
+	}
+
+	// only select relays that can be found by routing
+	type queryResult struct {
+		pi  pstore.PeerInfo
+		err error
+	}
+	result := make([]pstore.PeerInfo, 0, count)
+	resultCh := make(chan queryResult, len(pis))
+
+	qctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+
+	for _, pi := range pis {
+		go func(p peer.ID) {
+			pi, err := ar.router.FindPeer(qctx, p)
+			if err != nil {
+				log.Debugf("Error finding relay peer %s: %s", p, err.Error())
+			}
+			resultCh <- queryResult{pi: pi, err: err}
+		}(pi.ID)
+	}
+
+	for len(result) < count {
+		select {
+		case qr := <-resultCh:
+			if qr.err == nil {
+				cleanupAddressSet(&qr.pi)
+				result = append(result, qr.pi)
+			}
+
+		case <-qctx.Done():
+			break
+		}
+	}
+
+	shuffleRelays(result)
+	return result
 }
 
 func (ar *AutoRelay) updateAddrs() {
