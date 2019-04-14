@@ -10,7 +10,8 @@ import (
 )
 
 var (
-	AdvertiseBootDelay = 30 * time.Second
+	// this is purposefully long to require some node stability before advertising as a relay
+	AdvertiseBootDelay = 15 * time.Minute
 )
 
 // Advertise advertises this node as a libp2p relay.
