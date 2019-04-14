@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"strconv"
 	"sync"
 	"time"
 
@@ -169,6 +170,14 @@ func (ar *AutoRelay) findRelays(ctx context.Context) {
 			}
 		}
 
+		cleanupAddressSet(&pi)
+
+		if len(pi.Addrs) == 0 {
+			log.Debugf("no usable addresses for relay peer %s", pi.ID)
+			cancel()
+			continue
+		}
+
 		err = ar.host.Connect(cctx, pi)
 		cancel()
 		if err != nil {
@@ -248,6 +257,55 @@ func (ar *AutoRelay) doUpdateAddrs() {
 	}
 
 	ar.addrs = raddrs
+}
+
+// This function cleans up a relay's address set to remove private addresses and curtail
+// addrsplosion. For the latter, we use the following heuristic:
+// - if the address set includes a (tcp) address with the default port 4001,
+//   we remove all tcp addrs with a different port
+// - Otherwise we remove all addrs with ephemeral ports (>= 32768)
+func cleanupAddressSet(pi *pstore.PeerInfo) {
+	// pass-1: find default port
+	has4001 := false
+	for _, addr := range pi.Addrs {
+		port, err := tcpPort(addr)
+		if err != nil {
+			continue
+		}
+		if port == 4001 {
+			has4001 = true
+			break
+		}
+	}
+
+	// pass-2: cleanup
+	var newAddrs []ma.Multiaddr
+
+	for _, addr := range pi.Addrs {
+		if manet.IsPrivateAddr(addr) {
+			continue
+		}
+
+		port, err := tcpPort(addr)
+		if err == nil {
+			if (has4001 && port != 4001) || port >= 32768 {
+				continue
+			}
+		}
+
+		newAddrs = append(newAddrs, addr)
+	}
+
+	pi.Addrs = newAddrs
+}
+
+func tcpPort(addr ma.Multiaddr) (int, error) {
+	val, err := addr.ValueForProtocol(ma.P_TCP)
+	if err != nil {
+		// not tcp
+		return 0, err
+	}
+	return strconv.Atoi(val)
 }
 
 func shuffleRelays(pis []pstore.PeerInfo) {
