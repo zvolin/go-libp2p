@@ -133,7 +133,14 @@ again:
 	ar.mx.Lock()
 	haveRelays := len(ar.relays)
 	if haveRelays >= DesiredRelays {
+		// this dance is necessary to cover the Private->Public->Private transition
+		// where we were already connected to enough relays while private and dropped
+		// the addrs while public
+		needUpdate := ar.addrs == nil
 		ar.mx.Unlock()
+		if needUpdate {
+			ar.updateAddrs()
+		}
 		return
 	}
 	need := DesiredRelays - len(ar.relays)
