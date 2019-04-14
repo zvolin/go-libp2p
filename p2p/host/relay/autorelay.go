@@ -155,7 +155,7 @@ again:
 		return
 	}
 
-	pis = ar.selectRelays(ctx, pis, 20)
+	pis = ar.selectRelays(ctx, pis, 20, 50)
 	update := 0
 
 	for _, pi := range pis {
@@ -206,12 +206,21 @@ again:
 	}
 }
 
-func (ar *AutoRelay) selectRelays(ctx context.Context, pis []pstore.PeerInfo, count int) []pstore.PeerInfo {
+func (ar *AutoRelay) selectRelays(ctx context.Context, pis []pstore.PeerInfo, count, maxq int) []pstore.PeerInfo {
 	// TODO better relay selection strategy; this just selects random relays
 	//      but we should probably use ping latency as the selection metric
 
+	if len(pis) == 0 {
+		log.Debugf("no relays discovered")
+		return pis
+	}
+
 	if len(pis) < count {
 		count = len(pis)
+	}
+
+	if len(pis) < maxq {
+		maxq = len(pis)
 	}
 
 	// only select relays that can be found by routing
@@ -220,14 +229,14 @@ func (ar *AutoRelay) selectRelays(ctx context.Context, pis []pstore.PeerInfo, co
 		err error
 	}
 	result := make([]pstore.PeerInfo, 0, count)
-	resultCh := make(chan queryResult, len(pis))
+	resultCh := make(chan queryResult, maxq)
 
 	qctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
 	// shuffle to randomize the order of queries
 	shuffleRelays(pis)
-	for _, pi := range pis {
+	for _, pi := range pis[:maxq] {
 		go func(p peer.ID) {
 			pi, err := ar.router.FindPeer(qctx, p)
 			if err != nil {
@@ -238,7 +247,7 @@ func (ar *AutoRelay) selectRelays(ctx context.Context, pis []pstore.PeerInfo, co
 	}
 
 	rcount := 0
-	for len(result) < count && rcount < len(pis) {
+	for len(result) < count && rcount < maxq {
 		select {
 		case qr := <-resultCh:
 			rcount++
