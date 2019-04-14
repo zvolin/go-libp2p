@@ -147,7 +147,7 @@ func (ar *AutoRelay) findRelays(ctx context.Context) {
 		return
 	}
 
-	pis = ar.selectRelays(ctx, pis, 20)
+	pis = ar.selectRelays(ctx, pis, 50)
 	update := 0
 
 	for _, pi := range pis {
