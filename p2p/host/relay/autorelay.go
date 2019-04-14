@@ -189,7 +189,6 @@ func (ar *AutoRelay) findRelays(ctx context.Context) {
 func (ar *AutoRelay) selectRelays(ctx context.Context, pis []pstore.PeerInfo, count int) []pstore.PeerInfo {
 	// TODO better relay selection strategy; this just selects random relays
 	//      but we should probably use ping latency as the selection metric
-	shuffleRelays(pis)
 
 	if len(pis) < count {
 		count = len(pis)
@@ -216,12 +215,13 @@ func (ar *AutoRelay) selectRelays(ctx context.Context, pis []pstore.PeerInfo, co
 		}(pi.ID)
 	}
 
-	for len(result) < count {
+	rcount := 0
+	for len(result) < count && rcount < len(pis) {
 		select {
 		case qr := <-resultCh:
+			rcount++
 			if qr.err == nil {
-				cleanupAddressSet(&qr.pi)
-				result = append(result, qr.pi)
+				result = append(result, cleanupAddressSet(qr.pi))
 			}
 
 		case <-qctx.Done():
@@ -285,7 +285,7 @@ func (ar *AutoRelay) doUpdateAddrs() {
 // - if the address set includes a (tcp) address with the default port 4001,
 //   we remove all tcp addrs with a different port
 // - Otherwise we remove all addrs with ephemeral ports (>= 32768)
-func cleanupAddressSet(pi *pstore.PeerInfo) {
+func cleanupAddressSet(pi pstore.PeerInfo) pstore.PeerInfo {
 	// pass-1: find default port
 	has4001 := false
 	for _, addr := range pi.Addrs {
@@ -317,7 +317,7 @@ func cleanupAddressSet(pi *pstore.PeerInfo) {
 		newAddrs = append(newAddrs, addr)
 	}
 
-	pi.Addrs = newAddrs
+	return pstore.PeerInfo{ID: pi.ID, Addrs: newAddrs}
 }
 
 func tcpPort(addr ma.Multiaddr) (int, error) {
