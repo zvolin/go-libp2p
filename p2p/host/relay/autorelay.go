@@ -155,6 +155,8 @@ again:
 		return
 	}
 
+	log.Debugf("discovered %d relays", len(pis))
+
 	pis = ar.selectRelays(ctx, pis, 20, 50)
 	update := 0
 
@@ -193,6 +195,7 @@ again:
 	if haveRelays == 0 {
 		// we failed to find any relays and we are not connected to any!
 		// wait a little and try again, the discovery query might have returned only dead peers
+		log.Debug("no relays connected; retrying in 30s")
 		select {
 		case <-time.After(30 * time.Second):
 			goto again
@@ -211,7 +214,6 @@ func (ar *AutoRelay) selectRelays(ctx context.Context, pis []pstore.PeerInfo, co
 	//      but we should probably use ping latency as the selection metric
 
 	if len(pis) == 0 {
-		log.Debugf("no relays discovered")
 		return pis
 	}
 
