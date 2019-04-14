@@ -211,7 +211,7 @@ func (ar *AutoRelay) selectRelays(ctx context.Context, pis []pstore.PeerInfo, co
 		go func(p peer.ID) {
 			pi, err := ar.router.FindPeer(qctx, p)
 			if err != nil {
-				log.Debugf("Error finding relay peer %s: %s", p, err.Error())
+				log.Debugf("error finding relay peer %s: %s", p, err.Error())
 			}
 			resultCh <- queryResult{pi: pi, err: err}
 		}(pi.ID)
@@ -223,7 +223,12 @@ func (ar *AutoRelay) selectRelays(ctx context.Context, pis []pstore.PeerInfo, co
 		case qr := <-resultCh:
 			rcount++
 			if qr.err == nil {
-				result = append(result, cleanupAddressSet(qr.pi))
+				pi := cleanupAddressSet(qr.pi)
+				if len(pi.Addrs) > 0 {
+					result = append(result, pi)
+				} else {
+					log.Debugf("ignoring relay peer %s: cleaned up address set is empty", pi.ID)
+				}
 			}
 
 		case <-qctx.Done():
