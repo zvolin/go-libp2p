@@ -290,10 +290,6 @@ func cleanupAddressSet(pi pstore.PeerInfo) pstore.PeerInfo {
 	// pass-1: find default port
 	has4001 := false
 	for _, addr := range pi.Addrs {
-		if manet.IsPrivateAddr(addr) {
-			continue
-		}
-
 		port, err := tcpPort(addr)
 		if err != nil {
 			continue
