@@ -149,7 +149,7 @@ again:
 		return
 	}
 
-	pis = ar.selectRelays(ctx, pis, 50)
+	pis = ar.selectRelays(ctx, pis, 20)
 	update := 0
 
 	for _, pi := range pis {
