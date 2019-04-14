@@ -205,6 +205,8 @@ func (ar *AutoRelay) selectRelays(ctx context.Context, pis []pstore.PeerInfo, co
 	qctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 
+	// shuffle to randomize the order of queries
+	shuffleRelays(pis)
 	for _, pi := range pis {
 		go func(p peer.ID) {
 			pi, err := ar.router.FindPeer(qctx, p)
