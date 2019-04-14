@@ -202,7 +202,7 @@ func (ar *AutoRelay) selectRelays(ctx context.Context, pis []pstore.PeerInfo, co
 	result := make([]pstore.PeerInfo, 0, count)
 	resultCh := make(chan queryResult, len(pis))
 
-	qctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	qctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
 	// shuffle to randomize the order of queries
