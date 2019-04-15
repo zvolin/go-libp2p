@@ -252,8 +252,10 @@ func (ids *IDService) consumeMessage(mes *pb.Identify, c inet.Conn) {
 	ids.addrMu.Lock()
 	switch ids.Host.Network().Connectedness(p) {
 	case inet.Connected:
+		ids.Host.Peerstore().UpdateAddrs(p, pstore.ConnectedAddrTTL, 0)
 		ids.Host.Peerstore().AddAddrs(p, lmaddrs, pstore.ConnectedAddrTTL)
 	default:
+		ids.Host.Peerstore().UpdateAddrs(p, pstore.ConnectedAddrTTL, 0)
 		ids.Host.Peerstore().AddAddrs(p, lmaddrs, pstore.RecentlyConnectedAddrTTL)
 	}
 	ids.addrMu.Unlock()
