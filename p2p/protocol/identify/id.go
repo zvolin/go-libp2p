@@ -33,6 +33,9 @@ const LibP2PVersion = "ipfs/0.1.0"
 
 var ClientVersion = "go-libp2p/3.3.4"
 
+// transientTTL is a short ttl for invalidated previously connected addrs
+const transientTTL = 10 * time.Second
+
 // IDService is a structure that implements ProtocolIdentify.
 // It is a trivial service that gives the other peer some
 // useful information about the local peer. A sort of hello.
@@ -252,8 +255,12 @@ func (ids *IDService) consumeMessage(mes *pb.Identify, c inet.Conn) {
 	ids.addrMu.Lock()
 	switch ids.Host.Network().Connectedness(p) {
 	case inet.Connected:
+		// invalidate previous addrs -- we use a transient ttl instead of 0 to ensure there
+		// is no period of having no good addrs whatsoever
+		ids.Host.Peerstore().UpdateAddrs(p, pstore.ConnectedAddrTTL, transientTTL)
 		ids.Host.Peerstore().AddAddrs(p, lmaddrs, pstore.ConnectedAddrTTL)
 	default:
+		ids.Host.Peerstore().UpdateAddrs(p, pstore.ConnectedAddrTTL, transientTTL)
 		ids.Host.Peerstore().AddAddrs(p, lmaddrs, pstore.RecentlyConnectedAddrTTL)
 	}
 	ids.addrMu.Unlock()
