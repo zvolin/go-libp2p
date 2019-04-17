@@ -242,6 +242,9 @@ type Option func(cfg *Config) error
 // encountered (if any).
 func (cfg *Config) Apply(opts ...Option) error {
 	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
 		if err := opt(cfg); err != nil {
 			return err
 		}

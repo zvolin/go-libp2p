@@ -133,3 +133,28 @@ func makeRandomHost(t *testing.T, port int) (host.Host, error) {
 
 	return New(ctx, opts...)
 }
+
+func TestChainOptions(t *testing.T) {
+	var cfg Config
+	var optsRun []int
+	optcount := 0
+	newOpt := func() Option {
+		index := optcount
+		optcount++
+		return func(c *Config) error {
+			optsRun = append(optsRun, index)
+			return nil
+		}
+	}
+	if err := cfg.Apply(newOpt(), nil, ChainOptions(newOpt(), newOpt(), ChainOptions(), ChainOptions(nil, newOpt()))); err != nil {
+		t.Fatal(err)
+	}
+	if optcount != len(optsRun) {
+		t.Errorf("expected to have handled %d options, handled %d", optcount, len(optsRun))
+	}
+	for i, x := range optsRun {
+		if i != x {
+			t.Errorf("expected opt %d, got opt %d", i, x)
+		}
+	}
+}
