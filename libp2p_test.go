@@ -146,12 +146,17 @@ func TestChainOptions(t *testing.T) {
 			return nil
 		}
 	}
+
 	if err := cfg.Apply(newOpt(), nil, ChainOptions(newOpt(), newOpt(), ChainOptions(), ChainOptions(nil, newOpt()))); err != nil {
 		t.Fatal(err)
 	}
-	if optcount != len(optsRun) {
+
+	// Make sure we ran all options.
+	if optcount != 4 {
 		t.Errorf("expected to have handled %d options, handled %d", optcount, len(optsRun))
 	}
+
+	// Make sure we ran the options in-order.
 	for i, x := range optsRun {
 		if i != x {
 			t.Errorf("expected opt %d, got opt %d", i, x)
