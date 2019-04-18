@@ -118,16 +118,30 @@ func sanitizeAddrsplodedSet(public, private []ma.Multiaddr) []ma.Multiaddr {
 	var result []ma.Multiaddr
 	for _, pas := range pubaddrs {
 		if len(pas) == 1 {
+			// it's not addrsploded
 			result = append(result, pas[0].addr)
 			continue
 		}
 
+		haveAddr := false
 		for _, pa := range pas {
 			if pa.port == 4001 || pa.port == 4002 {
+				// it's a default port, use it
 				result = append(result, pa.addr)
+				haveAddr = true
 				continue
 			}
+
 			if _, ok := privports[pa.port]; ok {
+				// it matches a privately bound port, use it
+				result = append(result, pa.addr)
+				haveAddr = true
+			}
+		}
+
+		if !haveAddr {
+			// we weren't able to select a port; bite the bullet and use them all
+			for _, pa := range pas {
 				result = append(result, pa.addr)
 			}
 		}
