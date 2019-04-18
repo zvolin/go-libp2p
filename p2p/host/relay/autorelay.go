@@ -136,7 +136,9 @@ again:
 		ar.mx.Unlock()
 		// this dance is necessary to cover the Private->Public->Private transition
 		// where we were already connected to enough relays while private and dropped
-		// the addrs while public
+		// the addrs while public.
+		// Note tht we don't need the lock for reading addrs, as the only writer is
+		// the current goroutine.
 		if ar.addrs == nil {
 			ar.updateAddrs()
 		}
