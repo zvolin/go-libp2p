@@ -30,7 +30,6 @@ func init() {
 	autonat.AutoNATBootDelay = 2 * time.Second
 	relay.BootDelay = 1 * time.Second
 	relay.AdvertiseBootDelay = 100 * time.Millisecond
-	manet.Private4 = []*net.IPNet{}
 }
 
 // mock routing
@@ -146,6 +145,10 @@ func connect(t *testing.T, a, b host.Host) {
 // and the actual test!
 func TestAutoRelay(t *testing.T) {
 	//t.Skip("fails 99% of the time")
+
+	save := manet.Private4
+	manet.Private4 = []*net.IPNet{}
+	defer func() { manet.Private4 = save }()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
