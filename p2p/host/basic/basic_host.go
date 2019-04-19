@@ -323,7 +323,7 @@ func sameAddrs(a, b []ma.Multiaddr) bool {
 		return false
 	}
 
-	bmap := make(map[string]struct{})
+	bmap := make(map[string]struct{}, len(b))
 	for _, addr := range b {
 		bmap[string(addr.Bytes())] = struct{}{}
 	}
