@@ -48,6 +48,23 @@ func TestCleanupAddrs(t *testing.T) {
 		t.Fatal("cleaned up set doesn't match expected")
 	}
 
+	// test with default port addrsplosion but no private addrs
+	addrs = makeAddrList(
+		"/ip4/1.2.3.4/tcp/4001",
+		"/ip4/1.2.3.4/tcp/33333",
+		"/ip4/1.2.3.4/tcp/33334",
+		"/ip4/1.2.3.4/tcp/33335",
+		"/ip4/1.2.3.4/udp/4002/quic",
+	)
+	clean = makeAddrList(
+		"/ip4/1.2.3.4/tcp/4001",
+		"/ip4/1.2.3.4/udp/4002/quic",
+	)
+	pi = cleanupAddressSet(pstore.PeerInfo{Addrs: addrs})
+	if !sameAddrs(clean, pi.Addrs) {
+		t.Fatal("cleaned up set doesn't match expected")
+	}
+
 	// test with non-standard port addrsplosion
 	addrs = makeAddrList(
 		"/ip4/127.0.0.1/tcp/12345",
@@ -64,6 +81,16 @@ func TestCleanupAddrs(t *testing.T) {
 		t.Fatal("cleaned up set doesn't match expected")
 	}
 
+	// test with a squeaky clean address set
+	addrs = makeAddrList(
+		"/ip4/1.2.3.4/tcp/4001",
+		"/ip4/1.2.3.4/udp/4001/quic",
+	)
+	clean = addrs
+	pi = cleanupAddressSet(pstore.PeerInfo{Addrs: addrs})
+	if !sameAddrs(clean, pi.Addrs) {
+		t.Fatal("cleaned up set doesn't match expected")
+	}
 }
 
 func makeAddrList(strs ...string) []ma.Multiaddr {
