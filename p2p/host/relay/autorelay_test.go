@@ -146,9 +146,7 @@ func connect(t *testing.T, a, b host.Host) {
 func TestAutoRelay(t *testing.T) {
 	//t.Skip("fails 99% of the time")
 
-	save := manet.Private4
 	manet.Private4 = []*net.IPNet{}
-	defer func() { manet.Private4 = save }()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
