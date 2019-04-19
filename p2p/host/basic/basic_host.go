@@ -323,23 +323,19 @@ func sameAddrs(a, b []ma.Multiaddr) bool {
 		return false
 	}
 
-	// this is O(n*m), might be worth using a map to turn into O(n+m)
+	bmap := make(map[string]struct{})
+	for _, addr := range b {
+		bmap[string(addr.Bytes())] = struct{}{}
+	}
+
 	for _, addr := range a {
-		if !findAddr(addr, b) {
+		_, ok := bmap[string(addr.Bytes())]
+		if !ok {
 			return false
 		}
 	}
 
 	return true
-}
-
-func findAddr(addr ma.Multiaddr, addrs []ma.Multiaddr) bool {
-	for _, xaddr := range addrs {
-		if addr.Equal(xaddr) {
-			return true
-		}
-	}
-	return false
 }
 
 // ID returns the (local) peer.ID associated with this Host
