@@ -315,10 +315,8 @@ func (ar *AutoRelay) doUpdateAddrs() {
 		}
 
 		for _, addr := range pi.Addrs {
-			if !manet.IsPrivateAddr(addr) {
-				pub := addr.Encapsulate(circuit)
-				raddrs = append(raddrs, pub)
-			}
+			pub := addr.Encapsulate(circuit)
+			raddrs = append(raddrs, pub)
 		}
 	}
 
