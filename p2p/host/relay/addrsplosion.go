@@ -3,6 +3,7 @@ package relay
 import (
 	"encoding/binary"
 
+	circuit "github.com/libp2p/go-libp2p-circuit"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr-net"
@@ -14,6 +15,10 @@ func cleanupAddressSet(pi pstore.PeerInfo) pstore.PeerInfo {
 	var public, private []ma.Multiaddr
 
 	for _, a := range pi.Addrs {
+		if isRelayAddr(a) {
+			continue
+		}
+
 		if manet.IsPublicAddr(a) || isDNSAddr(a) {
 			public = append(public, a)
 			continue
@@ -31,6 +36,22 @@ func cleanupAddressSet(pi pstore.PeerInfo) pstore.PeerInfo {
 
 	addrs := sanitizeAddrsplodedSet(public, private)
 	return pstore.PeerInfo{ID: pi.ID, Addrs: addrs}
+}
+
+func isRelayAddr(a ma.Multiaddr) bool {
+	isRelay := false
+
+	ma.ForEach(a, func(c ma.Component) bool {
+		switch c.Protocol().Code {
+		case circuit.P_CIRCUIT:
+			isRelay = true
+			return false
+		default:
+			return true
+		}
+	})
+
+	return isRelay
 }
 
 func isDNSAddr(a ma.Multiaddr) bool {

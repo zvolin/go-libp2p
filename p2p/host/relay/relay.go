@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	circuit "github.com/libp2p/go-libp2p-circuit"
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	ma "github.com/multiformats/go-multiaddr"
 )
@@ -29,8 +28,7 @@ func Advertise(ctx context.Context, advertise discovery.Advertiser) {
 func Filter(addrs []ma.Multiaddr) []ma.Multiaddr {
 	raddrs := make([]ma.Multiaddr, 0, len(addrs))
 	for _, addr := range addrs {
-		_, err := addr.ValueForProtocol(circuit.P_CIRCUIT)
-		if err == nil {
+		if isRelayAddr(addr) {
 			continue
 		}
 		raddrs = append(raddrs, addr)
