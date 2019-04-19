@@ -240,6 +240,12 @@ func (ar *AutoRelay) selectRelays(ctx context.Context, pis []pstore.PeerInfo, co
 	// shuffle to randomize the order of queries
 	shuffleRelays(pis)
 	for _, pi := range pis[:maxq] {
+		// first check to see if we already know this peer from a previous query
+		addrs := ar.host.Peerstore().Addrs(pi.ID)
+		if len(addrs) > 0 {
+			resultCh <- queryResult{pi: pstore.PeerInfo{ID: pi.ID, Addrs: addrs}, err: nil}
+			continue
+		}
 		go func(p peer.ID) {
 			pi, err := ar.router.FindPeer(qctx, p)
 			if err != nil {
