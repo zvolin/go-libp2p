@@ -282,7 +282,7 @@ func (ar *AutoRelay) relayAddrs(addrs []ma.Multiaddr) []ma.Multiaddr {
 		return addrs
 	}
 
-	raddrs := make([]ma.Multiaddr, 0, len(addrs)+len(ar.relays))
+	var raddrs []ma.Multiaddr
 
 	// only keep private addrs from the original addr set
 	for _, addr := range addrs {
