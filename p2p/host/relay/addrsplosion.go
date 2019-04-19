@@ -34,17 +34,13 @@ func cleanupAddressSet(pi pstore.PeerInfo) pstore.PeerInfo {
 }
 
 func isDNSAddr(a ma.Multiaddr) bool {
-	dnsaddr := false
-	ma.ForEach(a, func(c ma.Component) bool {
-		switch c.Protocol().Code {
+	if first, _ := ma.SplitFirst(a); first != nil {
+		switch first.Protocol().Code {
 		case 54, 55, 56:
-			dnsaddr = true
+			return true
 		}
-
-		return false
-	})
-
-	return dnsaddr
+	}
+	return false
 }
 
 // we have addrsplosion if for some protocol we advertise multiple ports on
