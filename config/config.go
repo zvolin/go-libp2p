@@ -228,6 +228,9 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 		}
 	}
 
+	// start the host background tasks
+	h.Start()
+
 	if router != nil {
 		return routed.Wrap(h, router), nil
 	}

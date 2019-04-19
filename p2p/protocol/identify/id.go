@@ -47,6 +47,8 @@ const transientTTL = 10 * time.Second
 type IDService struct {
 	Host host.Host
 
+	ctx context.Context
+
 	// connections undergoing identification
 	// for wait purposes
 	currid map[inet.Conn]chan struct{}
@@ -64,6 +66,7 @@ type IDService struct {
 func NewIDService(ctx context.Context, h host.Host) *IDService {
 	s := &IDService{
 		Host:          h,
+		ctx:           ctx,
 		currid:        make(map[inet.Conn]chan struct{}),
 		observedAddrs: NewObservedAddrSet(ctx),
 	}
@@ -156,19 +159,42 @@ func (ids *IDService) pushHandler(s inet.Stream) {
 }
 
 func (ids *IDService) Push() {
+	var wg sync.WaitGroup
+
+	ctx, cancel := context.WithTimeout(ids.ctx, 30*time.Second)
+	ctx = inet.WithNoDial(ctx, "identify push")
+
 	for _, p := range ids.Host.Network().Peers() {
+		wg.Add(1)
 		go func(p peer.ID) {
-			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-			defer cancel()
+			defer wg.Done()
+
 			s, err := ids.Host.NewStream(ctx, p, IDPush)
 			if err != nil {
-				log.Debugf("error opening push stream: %s", err.Error())
+				log.Debugf("error opening push stream to %s: %s", p, err.Error())
 				return
 			}
 
-			ids.requestHandler(s)
+			rch := make(chan struct{}, 1)
+			go func() {
+				ids.requestHandler(s)
+				rch <- struct{}{}
+			}()
+
+			select {
+			case <-rch:
+			case <-ctx.Done():
+				// this is taking too long, abort!
+				s.Reset()
+			}
 		}(p)
 	}
+
+	// this supervisory goroutine is necessary to cancel the context
+	go func() {
+		wg.Wait()
+		cancel()
+	}()
 }
 
 func (ids *IDService) populateMessage(mes *pb.Identify, c inet.Conn) {

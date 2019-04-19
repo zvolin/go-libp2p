@@ -588,7 +588,7 @@ func TestLimitedStreams(t *testing.T) {
 func TestFuzzManyPeers(t *testing.T) {
 	peerCount := 50000
 	if detectrace.WithRace() {
-		peerCount = 1000
+		peerCount = 100
 	}
 	for i := 0; i < peerCount; i++ {
 		_, err := FullMeshConnected(context.Background(), 2)
