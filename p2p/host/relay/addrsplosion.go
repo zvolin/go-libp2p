@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 
 	circuit "github.com/libp2p/go-libp2p-circuit"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
 	ma "github.com/multiformats/go-multiaddr"
 	dns "github.com/multiformats/go-multiaddr-dns"
 	manet "github.com/multiformats/go-multiaddr-net"
@@ -12,10 +11,10 @@ import (
 
 // This function cleans up a relay's address set to remove private addresses and curtail
 // addrsplosion.
-func cleanupAddressSet(pi pstore.PeerInfo) pstore.PeerInfo {
+func cleanupAddressSet(addrs []ma.Multiaddr) []ma.Multiaddr {
 	var public, private []ma.Multiaddr
 
-	for _, a := range pi.Addrs {
+	for _, a := range addrs {
 		if isRelayAddr(a) {
 			continue
 		}
@@ -32,11 +31,10 @@ func cleanupAddressSet(pi pstore.PeerInfo) pstore.PeerInfo {
 	}
 
 	if !hasAddrsplosion(public) {
-		return pstore.PeerInfo{ID: pi.ID, Addrs: public}
+		return public
 	}
 
-	addrs := sanitizeAddrsplodedSet(public, private)
-	return pstore.PeerInfo{ID: pi.ID, Addrs: addrs}
+	return sanitizeAddrsplodedSet(public, private)
 }
 
 func isRelayAddr(a ma.Multiaddr) bool {

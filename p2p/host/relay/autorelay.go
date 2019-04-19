@@ -41,7 +41,7 @@ type AutoRelay struct {
 	disconnect chan struct{}
 
 	mx     sync.Mutex
-	relays map[peer.ID]pstore.PeerInfo
+	relays map[peer.ID]struct{}
 	addrs  []ma.Multiaddr
 }
 
@@ -51,7 +51,7 @@ func NewAutoRelay(ctx context.Context, bhost *basic.BasicHost, discover discover
 		discover:   discover,
 		router:     router,
 		addrsF:     bhost.AddrsFactory,
-		relays:     make(map[peer.ID]pstore.PeerInfo),
+		relays:     make(map[peer.ID]struct{}),
 		disconnect: make(chan struct{}, 1),
 	}
 	ar.autonat = autonat.NewAutoNAT(ctx, bhost, ar.baseAddrs)
@@ -179,7 +179,7 @@ again:
 
 		log.Debugf("connected to relay %s", pi.ID)
 		ar.mx.Lock()
-		ar.relays[pi.ID] = pi
+		ar.relays[pi.ID] = struct{}{}
 		haveRelays++
 		ar.mx.Unlock()
 
@@ -261,12 +261,7 @@ func (ar *AutoRelay) selectRelays(ctx context.Context, pis []pstore.PeerInfo, co
 		case qr := <-resultCh:
 			rcount++
 			if qr.err == nil {
-				pi := cleanupAddressSet(qr.pi)
-				if len(pi.Addrs) > 0 {
-					result = append(result, pi)
-				} else {
-					log.Debugf("ignoring relay peer %s: cleaned up address set is empty", pi.ID)
-				}
+				result = append(result, qr.pi)
 			}
 
 		case <-qctx.Done():
@@ -308,13 +303,15 @@ func (ar *AutoRelay) doUpdateAddrs() {
 	}
 
 	// add relay specific addrs to the list
-	for _, pi := range ar.relays {
-		circuit, err := ma.NewMultiaddr(fmt.Sprintf("/p2p/%s/p2p-circuit", pi.ID.Pretty()))
+	for p := range ar.relays {
+		addrs := cleanupAddressSet(ar.host.Peerstore().Addrs(p))
+
+		circuit, err := ma.NewMultiaddr(fmt.Sprintf("/p2p/%s/p2p-circuit", p.Pretty()))
 		if err != nil {
 			panic(err)
 		}
 
-		for _, addr := range pi.Addrs {
+		for _, addr := range addrs {
 			pub := addr.Encapsulate(circuit)
 			raddrs = append(raddrs, pub)
 		}

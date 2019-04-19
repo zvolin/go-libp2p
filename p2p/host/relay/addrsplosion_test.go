@@ -1,10 +1,8 @@
 package relay
 
 import (
-	"fmt"
 	"testing"
 
-	pstore "github.com/libp2p/go-libp2p-peerstore"
 	ma "github.com/multiformats/go-multiaddr"
 	_ "github.com/multiformats/go-multiaddr-dns"
 )
@@ -24,9 +22,8 @@ func TestCleanupAddrs(t *testing.T) {
 		"/dnsaddr/somedomain.com/tcp/4002/ws",
 	)
 
-	pi := cleanupAddressSet(pstore.PeerInfo{Addrs: addrs})
-	if !sameAddrs(clean, pi.Addrs) {
-		fmt.Println(pi.Addrs)
+	r := cleanupAddressSet(addrs)
+	if !sameAddrs(clean, r) {
 		t.Fatal("cleaned up set doesn't match expected")
 	}
 
@@ -43,8 +40,8 @@ func TestCleanupAddrs(t *testing.T) {
 		"/ip4/1.2.3.4/tcp/4001",
 		"/ip4/1.2.3.4/udp/4002/quic",
 	)
-	pi = cleanupAddressSet(pstore.PeerInfo{Addrs: addrs})
-	if !sameAddrs(clean, pi.Addrs) {
+	r = cleanupAddressSet(addrs)
+	if !sameAddrs(clean, r) {
 		t.Fatal("cleaned up set doesn't match expected")
 	}
 
@@ -60,8 +57,8 @@ func TestCleanupAddrs(t *testing.T) {
 		"/ip4/1.2.3.4/tcp/4001",
 		"/ip4/1.2.3.4/udp/4002/quic",
 	)
-	pi = cleanupAddressSet(pstore.PeerInfo{Addrs: addrs})
-	if !sameAddrs(clean, pi.Addrs) {
+	r = cleanupAddressSet(addrs)
+	if !sameAddrs(clean, r) {
 		t.Fatal("cleaned up set doesn't match expected")
 	}
 
@@ -76,8 +73,8 @@ func TestCleanupAddrs(t *testing.T) {
 	clean = makeAddrList(
 		"/ip4/1.2.3.4/tcp/12345",
 	)
-	pi = cleanupAddressSet(pstore.PeerInfo{Addrs: addrs})
-	if !sameAddrs(clean, pi.Addrs) {
+	r = cleanupAddressSet(addrs)
+	if !sameAddrs(clean, r) {
 		t.Fatal("cleaned up set doesn't match expected")
 	}
 
@@ -87,8 +84,8 @@ func TestCleanupAddrs(t *testing.T) {
 		"/ip4/1.2.3.4/udp/4001/quic",
 	)
 	clean = addrs
-	pi = cleanupAddressSet(pstore.PeerInfo{Addrs: addrs})
-	if !sameAddrs(clean, pi.Addrs) {
+	r = cleanupAddressSet(addrs)
+	if !sameAddrs(clean, r) {
 		t.Fatal("cleaned up set doesn't match expected")
 	}
 }
