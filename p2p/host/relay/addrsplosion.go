@@ -142,15 +142,15 @@ func sanitizeAddrsplodedSet(public, private []ma.Multiaddr) []ma.Multiaddr {
 
 		haveAddr := false
 		for _, pa := range pas {
-			if pa.port == 4001 || pa.port == 4002 {
-				// it's a default port, use it
+			if _, ok := privports[pa.port]; ok {
+				// it matches a privately bound port, use it
 				result = append(result, pa.addr)
 				haveAddr = true
 				continue
 			}
 
-			if _, ok := privports[pa.port]; ok {
-				// it matches a privately bound port, use it
+			if pa.port == 4001 || pa.port == 4002 {
+				// it's a default port, use it
 				result = append(result, pa.addr)
 				haveAddr = true
 			}
