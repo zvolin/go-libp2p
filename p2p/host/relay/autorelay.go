@@ -123,6 +123,8 @@ func (ar *AutoRelay) background(ctx context.Context) {
 }
 
 func (ar *AutoRelay) findRelays(ctx context.Context) bool {
+	retry := 0
+
 again:
 	ar.mx.Lock()
 	haveRelays := len(ar.relays)
@@ -142,6 +144,12 @@ again:
 		log.Debugf("error discovering relays: %s", err.Error())
 
 		if haveRelays == 0 {
+			retry++
+			if retry > 5 {
+				log.Debug("no relays connected; giving up")
+				return false
+			}
+
 			log.Debug("no relays connected; retrying in 30s")
 			select {
 			case <-time.After(30 * time.Second):
@@ -192,6 +200,12 @@ again:
 	if haveRelays == 0 {
 		// we failed to find any relays and we are not connected to any!
 		// wait a little and try again, the discovery query might have returned only dead peers
+		retry++
+		if retry > 5 {
+			log.Debug("no relays connected; giving up")
+			return false
+		}
+
 		log.Debug("no relays connected; retrying in 30s")
 		select {
 		case <-time.After(30 * time.Second):
