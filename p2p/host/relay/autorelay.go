@@ -162,7 +162,7 @@ again:
 
 	log.Debugf("discovered %d relays", len(pis))
 
-	pis = ar.selectRelays(ctx, pis, 20, 50)
+	pis = ar.selectRelays(ctx, pis, 25, 50)
 	update := 0
 
 	for _, pi := range pis {
@@ -173,7 +173,7 @@ again:
 		}
 		ar.mx.Unlock()
 
-		cctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+		cctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		err = ar.host.Connect(cctx, pi)
 		cancel()
 		if err != nil {
@@ -254,6 +254,8 @@ func (ar *AutoRelay) selectRelays(ctx context.Context, pis []pstore.PeerInfo, co
 			resultCh <- queryResult{pi: pstore.PeerInfo{ID: pi.ID, Addrs: addrs}, err: nil}
 			continue
 		}
+
+		// no known addrs, do a query
 		go func(p peer.ID) {
 			pi, err := ar.router.FindPeer(qctx, p)
 			if err != nil {
