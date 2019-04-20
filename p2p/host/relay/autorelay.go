@@ -123,17 +123,17 @@ func (ar *AutoRelay) background(ctx context.Context) {
 }
 
 func (ar *AutoRelay) findRelays(ctx context.Context) bool {
+	ignore := make(map[peer.ID]struct{})
 	retry := 0
 
 again:
 	ar.mx.Lock()
 	haveRelays := len(ar.relays)
+	ar.mx.Unlock()
 	if haveRelays >= DesiredRelays {
-		ar.mx.Unlock()
 		return false
 	}
-	need := DesiredRelays - len(ar.relays)
-	ar.mx.Unlock()
+	need := DesiredRelays - haveRelays
 
 	limit := 1000
 
@@ -162,7 +162,7 @@ again:
 
 	log.Debugf("discovered %d relays", len(pis))
 
-	pis = ar.selectRelays(ctx, pis, 25, 50)
+	pis = ar.selectRelays(ctx, ignore, pis, 25, 50)
 	update := 0
 
 	for _, pi := range pis {
@@ -178,6 +178,7 @@ again:
 		cancel()
 		if err != nil {
 			log.Debugf("error connecting to relay %s: %s", pi.ID, err.Error())
+			ignore[pi.ID] = struct{}{}
 			continue
 		}
 
@@ -206,6 +207,12 @@ again:
 			return false
 		}
 
+		// if we failed to select any relays, clear the ignore list as some of the dead
+		// may have come back
+		if len(pis) == 0 {
+			ignore = make(map[peer.ID]struct{})
+		}
+
 		log.Debug("no relays connected; retrying in 30s")
 		select {
 		case <-time.After(30 * time.Second):
@@ -218,7 +225,7 @@ again:
 	return update > 0
 }
 
-func (ar *AutoRelay) selectRelays(ctx context.Context, pis []pstore.PeerInfo, count, maxq int) []pstore.PeerInfo {
+func (ar *AutoRelay) selectRelays(ctx context.Context, ignore map[peer.ID]struct{}, pis []pstore.PeerInfo, count, maxq int) []pstore.PeerInfo {
 	// TODO better relay selection strategy; this just selects random relays
 	//      but we should probably use ping latency as the selection metric
 
@@ -248,7 +255,13 @@ func (ar *AutoRelay) selectRelays(ctx context.Context, pis []pstore.PeerInfo, co
 	// shuffle to randomize the order of queries
 	shuffleRelays(pis)
 	for _, pi := range pis[:maxq] {
-		// first check to see if we already know this peer from a previous query
+		// check if it is in the ignore list
+		if _, ok := ignore[pi.ID]; ok {
+			maxq-- // decrement this for the result collection loop, we are doing one less query
+			continue
+		}
+
+		// check to see if we already know this peer from a previous query
 		addrs := ar.host.Peerstore().Addrs(pi.ID)
 		if len(addrs) > 0 {
 			resultCh <- queryResult{pi: pstore.PeerInfo{ID: pi.ID, Addrs: addrs}, err: nil}
