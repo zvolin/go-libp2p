@@ -123,108 +123,111 @@ func (ar *AutoRelay) background(ctx context.Context) {
 }
 
 func (ar *AutoRelay) findRelays(ctx context.Context) bool {
-	retry := 0
-
-again:
-	ar.mx.Lock()
-	haveRelays := len(ar.relays)
-	ar.mx.Unlock()
-	if haveRelays >= DesiredRelays {
+	if ar.numRelays() >= DesiredRelays {
 		return false
 	}
-	need := DesiredRelays - haveRelays
 
-	limit := 1000
-
-	dctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	pis, err := discovery.FindPeers(dctx, ar.discover, RelayRendezvous, limit)
-	cancel()
-	if err != nil {
-		log.Debugf("error discovering relays: %s", err.Error())
-
-		if haveRelays == 0 {
-			retry++
-			if retry > 5 {
-				log.Debug("no relays connected; giving up")
-				return false
-			}
-
+	update := false
+	for retry := 0; retry < 5; retry++ {
+		if retry > 0 {
 			log.Debug("no relays connected; retrying in 30s")
 			select {
 			case <-time.After(30 * time.Second):
-				goto again
 			case <-ctx.Done():
-				return false
+				return update
 			}
 		}
-	}
 
+		update = ar.findRelaysOnce(ctx) || update
+		if ar.numRelays() > 0 {
+			return update
+		}
+	}
+	return update
+}
+
+func (ar *AutoRelay) findRelaysOnce(ctx context.Context) bool {
+	pis, err := ar.discoverRelays(ctx)
+	if err != nil {
+		log.Debugf("error discovering relays: %s", err)
+		return false
+	}
 	log.Debugf("discovered %d relays", len(pis))
-
 	pis = ar.selectRelays(ctx, pis)
-	update := 0
+	log.Debugf("selected %d relays", len(pis))
 
+	update := false
 	for _, pi := range pis {
-		ar.mx.Lock()
-		if _, ok := ar.relays[pi.ID]; ok {
-			ar.mx.Unlock()
-			continue
-		}
-		ar.mx.Unlock()
+		update = ar.tryRelay(ctx, pi) || update
+	}
+	return update
+}
 
-		cctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+func (ar *AutoRelay) numRelays() int {
+	ar.mx.Lock()
+	defer ar.mx.Unlock()
+	return len(ar.relays)
+}
 
-		if len(pi.Addrs) == 0 {
-			pi, err = ar.router.FindPeer(cctx, pi.ID)
-			if err != nil {
-				log.Debugf("error finding relay peer %s: %s", pi.ID, err.Error())
-				cancel()
-				continue
-			}
-		}
+// usingRelay returns if we're currently using the given relay.
+func (ar *AutoRelay) usingRelay(p peer.ID) bool {
+	ar.mx.Lock()
+	defer ar.mx.Unlock()
+	_, ok := ar.relays[p]
+	return ok
+}
 
-		err = ar.host.Connect(cctx, pi)
-		cancel()
+// addRelay adds the given relay to our set of relays.
+// returns true when we add a new relay
+func (ar *AutoRelay) tryRelay(ctx context.Context, pi pstore.PeerInfo) bool {
+	if ar.usingRelay(pi.ID) {
+		return false
+	}
+
+	if !ar.connect(ctx, pi) {
+		return false
+	}
+
+	ar.mx.Lock()
+	defer ar.mx.Unlock()
+
+	// make sure we're still connected.
+	if ar.host.Network().Connectedness(pi.ID) != inet.Connected {
+		return false
+	}
+	ar.relays[pi.ID] = struct{}{}
+
+	return true
+}
+
+func (ar *AutoRelay) connect(ctx context.Context, pi pstore.PeerInfo) bool {
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+
+	if len(pi.Addrs) == 0 {
+		var err error
+		pi, err = ar.router.FindPeer(ctx, pi.ID)
 		if err != nil {
-			log.Debugf("error connecting to relay %s: %s", pi.ID, err.Error())
-			continue
-		}
-
-		log.Debugf("connected to relay %s", pi.ID)
-		ar.mx.Lock()
-		ar.relays[pi.ID] = struct{}{}
-		haveRelays++
-		ar.mx.Unlock()
-
-		// tag the connection as very important
-		ar.host.ConnManager().TagPeer(pi.ID, "relay", 42)
-
-		update++
-		need--
-		if need == 0 {
-			break
-		}
-	}
-
-	if haveRelays == 0 {
-		// we failed to find any relays and we are not connected to any!
-		// wait a little and try again, the discovery query might have returned only dead peers
-		retry++
-		if retry > 5 {
-			log.Debug("no relays connected; giving up")
-			return false
-		}
-
-		log.Debug("no relays connected; retrying in 30s")
-		select {
-		case <-time.After(30 * time.Second):
-			goto again
-		case <-ctx.Done():
+			log.Debugf("error finding relay peer %s: %s", pi.ID, err.Error())
 			return false
 		}
 	}
 
-	return update > 0
+	err := ar.host.Connect(ctx, pi)
+	if err != nil {
+		log.Debugf("error connecting to relay %s: %s", pi.ID, err.Error())
+		return false
+	}
+
+	// tag the connection as very important
+	ar.host.ConnManager().TagPeer(pi.ID, "relay", 42)
+	return true
+}
+
+func (ar *AutoRelay) discoverRelays(ctx context.Context) ([]pstore.PeerInfo, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	return discovery.FindPeers(ctx, ar.discover, RelayRendezvous, 1000)
 }
 
 func (ar *AutoRelay) selectRelays(ctx context.Context, pis []pstore.PeerInfo) []pstore.PeerInfo {
