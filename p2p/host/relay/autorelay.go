@@ -276,13 +276,18 @@ func (ar *AutoRelay) selectRelays(ctx context.Context, pis []pstore.PeerInfo, co
 //   through which we can be dialed.
 func (ar *AutoRelay) relayAddrs(addrs []ma.Multiaddr) []ma.Multiaddr {
 	ar.mx.Lock()
-	defer ar.mx.Unlock()
-
 	if ar.status != autonat.NATStatusPrivate {
+		ar.mx.Unlock()
 		return addrs
 	}
 
-	var raddrs []ma.Multiaddr
+	relays := make([]peer.ID, 0, len(ar.relays))
+	for p := range ar.relays {
+		relays = append(relays, p)
+	}
+	ar.mx.Unlock()
+
+	raddrs := make([]ma.Multiaddr, 0, 4*len(relays)+2)
 
 	// only keep private addrs from the original addr set
 	for _, addr := range addrs {
@@ -292,7 +297,7 @@ func (ar *AutoRelay) relayAddrs(addrs []ma.Multiaddr) []ma.Multiaddr {
 	}
 
 	// add relay specific addrs to the list
-	for p := range ar.relays {
+	for _, p := range relays {
 		addrs := cleanupAddressSet(ar.host.Peerstore().Addrs(p))
 
 		circuit, err := ma.NewMultiaddr(fmt.Sprintf("/p2p/%s/p2p-circuit", p.Pretty()))
