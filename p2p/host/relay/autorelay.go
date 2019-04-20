@@ -41,8 +41,8 @@ type AutoRelay struct {
 	disconnect chan struct{}
 
 	mx     sync.Mutex
-	relays map[peer.ID]pstore.PeerInfo
-	addrs  []ma.Multiaddr
+	relays map[peer.ID]struct{}
+	status autonat.NATStatus
 }
 
 func NewAutoRelay(ctx context.Context, bhost *basic.BasicHost, discover discovery.Discoverer, router routing.PeerRouting) *AutoRelay {
@@ -51,8 +51,9 @@ func NewAutoRelay(ctx context.Context, bhost *basic.BasicHost, discover discover
 		discover:   discover,
 		router:     router,
 		addrsF:     bhost.AddrsFactory,
-		relays:     make(map[peer.ID]pstore.PeerInfo),
+		relays:     make(map[peer.ID]struct{}),
 		disconnect: make(chan struct{}, 1),
+		status:     autonat.NATStatusUnknown,
 	}
 	ar.autonat = autonat.NewAutoNAT(ctx, bhost, ar.baseAddrs)
 	bhost.AddrsFactory = ar.hostAddrs
@@ -61,18 +62,12 @@ func NewAutoRelay(ctx context.Context, bhost *basic.BasicHost, discover discover
 	return ar
 }
 
-func (ar *AutoRelay) hostAddrs(addrs []ma.Multiaddr) []ma.Multiaddr {
-	ar.mx.Lock()
-	defer ar.mx.Unlock()
-	if ar.addrs != nil && ar.autonat.Status() == autonat.NATStatusPrivate {
-		return ar.addrs
-	} else {
-		return ar.addrsF(addrs)
-	}
-}
-
 func (ar *AutoRelay) baseAddrs() []ma.Multiaddr {
 	return ar.addrsF(ar.host.AllAddrs())
+}
+
+func (ar *AutoRelay) hostAddrs(addrs []ma.Multiaddr) []ma.Multiaddr {
+	return ar.relayAddrs(ar.addrsF(addrs))
 }
 
 func (ar *AutoRelay) background(ctx context.Context) {
@@ -89,37 +84,37 @@ func (ar *AutoRelay) background(ctx context.Context) {
 		wait := autonat.AutoNATRefreshInterval
 		switch ar.autonat.Status() {
 		case autonat.NATStatusUnknown:
+			ar.mx.Lock()
+			ar.status = autonat.NATStatusUnknown
+			ar.mx.Unlock()
 			wait = autonat.AutoNATRetryInterval
 
 		case autonat.NATStatusPublic:
-			// invalidate addrs
 			ar.mx.Lock()
-			if ar.addrs != nil {
-				ar.addrs = nil
+			if ar.status != autonat.NATStatusPublic {
 				push = true
 			}
+			ar.status = autonat.NATStatusPublic
 			ar.mx.Unlock()
 
-			// if we had previously announced relay addrs, push our public addrs
-			if push {
-				push = false
-				ar.host.PushIdentify()
-			}
-
 		case autonat.NATStatusPrivate:
-			push = false // clear, findRelays pushes as needed
-			ar.findRelays(ctx)
+			update := ar.findRelays(ctx)
+			ar.mx.Lock()
+			if update || ar.status != autonat.NATStatusPrivate {
+				push = true
+			}
+			ar.status = autonat.NATStatusPrivate
+			ar.mx.Unlock()
+		}
+
+		if push {
+			push = false
+			ar.host.PushIdentify()
 		}
 
 		select {
 		case <-ar.disconnect:
-			// invalidate addrs
-			ar.mx.Lock()
-			if ar.addrs != nil {
-				ar.addrs = nil
-				push = true
-			}
-			ar.mx.Unlock()
+			push = true
 		case <-time.After(wait):
 		case <-ctx.Done():
 			return
@@ -127,30 +122,46 @@ func (ar *AutoRelay) background(ctx context.Context) {
 	}
 }
 
-func (ar *AutoRelay) findRelays(ctx context.Context) {
-	ar.mx.Lock()
-	if len(ar.relays) >= DesiredRelays {
-		ar.mx.Unlock()
-		return
-	}
-	need := DesiredRelays - len(ar.relays)
-	ar.mx.Unlock()
+func (ar *AutoRelay) findRelays(ctx context.Context) bool {
+	retry := 0
 
-	limit := 50
-	if need > limit/2 {
-		limit = 2 * need
+again:
+	ar.mx.Lock()
+	haveRelays := len(ar.relays)
+	ar.mx.Unlock()
+	if haveRelays >= DesiredRelays {
+		return false
 	}
+	need := DesiredRelays - haveRelays
+
+	limit := 1000
 
 	dctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	pis, err := discovery.FindPeers(dctx, ar.discover, RelayRendezvous, limit)
 	cancel()
 	if err != nil {
 		log.Debugf("error discovering relays: %s", err.Error())
-		return
+
+		if haveRelays == 0 {
+			retry++
+			if retry > 5 {
+				log.Debug("no relays connected; giving up")
+				return false
+			}
+
+			log.Debug("no relays connected; retrying in 30s")
+			select {
+			case <-time.After(30 * time.Second):
+				goto again
+			case <-ctx.Done():
+				return false
+			}
+		}
 	}
 
-	pis = ar.selectRelays(pis)
+	log.Debugf("discovered %d relays", len(pis))
 
+	pis = ar.selectRelays(ctx, pis)
 	update := 0
 
 	for _, pi := range pis {
@@ -181,7 +192,8 @@ func (ar *AutoRelay) findRelays(ctx context.Context) {
 
 		log.Debugf("connected to relay %s", pi.ID)
 		ar.mx.Lock()
-		ar.relays[pi.ID] = pi
+		ar.relays[pi.ID] = struct{}{}
+		haveRelays++
 		ar.mx.Unlock()
 
 		// tag the connection as very important
@@ -194,63 +206,80 @@ func (ar *AutoRelay) findRelays(ctx context.Context) {
 		}
 	}
 
-	if update > 0 || ar.addrs == nil {
-		ar.updateAddrs()
+	if haveRelays == 0 {
+		// we failed to find any relays and we are not connected to any!
+		// wait a little and try again, the discovery query might have returned only dead peers
+		retry++
+		if retry > 5 {
+			log.Debug("no relays connected; giving up")
+			return false
+		}
+
+		log.Debug("no relays connected; retrying in 30s")
+		select {
+		case <-time.After(30 * time.Second):
+			goto again
+		case <-ctx.Done():
+			return false
+		}
 	}
+
+	return update > 0
 }
 
-func (ar *AutoRelay) selectRelays(pis []pstore.PeerInfo) []pstore.PeerInfo {
+func (ar *AutoRelay) selectRelays(ctx context.Context, pis []pstore.PeerInfo) []pstore.PeerInfo {
 	// TODO better relay selection strategy; this just selects random relays
 	//      but we should probably use ping latency as the selection metric
+
 	shuffleRelays(pis)
 	return pis
 }
 
-func (ar *AutoRelay) updateAddrs() {
-	ar.doUpdateAddrs()
-	ar.host.PushIdentify()
-}
-
-// This function updates our NATed advertised addrs (ar.addrs)
-// The public addrs are rewritten so that they only retain the public IP part; they
-// become undialable but are useful as a hint to the dialer to determine whether or not
-// to dial private addrs.
-// The non-public addrs are included verbatim so that peers behind the same NAT/firewall
-// can still dial us directly.
-// On top of those, we add the relay-specific addrs for the relays to which we are
-// connected. For each non-private relay addr, we encapsulate the p2p-circuit addr
-// through which we can be dialed.
-func (ar *AutoRelay) doUpdateAddrs() {
+// This function is computes the NATed relay addrs when our status is private:
+// - The public addrs are removed from the address set.
+// - The non-public addrs are included verbatim so that peers behind the same NAT/firewall
+//   can still dial us directly.
+// - On top of those, we add the relay-specific addrs for the relays to which we are
+//   connected. For each non-private relay addr, we encapsulate the p2p-circuit addr
+//   through which we can be dialed.
+func (ar *AutoRelay) relayAddrs(addrs []ma.Multiaddr) []ma.Multiaddr {
 	ar.mx.Lock()
-	defer ar.mx.Unlock()
+	if ar.status != autonat.NATStatusPrivate {
+		ar.mx.Unlock()
+		return addrs
+	}
 
-	addrs := ar.baseAddrs()
-	raddrs := make([]ma.Multiaddr, 0, len(addrs)+len(ar.relays))
+	relays := make([]peer.ID, 0, len(ar.relays))
+	for p := range ar.relays {
+		relays = append(relays, p)
+	}
+	ar.mx.Unlock()
 
-	// remove our public addresses from the list
+	raddrs := make([]ma.Multiaddr, 0, 4*len(relays)+2)
+
+	// only keep private addrs from the original addr set
 	for _, addr := range addrs {
-		if manet.IsPublicAddr(addr) {
-			continue
+		if manet.IsPrivateAddr(addr) {
+			raddrs = append(raddrs, addr)
 		}
-		raddrs = append(raddrs, addr)
 	}
 
 	// add relay specific addrs to the list
-	for _, pi := range ar.relays {
-		circuit, err := ma.NewMultiaddr(fmt.Sprintf("/p2p/%s/p2p-circuit", pi.ID.Pretty()))
+	for _, p := range relays {
+		addrs := cleanupAddressSet(ar.host.Peerstore().Addrs(p))
+
+		circuit, err := ma.NewMultiaddr(fmt.Sprintf("/p2p/%s/p2p-circuit", p.Pretty()))
 		if err != nil {
 			panic(err)
 		}
 
-		for _, addr := range pi.Addrs {
-			if !manet.IsPrivateAddr(addr) {
-				pub := addr.Encapsulate(circuit)
-				raddrs = append(raddrs, pub)
-			}
+		for _, addr := range addrs {
+			pub := addr.Encapsulate(circuit)
+			raddrs = append(raddrs, pub)
 		}
 	}
 
-	ar.addrs = raddrs
+	return raddrs
 }
 
 func shuffleRelays(pis []pstore.PeerInfo) {
@@ -260,6 +289,7 @@ func shuffleRelays(pis []pstore.PeerInfo) {
 	}
 }
 
+// Notifee
 func (ar *AutoRelay) Listen(inet.Network, ma.Multiaddr)      {}
 func (ar *AutoRelay) ListenClose(inet.Network, ma.Multiaddr) {}
 func (ar *AutoRelay) Connected(inet.Network, inet.Conn)      {}

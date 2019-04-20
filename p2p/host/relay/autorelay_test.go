@@ -26,17 +26,17 @@ import (
 
 // test specific parameters
 func init() {
-	autonat.AutoNATIdentifyDelay = 500 * time.Millisecond
-	autonat.AutoNATBootDelay = 1 * time.Second
+	autonat.AutoNATIdentifyDelay = 1 * time.Second
+	autonat.AutoNATBootDelay = 2 * time.Second
 	relay.BootDelay = 1 * time.Second
-	relay.AdvertiseBootDelay = 1 * time.Millisecond
-	manet.Private4 = []*net.IPNet{}
+	relay.AdvertiseBootDelay = 100 * time.Millisecond
 }
 
 // mock routing
 type mockRoutingTable struct {
 	mx        sync.Mutex
 	providers map[string]map[peer.ID]pstore.PeerInfo
+	peers     map[peer.ID]pstore.PeerInfo
 }
 
 type mockRouting struct {
@@ -53,7 +53,13 @@ func newMockRouting(h host.Host, tab *mockRoutingTable) *mockRouting {
 }
 
 func (m *mockRouting) FindPeer(ctx context.Context, p peer.ID) (pstore.PeerInfo, error) {
-	return pstore.PeerInfo{}, routing.ErrNotFound
+	m.tab.mx.Lock()
+	defer m.tab.mx.Unlock()
+	pi, ok := m.tab.peers[p]
+	if !ok {
+		return pstore.PeerInfo{}, routing.ErrNotFound
+	}
+	return pi, nil
 }
 
 func (m *mockRouting) Provide(ctx context.Context, cid cid.Cid, bcast bool) error {
@@ -66,7 +72,12 @@ func (m *mockRouting) Provide(ctx context.Context, cid cid.Cid, bcast bool) erro
 		m.tab.providers[cid.String()] = pmap
 	}
 
-	pmap[m.h.ID()] = pstore.PeerInfo{ID: m.h.ID(), Addrs: m.h.Addrs()}
+	pi := pstore.PeerInfo{ID: m.h.ID(), Addrs: m.h.Addrs()}
+	pmap[m.h.ID()] = pi
+	if m.tab.peers == nil {
+		m.tab.peers = make(map[peer.ID]pstore.PeerInfo)
+	}
+	m.tab.peers[m.h.ID()] = pi
 
 	return nil
 }
@@ -133,7 +144,9 @@ func connect(t *testing.T, a, b host.Host) {
 
 // and the actual test!
 func TestAutoRelay(t *testing.T) {
-	t.Skip("fails 99% of the time")
+	//t.Skip("fails 99% of the time")
+
+	manet.Private4 = []*net.IPNet{}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -165,7 +178,7 @@ func TestAutoRelay(t *testing.T) {
 
 	// connect to AutoNAT and let detection/discovery work its magic
 	connect(t, h1, h3)
-	time.Sleep(3 * time.Second)
+	time.Sleep(5 * time.Second)
 
 	// verify that we now advertise relay addrs (but not unspecific relay addrs)
 	unspecificRelay, err := ma.NewMultiaddr("/p2p-circuit")
