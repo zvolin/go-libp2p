@@ -123,7 +123,6 @@ func (ar *AutoRelay) background(ctx context.Context) {
 }
 
 func (ar *AutoRelay) findRelays(ctx context.Context) bool {
-	ignore := make(map[peer.ID]struct{})
 	retry := 0
 
 again:
@@ -162,7 +161,7 @@ again:
 
 	log.Debugf("discovered %d relays", len(pis))
 
-	pis = ar.selectRelays(ctx, ignore, pis, 25, 50)
+	pis = ar.selectRelays(ctx, pis)
 	update := 0
 
 	for _, pi := range pis {
@@ -173,12 +172,21 @@ again:
 		}
 		ar.mx.Unlock()
 
-		cctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+		cctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+
+		if len(pi.Addrs) == 0 {
+			pi, err = ar.router.FindPeer(cctx, pi.ID)
+			if err != nil {
+				log.Debugf("error finding relay peer %s: %s", pi.ID, err.Error())
+				cancel()
+				continue
+			}
+		}
+
 		err = ar.host.Connect(cctx, pi)
 		cancel()
 		if err != nil {
 			log.Debugf("error connecting to relay %s: %s", pi.ID, err.Error())
-			ignore[pi.ID] = struct{}{}
 			continue
 		}
 
@@ -207,12 +215,6 @@ again:
 			return false
 		}
 
-		// if we failed to select any relays, clear the ignore list as some of the dead
-		// may have come back
-		if len(pis) == 0 {
-			ignore = make(map[peer.ID]struct{})
-		}
-
 		log.Debug("no relays connected; retrying in 30s")
 		select {
 		case <-time.After(30 * time.Second):
@@ -225,75 +227,12 @@ again:
 	return update > 0
 }
 
-func (ar *AutoRelay) selectRelays(ctx context.Context, ignore map[peer.ID]struct{}, pis []pstore.PeerInfo, count, maxq int) []pstore.PeerInfo {
+func (ar *AutoRelay) selectRelays(ctx context.Context, pis []pstore.PeerInfo) []pstore.PeerInfo {
 	// TODO better relay selection strategy; this just selects random relays
 	//      but we should probably use ping latency as the selection metric
 
-	if len(pis) == 0 {
-		return pis
-	}
-
-	if len(pis) < count {
-		count = len(pis)
-	}
-
-	if len(pis) < maxq {
-		maxq = len(pis)
-	}
-
-	// only select relays that can be found by routing
-	type queryResult struct {
-		pi  pstore.PeerInfo
-		err error
-	}
-	result := make([]pstore.PeerInfo, 0, count)
-	resultCh := make(chan queryResult, maxq)
-
-	qctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-
-	// shuffle to randomize the order of queries
 	shuffleRelays(pis)
-	for _, pi := range pis[:maxq] {
-		// check if it is in the ignore list
-		if _, ok := ignore[pi.ID]; ok {
-			maxq-- // decrement this for the result collection loop, we are doing one less query
-			continue
-		}
-
-		// check to see if we already know this peer from a previous query
-		addrs := ar.host.Peerstore().Addrs(pi.ID)
-		if len(addrs) > 0 {
-			resultCh <- queryResult{pi: pstore.PeerInfo{ID: pi.ID, Addrs: addrs}, err: nil}
-			continue
-		}
-
-		// no known addrs, do a query
-		go func(p peer.ID) {
-			pi, err := ar.router.FindPeer(qctx, p)
-			if err != nil {
-				log.Debugf("error finding relay peer %s: %s", p, err.Error())
-			}
-			resultCh <- queryResult{pi: pi, err: err}
-		}(pi.ID)
-	}
-
-	rcount := 0
-	for len(result) < count && rcount < maxq {
-		select {
-		case qr := <-resultCh:
-			rcount++
-			if qr.err == nil {
-				result = append(result, qr.pi)
-			}
-
-		case <-qctx.Done():
-			break
-		}
-	}
-
-	shuffleRelays(result)
-	return result
+	return pis
 }
 
 // This function is computes the NATed relay addrs when our status is private:
