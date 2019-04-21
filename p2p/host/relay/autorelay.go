@@ -159,6 +159,9 @@ func (ar *AutoRelay) findRelaysOnce(ctx context.Context) bool {
 	update := false
 	for _, pi := range pis {
 		update = ar.tryRelay(ctx, pi) || update
+		if ar.numRelays() >= DesiredRelays {
+			break
+		}
 	}
 	return update
 }
