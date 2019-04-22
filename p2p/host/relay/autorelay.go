@@ -43,6 +43,9 @@ type AutoRelay struct {
 	mx     sync.Mutex
 	relays map[peer.ID]struct{}
 	status autonat.NATStatus
+
+	cachedAddrs       []ma.Multiaddr
+	cachedAddrsExpiry time.Time
 }
 
 func NewAutoRelay(ctx context.Context, bhost *basic.BasicHost, discover discovery.Discoverer, router routing.PeerRouting) *AutoRelay {
@@ -108,6 +111,9 @@ func (ar *AutoRelay) background(ctx context.Context) {
 		}
 
 		if push {
+			ar.mx.Lock()
+			ar.cachedAddrs = nil
+			ar.mx.Unlock()
 			push = false
 			ar.host.PushIdentify()
 		}
@@ -250,16 +256,20 @@ func (ar *AutoRelay) selectRelays(ctx context.Context, pis []pstore.PeerInfo) []
 //   through which we can be dialed.
 func (ar *AutoRelay) relayAddrs(addrs []ma.Multiaddr) []ma.Multiaddr {
 	ar.mx.Lock()
+	defer ar.mx.Unlock()
+
 	if ar.status != autonat.NATStatusPrivate {
-		ar.mx.Unlock()
 		return addrs
+	}
+
+	if ar.cachedAddrs != nil && time.Now().Before(ar.cachedAddrsExpiry) {
+		return ar.cachedAddrs
 	}
 
 	relays := make([]peer.ID, 0, len(ar.relays))
 	for p := range ar.relays {
 		relays = append(relays, p)
 	}
-	ar.mx.Unlock()
 
 	raddrs := make([]ma.Multiaddr, 0, 4*len(relays)+2)
 
@@ -284,6 +294,9 @@ func (ar *AutoRelay) relayAddrs(addrs []ma.Multiaddr) []ma.Multiaddr {
 			raddrs = append(raddrs, pub)
 		}
 	}
+
+	ar.cachedAddrs = raddrs
+	ar.cachedAddrsExpiry = time.Now().Add(30 * time.Second)
 
 	return raddrs
 }
