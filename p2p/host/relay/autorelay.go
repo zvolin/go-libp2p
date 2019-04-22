@@ -266,12 +266,7 @@ func (ar *AutoRelay) relayAddrs(addrs []ma.Multiaddr) []ma.Multiaddr {
 		return ar.cachedAddrs
 	}
 
-	relays := make([]peer.ID, 0, len(ar.relays))
-	for p := range ar.relays {
-		relays = append(relays, p)
-	}
-
-	raddrs := make([]ma.Multiaddr, 0, 4*len(relays)+2)
+	raddrs := make([]ma.Multiaddr, 0, 4*len(ar.relays)+4)
 
 	// only keep private addrs from the original addr set
 	for _, addr := range addrs {
@@ -281,7 +276,7 @@ func (ar *AutoRelay) relayAddrs(addrs []ma.Multiaddr) []ma.Multiaddr {
 	}
 
 	// add relay specific addrs to the list
-	for _, p := range relays {
+	for p := range ar.relays {
 		addrs := cleanupAddressSet(ar.host.Peerstore().Addrs(p))
 
 		circuit, err := ma.NewMultiaddr(fmt.Sprintf("/p2p/%s/p2p-circuit", p.Pretty()))
