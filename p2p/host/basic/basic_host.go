@@ -115,12 +115,16 @@ type HostOpts struct {
 
 // NewHost constructs a new *BasicHost and activates it by attaching its stream and connection handlers to the given inet.Network.
 func NewHost(ctx context.Context, net inet.Network, opts *HostOpts) (*BasicHost, error) {
+	bgctx, cancel := context.WithCancel(ctx)
+
 	h := &BasicHost{
 		network:      net,
 		mux:          msmux.NewMultistreamMuxer(),
 		negtimeout:   DefaultNegotiationTimeout,
 		AddrsFactory: DefaultAddrsFactory,
 		maResolver:   madns.DefaultResolver,
+		ctx:          bgctx,
+		cancel:       cancel,
 	}
 
 	h.proc = goprocessctx.WithContextAndTeardown(ctx, func() error {
@@ -138,7 +142,7 @@ func NewHost(ctx context.Context, net inet.Network, opts *HostOpts) (*BasicHost,
 		h.ids = opts.IdentifyService
 	} else {
 		// we can't set this as a default above because it depends on the *BasicHost.
-		h.ids = identify.NewIDService(ctx, h)
+		h.ids = identify.NewIDService(bgctx, h)
 	}
 
 	if uint64(opts.NegotiationTimeout) != 0 {
@@ -170,10 +174,6 @@ func NewHost(ctx context.Context, net inet.Network, opts *HostOpts) (*BasicHost,
 
 	net.SetConnHandler(h.newConnHandler)
 	net.SetStreamHandler(h.newStreamHandler)
-
-	bgctx, cancel := context.WithCancel(ctx)
-	h.ctx = bgctx
-	h.cancel = cancel
 
 	return h, nil
 }
