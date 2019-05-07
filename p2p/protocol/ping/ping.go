@@ -99,29 +99,24 @@ func Ping(ctx context.Context, h host.Host, p peer.ID) <-chan Result {
 		defer close(out)
 		defer cancel()
 
-		for {
+		for ctx.Err() == nil {
+			var res Result
+			res.RTT, res.Error = ping(s)
+
+			// canceled, ignore everything.
+			if ctx.Err() != nil {
+				return
+			}
+
+			// No error, record the RTT.
+			if res.Error == nil {
+				h.Peerstore().RecordLatency(p, res.RTT)
+			}
+
 			select {
+			case out <- res:
 			case <-ctx.Done():
 				return
-			default:
-				var res Result
-				res.RTT, res.Error = ping(s)
-
-				// canceled, ignore everything.
-				if ctx.Err() != nil {
-					return
-				}
-
-				// No error, record the RTT.
-				if res.Error == nil {
-					h.Peerstore().RecordLatency(p, res.RTT)
-				}
-
-				select {
-				case out <- res:
-				case <-ctx.Done():
-					return
-				}
 			}
 		}
 	}()
