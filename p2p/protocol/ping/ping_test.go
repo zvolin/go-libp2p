@@ -37,15 +37,15 @@ func TestPing(t *testing.T) {
 func testPing(t *testing.T, ps *ping.PingService, p peer.ID) {
 	pctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	ts, err := ps.Ping(pctx, p)
-	if err != nil {
-		t.Fatal(err)
-	}
+	ts := ps.Ping(pctx, p)
 
 	for i := 0; i < 5; i++ {
 		select {
-		case took := <-ts:
-			t.Log("ping took: ", took)
+		case res := <-ts:
+			if res.Error != nil {
+				t.Fatal(res.Error)
+			}
+			t.Log("ping took: ", res.RTT)
 		case <-time.After(time.Second * 4):
 			t.Fatal("failed to receive ping")
 		}
