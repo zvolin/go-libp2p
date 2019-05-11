@@ -32,6 +32,7 @@ require (
 	github.com/libp2p/go-libp2p-transport v0.0.4
 	github.com/libp2p/go-libp2p-transport-upgrader v0.0.2
 	github.com/libp2p/go-maddr-filter v0.0.1
+	github.com/libp2p/go-mplex v0.0.2 // indirect
 	github.com/libp2p/go-stream-muxer v0.0.1
 	github.com/libp2p/go-tcp-transport v0.0.2
 	github.com/libp2p/go-testutil v0.0.1
