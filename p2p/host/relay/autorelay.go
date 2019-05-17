@@ -236,7 +236,7 @@ func (ar *AutoRelay) connect(ctx context.Context, pi pstore.PeerInfo) bool {
 func (ar *AutoRelay) discoverRelays(ctx context.Context) ([]pstore.PeerInfo, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	return discovery.FindPeers(ctx, ar.discover, RelayRendezvous, 1000)
+	return discovery.FindPeers(ctx, ar.discover, RelayRendezvous, discovery.Limit(1000))
 }
 
 func (ar *AutoRelay) selectRelays(ctx context.Context, pis []pstore.PeerInfo) []pstore.PeerInfo {
