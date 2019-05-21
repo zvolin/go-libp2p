@@ -16,7 +16,7 @@ require (
 	github.com/libp2p/go-libp2p-crypto v0.0.2
 	github.com/libp2p/go-libp2p-discovery v0.0.3
 	github.com/libp2p/go-libp2p-host v0.0.3
-	github.com/libp2p/go-libp2p-interface-connmgr v0.0.4
+	github.com/libp2p/go-libp2p-interface-connmgr v0.0.5
 	github.com/libp2p/go-libp2p-interface-pnet v0.0.1
 	github.com/libp2p/go-libp2p-loggables v0.0.1
 	github.com/libp2p/go-libp2p-metrics v0.0.1
