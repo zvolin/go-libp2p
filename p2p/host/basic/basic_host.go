@@ -719,6 +719,7 @@ func (h *BasicHost) AllAddrs() []ma.Multiaddr {
 // Close shuts down the Host's services (network, etc).
 func (h *BasicHost) Close() error {
 	h.cancel()
+	h.cmgr.Close()
 	return h.proc.Close()
 }
 
