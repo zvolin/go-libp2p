@@ -253,7 +253,11 @@ func TestStBackpressureStreamWrite(t *testing.T) {
 			}
 
 			log.Debugf("sender wrote %d bytes", n)
-			senderWrote <- n
+			select {
+			case senderWrote <- n:
+			default:
+				t.Error("sender wrote channel full")
+			}
 		}
 	}
 
@@ -314,9 +318,10 @@ func TestStBackpressureStreamWrite(t *testing.T) {
 	roundsTotal := 0
 	for roundsTotal < (2 << 20) {
 		// let the sender fill its buffers, it will stop sending.
-		<-time.After(400 * time.Millisecond)
+		<-time.After(time.Second)
 		b, _ := writeStats()
 		testSenderWrote(0)
+		<-time.After(100 * time.Millisecond)
 		testSenderWrote(0)
 
 		// drain it all, wait again
@@ -360,9 +365,10 @@ func TestStBackpressureStreamWrite(t *testing.T) {
 	// and a couple rounds more for good measure ;)
 	for i := 0; i < 3; i++ {
 		// let the sender fill its buffers, it will stop sending.
-		<-time.After(400 * time.Millisecond)
+		<-time.After(time.Second)
 		b, _ := writeStats()
 		testSenderWrote(0)
+		<-time.After(100 * time.Millisecond)
 		testSenderWrote(0)
 
 		// drain it all, wait again

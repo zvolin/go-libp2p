@@ -6,13 +6,13 @@ import (
 	"crypto/rand"
 
 	crypto "github.com/libp2p/go-libp2p-crypto"
+	mplex "github.com/libp2p/go-libp2p-mplex"
 	pstoremem "github.com/libp2p/go-libp2p-peerstore/pstoremem"
 	secio "github.com/libp2p/go-libp2p-secio"
+	yamux "github.com/libp2p/go-libp2p-yamux"
 	tcp "github.com/libp2p/go-tcp-transport"
 	ws "github.com/libp2p/go-ws-transport"
 	multiaddr "github.com/multiformats/go-multiaddr"
-	mplex "github.com/whyrusleeping/go-smux-multiplex"
-	yamux "github.com/whyrusleeping/go-smux-yamux"
 )
 
 // DefaultSecurity is the default security option.
