@@ -211,6 +211,7 @@ func TestStBackpressureStreamWrite(t *testing.T) {
 	// writeStats lets us listen to all the writes and return
 	// how many happened and how much was written
 	writeStats := func() (int, int) {
+		t.Helper()
 		writes := 0
 		bytes := 0
 		for {
@@ -259,6 +260,7 @@ func TestStBackpressureStreamWrite(t *testing.T) {
 	// receive a number of bytes from a stream.
 	// returns the number of bytes written.
 	receive := func(s inet.Stream, expect int) {
+		t.Helper()
 		log.Debugf("receiver to read %d bytes", expect)
 		rbuf := make([]byte, expect)
 		n, err := io.ReadFull(s, rbuf)
@@ -294,6 +296,7 @@ func TestStBackpressureStreamWrite(t *testing.T) {
 
 	// let's make sure r/w works.
 	testSenderWrote := func(bytesE int) {
+		t.Helper()
 		bytesA, writesA := writeStats()
 		if bytesA != bytesE {
 			t.Errorf("numbers failed: %d =?= %d bytes, via %d writes", bytesA, bytesE, writesA)
@@ -311,7 +314,7 @@ func TestStBackpressureStreamWrite(t *testing.T) {
 	roundsTotal := 0
 	for roundsTotal < (2 << 20) {
 		// let the sender fill its buffers, it will stop sending.
-		<-time.After(300 * time.Millisecond)
+		<-time.After(400 * time.Millisecond)
 		b, _ := writeStats()
 		testSenderWrote(0)
 		testSenderWrote(0)
@@ -357,7 +360,7 @@ func TestStBackpressureStreamWrite(t *testing.T) {
 	// and a couple rounds more for good measure ;)
 	for i := 0; i < 3; i++ {
 		// let the sender fill its buffers, it will stop sending.
-		<-time.After(300 * time.Millisecond)
+		<-time.After(400 * time.Millisecond)
 		b, _ := writeStats()
 		testSenderWrote(0)
 		testSenderWrote(0)
