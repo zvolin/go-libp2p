@@ -12,7 +12,7 @@ require (
 	github.com/libp2p/go-conn-security-multistream v0.0.2
 	github.com/libp2p/go-libp2p-autonat v0.0.6
 	github.com/libp2p/go-libp2p-blankhost v0.0.1
-	github.com/libp2p/go-libp2p-circuit v0.0.7
+	github.com/libp2p/go-libp2p-circuit v0.0.8
 	github.com/libp2p/go-libp2p-crypto v0.0.2
 	github.com/libp2p/go-libp2p-discovery v0.0.4
 	github.com/libp2p/go-libp2p-host v0.0.3
