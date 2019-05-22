@@ -171,8 +171,8 @@ github.com/libp2p/go-tcp-transport v0.0.4 h1:2iRu994wCT/iEz62F+c60FUoSkijNEQ0q2I
 github.com/libp2p/go-tcp-transport v0.0.4/go.mod h1:+E8HvC8ezEVOxIo3V5vCK9l1y/19K427vCzQ+xHKH/o=
 github.com/libp2p/go-testutil v0.0.1 h1:Xg+O0G2HIMfHqBOBDcMS1iSZJ3GEcId4qOxCQvsGZHk=
 github.com/libp2p/go-testutil v0.0.1/go.mod h1:iAcJc/DKJQanJ5ws2V+u5ywdL2n12X1WbbEG+Jjy69I=
-github.com/libp2p/go-ws-transport v0.0.3 h1:29hkvsmdOhniNuJ5AzFICfY5SA5nvDO9Xi3FtcGqO+4=
-github.com/libp2p/go-ws-transport v0.0.3/go.mod h1:iU0kzfMcO4tBVIk3z+7srp1YG/RFLWTSuO4enpivw8g=
+github.com/libp2p/go-ws-transport v0.0.4 h1:3wt9ed0gIUrne627XHvPMTwG4/AUpsLDy4TGQi2EyQ0=
+github.com/libp2p/go-ws-transport v0.0.4/go.mod h1:X9wfEcm2LAJYMox9x2VHAMHAZZSQMFC9mIa/UF6OuZk=
 github.com/libp2p/go-yamux v1.2.1 h1:VumHkMhJ2iFk1lzAeoDRgekiZSylGc6NnAEihVdBCiw=
 github.com/libp2p/go-yamux v1.2.1/go.mod h1:FGTiPvoV/3DVdgWpX+tM0OW3tsM+W5bSE3gZwqQTcow=
 github.com/mattn/go-colorable v0.1.1 h1:G1f5SKeVxmagw/IyvzvtZE4Gybcc4Tr1tf7I8z0XgOg=
