@@ -20,6 +20,7 @@ require (
 	github.com/libp2p/go-libp2p-interface-pnet v0.0.1
 	github.com/libp2p/go-libp2p-loggables v0.0.1
 	github.com/libp2p/go-libp2p-metrics v0.0.1
+	github.com/libp2p/go-libp2p-mplex v0.1.1
 	github.com/libp2p/go-libp2p-nat v0.0.4
 	github.com/libp2p/go-libp2p-net v0.0.2
 	github.com/libp2p/go-libp2p-netutil v0.0.1
@@ -28,12 +29,14 @@ require (
 	github.com/libp2p/go-libp2p-protocol v0.0.1
 	github.com/libp2p/go-libp2p-routing v0.0.1
 	github.com/libp2p/go-libp2p-secio v0.0.3
-	github.com/libp2p/go-libp2p-swarm v0.0.5
-	github.com/libp2p/go-libp2p-transport v0.0.4
-	github.com/libp2p/go-libp2p-transport-upgrader v0.0.3
+	github.com/libp2p/go-libp2p-swarm v0.0.6
+	github.com/libp2p/go-libp2p-transport v0.0.5
+	github.com/libp2p/go-libp2p-transport-upgrader v0.0.4
+	github.com/libp2p/go-libp2p-yamux v0.1.2
 	github.com/libp2p/go-maddr-filter v0.0.4
 	github.com/libp2p/go-stream-muxer v0.0.1
-	github.com/libp2p/go-tcp-transport v0.0.3
+	github.com/libp2p/go-stream-muxer-multistream v0.1.1
+	github.com/libp2p/go-tcp-transport v0.0.4
 	github.com/libp2p/go-testutil v0.0.1
 	github.com/libp2p/go-ws-transport v0.0.3
 	github.com/miekg/dns v1.1.12 // indirect
@@ -41,8 +44,5 @@ require (
 	github.com/multiformats/go-multiaddr-dns v0.0.2
 	github.com/multiformats/go-multiaddr-net v0.0.1
 	github.com/multiformats/go-multistream v0.0.4
-	github.com/whyrusleeping/go-smux-multiplex v0.1.0
-	github.com/whyrusleeping/go-smux-multistream v0.1.0
-	github.com/whyrusleeping/go-smux-yamux v0.1.1
 	github.com/whyrusleeping/mdns v0.0.0-20180901202407-ef14215e6b30
 )
