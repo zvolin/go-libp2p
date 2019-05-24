@@ -97,8 +97,8 @@ github.com/libp2p/go-libp2p-circuit v0.0.8/go.mod h1:DFCgZ2DklFGTUIZIhSvbbWXTErU
 github.com/libp2p/go-libp2p-crypto v0.0.1/go.mod h1:yJkNyDmO341d5wwXxDUGO0LykUVT72ImHNUqh5D/dBE=
 github.com/libp2p/go-libp2p-crypto v0.0.2 h1:TTdJ4y6Uoa6NxQcuEaVkQfFRcQeCE2ReDk8Ok4I0Fyw=
 github.com/libp2p/go-libp2p-crypto v0.0.2/go.mod h1:eETI5OUfBnvARGOHrJz2eWNyTUxEGZnBxMcbUjfIj4I=
-github.com/libp2p/go-libp2p-discovery v0.0.4 h1:/kZwOVmcUHvB94zegSJYnUA9EvT1g8APoQJb5FHyT1c=
-github.com/libp2p/go-libp2p-discovery v0.0.4/go.mod h1:ReQGiv7QTtza8FUWzewfuMmRDVOQVp+lxHlJJA8YQCM=
+github.com/libp2p/go-libp2p-discovery v0.0.5 h1:VpPd7u2odnrrRcW+gVdjLDcXsc35k0Tjxqgbzlre6Uo=
+github.com/libp2p/go-libp2p-discovery v0.0.5/go.mod h1:YtF20GUxjgoKZ4zmXj8j3Nb2TUSBHFlOCetzYdbZL5I=
 github.com/libp2p/go-libp2p-host v0.0.1/go.mod h1:qWd+H1yuU0m5CwzAkvbSjqKairayEHdR5MMl7Cwa7Go=
 github.com/libp2p/go-libp2p-host v0.0.3 h1:BB/1Z+4X0rjKP5lbQTmjEjLbDVbrcmLOlA6QDsN5/j4=
 github.com/libp2p/go-libp2p-host v0.0.3/go.mod h1:Y/qPyA6C8j2coYyos1dfRm0I8+nvd4TGrDGt4tA7JR8=
