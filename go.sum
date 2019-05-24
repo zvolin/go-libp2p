@@ -138,8 +138,6 @@ github.com/libp2p/go-libp2p-swarm v0.0.6/go.mod h1:s5GZvzg9xXe8sbeESuFpjt8CJPTCa
 github.com/libp2p/go-libp2p-transport v0.0.1/go.mod h1:UzbUs9X+PHOSw7S3ZmeOxfnwaQY5vGDzZmKPod3N3tk=
 github.com/libp2p/go-libp2p-transport v0.0.5 h1:pV6+UlRxyDpASSGD+60vMvdifSCby6JkJDfi+yUMHac=
 github.com/libp2p/go-libp2p-transport v0.0.5/go.mod h1:StoY3sx6IqsP6XKoabsPnHCwqKXWUMWU7Rfcsubee/A=
-github.com/libp2p/go-libp2p-transport-upgrader v0.0.3 h1:ZcXhGEMnv8f+ycqVl/9mnIe6uhUYy0aj/vEYQUoG7xU=
-github.com/libp2p/go-libp2p-transport-upgrader v0.0.3/go.mod h1:Ng1HzfMIopyYscMHNFmJqiMMcpgDlj0t+NyjVWW89ws=
 github.com/libp2p/go-libp2p-transport-upgrader v0.0.4 h1:uGMOd14BL1oFlfb/cGfOxPjiTKBhzWV4aMjjoCF1Z1o=
 github.com/libp2p/go-libp2p-transport-upgrader v0.0.4/go.mod h1:RGq+tupk+oj7PzL2kn/m1w6YXxcIAYJYeI90h6BGgUc=
 github.com/libp2p/go-libp2p-yamux v0.1.2 h1:DgGItlrWi0j9y1OhRMC8qqL4zj2MEPWeKJTHb55R16Q=
@@ -165,8 +163,8 @@ github.com/libp2p/go-tcp-transport v0.0.4 h1:2iRu994wCT/iEz62F+c60FUoSkijNEQ0q2I
 github.com/libp2p/go-tcp-transport v0.0.4/go.mod h1:+E8HvC8ezEVOxIo3V5vCK9l1y/19K427vCzQ+xHKH/o=
 github.com/libp2p/go-testutil v0.0.1 h1:Xg+O0G2HIMfHqBOBDcMS1iSZJ3GEcId4qOxCQvsGZHk=
 github.com/libp2p/go-testutil v0.0.1/go.mod h1:iAcJc/DKJQanJ5ws2V+u5ywdL2n12X1WbbEG+Jjy69I=
-github.com/libp2p/go-ws-transport v0.0.4 h1:3wt9ed0gIUrne627XHvPMTwG4/AUpsLDy4TGQi2EyQ0=
-github.com/libp2p/go-ws-transport v0.0.4/go.mod h1:X9wfEcm2LAJYMox9x2VHAMHAZZSQMFC9mIa/UF6OuZk=
+github.com/libp2p/go-ws-transport v0.0.5 h1:IHeR0X9nvE5hOdOD8X/FDQ6jIapdohToQseItwvpixU=
+github.com/libp2p/go-ws-transport v0.0.5/go.mod h1:Qbl4BxPfXXhhd/o0wcrgoaItHqA9tnZjoFZnxykuaXU=
 github.com/libp2p/go-yamux v1.2.1 h1:VumHkMhJ2iFk1lzAeoDRgekiZSylGc6NnAEihVdBCiw=
 github.com/libp2p/go-yamux v1.2.1/go.mod h1:FGTiPvoV/3DVdgWpX+tM0OW3tsM+W5bSE3gZwqQTcow=
 github.com/mattn/go-colorable v0.1.1 h1:G1f5SKeVxmagw/IyvzvtZE4Gybcc4Tr1tf7I8z0XgOg=
@@ -227,8 +225,6 @@ github.com/whyrusleeping/go-logging v0.0.0-20170515211332-0457bb6b88fc h1:9lDbC6
 github.com/whyrusleeping/go-logging v0.0.0-20170515211332-0457bb6b88fc/go.mod h1:bopw91TMyo8J3tvftk8xmU2kPmlrt4nScJQZU2hE5EM=
 github.com/whyrusleeping/go-notifier v0.0.0-20170827234753-097c5d47330f h1:M/lL30eFZTKnomXY6huvM6G0+gVquFNf6mxghaWlFUg=
 github.com/whyrusleeping/go-notifier v0.0.0-20170827234753-097c5d47330f/go.mod h1:cZNvX9cFybI01GriPRMXDtczuvUhgbcYr9iCGaNlRv8=
-github.com/whyrusleeping/go-smux-multiplex v0.1.0 h1:23qGy3Z16UeiMh/BTiRe6pRm7MlvF5EM2873uFTQbro=
-github.com/whyrusleeping/go-smux-multiplex v0.1.0/go.mod h1:OXL5hggHNZSsadXDlBJDD4eD3IQYEB3Yu6xpovd6pPw=
 github.com/whyrusleeping/mafmt v1.2.8 h1:TCghSl5kkwEE0j+sU/gudyhVMRlpBin8fMBBHg59EbA=
 github.com/whyrusleeping/mafmt v1.2.8/go.mod h1:faQJFPbLSxzD9xpA02ttW/tS9vZykNvXwGvqIpk20FA=
 github.com/whyrusleeping/mdns v0.0.0-20180901202407-ef14215e6b30 h1:nMCC9Pwz1pxfC1Y6mYncdk+kq8d5aLx0Q+/gyZGE44M=
