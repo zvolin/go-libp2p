@@ -11,10 +11,10 @@ import (
 
 	u "github.com/ipfs/go-ipfs-util"
 	logging "github.com/ipfs/go-log"
-	host "github.com/libp2p/go-libp2p-host"
-	inet "github.com/libp2p/go-libp2p-net"
-	peer "github.com/libp2p/go-libp2p-peer"
-	protocol "github.com/libp2p/go-libp2p-protocol"
+	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
+	protocol "github.com/libp2p/go-libp2p-core/protocol"
 	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
 )
 
@@ -59,7 +59,7 @@ a problem.
 	senderDone := make(chan struct{})
 
 	// the receiver handles requests with some rate limiting
-	receiver := func(s inet.Stream) {
+	receiver := func(s network.Stream) {
 		log.Debug("receiver received a stream")
 
 		<-receiverRatelimit // acquire
@@ -76,7 +76,7 @@ a problem.
 
 	// the sender opens streams as fast as possible
 	sender := func(host host.Host, remote peer.ID) {
-		var s inet.Stream
+		var s network.Stream
 		var err error
 		defer func() {
 			t.Error(err)
@@ -230,7 +230,7 @@ func TestStBackpressureStreamWrite(t *testing.T) {
 	// completion of every write. This makes it possible to see how
 	// fast it's actually writing. We pair this with a receiver
 	// that waits for a signal to read.
-	sender := func(s inet.Stream) {
+	sender := func(s network.Stream) {
 		defer func() {
 			s.Close()
 			senderDone <- struct{}{}
@@ -263,7 +263,7 @@ func TestStBackpressureStreamWrite(t *testing.T) {
 
 	// receive a number of bytes from a stream.
 	// returns the number of bytes written.
-	receive := func(s inet.Stream, expect int) {
+	receive := func(s network.Stream, expect int) {
 		t.Helper()
 		log.Debugf("receiver to read %d bytes", expect)
 		rbuf := make([]byte, expect)

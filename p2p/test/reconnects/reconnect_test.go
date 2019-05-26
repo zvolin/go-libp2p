@@ -12,15 +12,15 @@ import (
 
 	u "github.com/ipfs/go-ipfs-util"
 	logging "github.com/ipfs/go-log"
-	host "github.com/libp2p/go-libp2p-host"
-	inet "github.com/libp2p/go-libp2p-net"
-	protocol "github.com/libp2p/go-libp2p-protocol"
+	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/network"
+	protocol "github.com/libp2p/go-libp2p-core/protocol"
 	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
 )
 
 var log = logging.Logger("reconnect")
 
-func EchoStreamHandler(stream inet.Stream) {
+func EchoStreamHandler(stream network.Stream) {
 	c := stream.Conn()
 	log.Debugf("%s echoing %s", c.LocalPeer(), c.RemotePeer())
 	go func() {
@@ -51,9 +51,9 @@ func newSendChans() sendChans {
 	}
 }
 
-func newSender() (chan sendChans, func(s inet.Stream)) {
+func newSender() (chan sendChans, func(s network.Stream)) {
 	scc := make(chan sendChans)
-	return scc, func(s inet.Stream) {
+	return scc, func(s network.Stream) {
 		sc := newSendChans()
 		scc <- sc
 

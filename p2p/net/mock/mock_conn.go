@@ -5,9 +5,9 @@ import (
 	"sync"
 
 	process "github.com/jbenet/goprocess"
-	ic "github.com/libp2p/go-libp2p-crypto"
-	inet "github.com/libp2p/go-libp2p-net"
-	peer "github.com/libp2p/go-libp2p-peer"
+	ic "github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -29,16 +29,16 @@ type conn struct {
 	rconn   *conn // counterpart
 	streams list.List
 	proc    process.Process
-	stat    inet.Stat
+	stat    network.Stat
 
 	sync.RWMutex
 }
 
-func newConn(ln, rn *peernet, l *link, dir inet.Direction) *conn {
+func newConn(ln, rn *peernet, l *link, dir network.Direction) *conn {
 	c := &conn{net: ln, link: l}
 	c.local = ln.peer
 	c.remote = rn.peer
-	c.stat = inet.Stat{Direction: dir}
+	c.stat = network.Stat{Direction: dir}
 
 	c.localAddr = ln.ps.Addrs(ln.peer)[0]
 	c.remoteAddr = rn.ps.Addrs(rn.peer)[0]
@@ -59,7 +59,7 @@ func (c *conn) teardown() error {
 		s.Reset()
 	}
 	c.net.removeConn(c)
-	c.net.notifyAll(func(n inet.Notifiee) {
+	c.net.notifyAll(func(n network.Notifiee) {
 		n.Disconnected(c.net, c)
 	})
 	return nil
@@ -83,11 +83,11 @@ func (c *conn) removeStream(s *stream) {
 	}
 }
 
-func (c *conn) allStreams() []inet.Stream {
+func (c *conn) allStreams() []network.Stream {
 	c.RLock()
 	defer c.RUnlock()
 
-	strs := make([]inet.Stream, 0, c.streams.Len())
+	strs := make([]network.Stream, 0, c.streams.Len())
 	for e := c.streams.Front(); e != nil; e = e.Next() {
 		s := e.Value.(*stream)
 		strs = append(strs, s)
@@ -98,7 +98,7 @@ func (c *conn) allStreams() []inet.Stream {
 func (c *conn) remoteOpenedStream(s *stream) {
 	c.addStream(s)
 	c.net.handleNewStream(s)
-	c.net.notifyAll(func(n inet.Notifiee) {
+	c.net.notifyAll(func(n network.Notifiee) {
 		n.OpenedStream(c.net, s)
 	})
 }
@@ -106,21 +106,21 @@ func (c *conn) remoteOpenedStream(s *stream) {
 func (c *conn) openStream() *stream {
 	sl, sr := c.link.newStreamPair()
 	c.addStream(sl)
-	c.net.notifyAll(func(n inet.Notifiee) {
+	c.net.notifyAll(func(n network.Notifiee) {
 		n.OpenedStream(c.net, sl)
 	})
 	c.rconn.remoteOpenedStream(sr)
 	return sl
 }
 
-func (c *conn) NewStream() (inet.Stream, error) {
+func (c *conn) NewStream() (network.Stream, error) {
 	log.Debugf("Conn.NewStreamWithProtocol: %s --> %s", c.local, c.remote)
 
 	s := c.openStream()
 	return s, nil
 }
 
-func (c *conn) GetStreams() []inet.Stream {
+func (c *conn) GetStreams() []network.Stream {
 	return c.allStreams()
 }
 
@@ -155,6 +155,6 @@ func (c *conn) RemotePublicKey() ic.PubKey {
 }
 
 // Stat returns metadata about the connection
-func (c *conn) Stat() inet.Stat {
+func (c *conn) Stat() network.Stat {
 	return c.stat
 }

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	detectrace "github.com/ipfs/go-detect-race"
-	net "github.com/libp2p/go-libp2p-net"
+	net "github.com/libp2p/go-libp2p-core/network"
 	ma "github.com/multiformats/go-multiaddr"
 )
 

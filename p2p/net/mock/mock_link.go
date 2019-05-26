@@ -6,12 +6,12 @@ import (
 	"sync"
 	"time"
 
-	inet "github.com/libp2p/go-libp2p-net"
-	peer "github.com/libp2p/go-libp2p-peer"
+	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 // link implements mocknet.Link
-// and, for simplicity, inet.Conn
+// and, for simplicity, network.Conn
 type link struct {
 	mock        *mocknet
 	nets        []*peernet
@@ -33,8 +33,8 @@ func (l *link) newConnPair(dialer *peernet) (*conn, *conn) {
 	l.RLock()
 	defer l.RUnlock()
 
-	c1 := newConn(l.nets[0], l.nets[1], l, inet.DirOutbound)
-	c2 := newConn(l.nets[1], l.nets[0], l, inet.DirInbound)
+	c1 := newConn(l.nets[0], l.nets[1], l, network.DirOutbound)
+	c2 := newConn(l.nets[1], l.nets[0], l, network.DirInbound)
 	c1.rconn = c2
 	c2.rconn = c1
 
@@ -48,16 +48,16 @@ func (l *link) newStreamPair() (*stream, *stream) {
 	ra, wb := io.Pipe()
 	rb, wa := io.Pipe()
 
-	sa := NewStream(wa, ra, inet.DirOutbound)
-	sb := NewStream(wb, rb, inet.DirInbound)
+	sa := NewStream(wa, ra, network.DirOutbound)
+	sb := NewStream(wb, rb, network.DirInbound)
 	return sa, sb
 }
 
-func (l *link) Networks() []inet.Network {
+func (l *link) Networks() []network.Network {
 	l.RLock()
 	defer l.RUnlock()
 
-	cp := make([]inet.Network, len(l.nets))
+	cp := make([]network.Network, len(l.nets))
 	for i, n := range l.nets {
 		cp[i] = n
 	}

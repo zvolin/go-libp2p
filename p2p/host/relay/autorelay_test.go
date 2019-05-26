@@ -16,11 +16,10 @@ import (
 	autonat "github.com/libp2p/go-libp2p-autonat"
 	autonatpb "github.com/libp2p/go-libp2p-autonat/pb"
 	circuit "github.com/libp2p/go-libp2p-circuit"
-	host "github.com/libp2p/go-libp2p-host"
-	inet "github.com/libp2p/go-libp2p-net"
-	peer "github.com/libp2p/go-libp2p-peer"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
-	routing "github.com/libp2p/go-libp2p-routing"
+	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/routing"
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr-net"
 )
@@ -36,8 +35,8 @@ func init() {
 // mock routing
 type mockRoutingTable struct {
 	mx        sync.Mutex
-	providers map[string]map[peer.ID]pstore.PeerInfo
-	peers     map[peer.ID]pstore.PeerInfo
+	providers map[string]map[peer.ID]peer.AddrInfo
+	peers     map[peer.ID]peer.AddrInfo
 }
 
 type mockRouting struct {
@@ -46,19 +45,19 @@ type mockRouting struct {
 }
 
 func newMockRoutingTable() *mockRoutingTable {
-	return &mockRoutingTable{providers: make(map[string]map[peer.ID]pstore.PeerInfo)}
+	return &mockRoutingTable{providers: make(map[string]map[peer.ID]peer.AddrInfo)}
 }
 
 func newMockRouting(h host.Host, tab *mockRoutingTable) *mockRouting {
 	return &mockRouting{h: h, tab: tab}
 }
 
-func (m *mockRouting) FindPeer(ctx context.Context, p peer.ID) (pstore.PeerInfo, error) {
+func (m *mockRouting) FindPeer(ctx context.Context, p peer.ID) (peer.AddrInfo, error) {
 	m.tab.mx.Lock()
 	defer m.tab.mx.Unlock()
 	pi, ok := m.tab.peers[p]
 	if !ok {
-		return pstore.PeerInfo{}, routing.ErrNotFound
+		return peer.AddrInfo{}, routing.ErrNotFound
 	}
 	return pi, nil
 }
@@ -69,22 +68,22 @@ func (m *mockRouting) Provide(ctx context.Context, cid cid.Cid, bcast bool) erro
 
 	pmap, ok := m.tab.providers[cid.String()]
 	if !ok {
-		pmap = make(map[peer.ID]pstore.PeerInfo)
+		pmap = make(map[peer.ID]peer.AddrInfo)
 		m.tab.providers[cid.String()] = pmap
 	}
 
-	pi := pstore.PeerInfo{ID: m.h.ID(), Addrs: m.h.Addrs()}
+	pi := peer.AddrInfo{ID: m.h.ID(), Addrs: m.h.Addrs()}
 	pmap[m.h.ID()] = pi
 	if m.tab.peers == nil {
-		m.tab.peers = make(map[peer.ID]pstore.PeerInfo)
+		m.tab.peers = make(map[peer.ID]peer.AddrInfo)
 	}
 	m.tab.peers[m.h.ID()] = pi
 
 	return nil
 }
 
-func (m *mockRouting) FindProvidersAsync(ctx context.Context, cid cid.Cid, limit int) <-chan pstore.PeerInfo {
-	ch := make(chan pstore.PeerInfo)
+func (m *mockRouting) FindProvidersAsync(ctx context.Context, cid cid.Cid, limit int) <-chan peer.AddrInfo {
+	ch := make(chan peer.AddrInfo)
 	go func() {
 		defer close(ch)
 		m.tab.mx.Lock()
@@ -117,7 +116,7 @@ func makeAutoNATServicePrivate(ctx context.Context, t *testing.T) host.Host {
 	return h
 }
 
-func sayAutoNATPrivate(s inet.Stream) {
+func sayAutoNATPrivate(s network.Stream) {
 	defer s.Close()
 	w := ggio.NewDelimitedWriter(s)
 	res := autonatpb.Message{
@@ -136,7 +135,7 @@ func newDialResponseError(status autonatpb.Message_ResponseStatus, text string) 
 
 // connector
 func connect(t *testing.T, a, b host.Host) {
-	pinfo := pstore.PeerInfo{ID: a.ID(), Addrs: a.Addrs()}
+	pinfo := peer.AddrInfo{ID: a.ID(), Addrs: a.Addrs()}
 	err := b.Connect(context.Background(), pinfo)
 	if err != nil {
 		t.Fatal(err)
@@ -214,7 +213,7 @@ func TestAutoRelay(t *testing.T) {
 		}
 	}
 
-	err = h4.Connect(ctx, pstore.PeerInfo{ID: h3.ID(), Addrs: raddrs})
+	err = h4.Connect(ctx, peer.AddrInfo{ID: h3.ID(), Addrs: raddrs})
 	if err != nil {
 		t.Fatal(err)
 	}

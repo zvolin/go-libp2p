@@ -8,11 +8,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	inet "github.com/libp2p/go-libp2p-net"
-	protocol "github.com/libp2p/go-libp2p-protocol"
+	"github.com/libp2p/go-libp2p-core/network"
+	protocol "github.com/libp2p/go-libp2p-core/protocol"
 )
 
-// stream implements inet.Stream
+// stream implements network.Stream
 type stream struct {
 	write     *io.PipeWriter
 	read      *io.PipeReader
@@ -26,7 +26,7 @@ type stream struct {
 	writeErr error
 
 	protocol atomic.Value
-	stat     inet.Stat
+	stat     network.Stat
 }
 
 var ErrReset error = errors.New("stream reset")
@@ -37,7 +37,7 @@ type transportObject struct {
 	arrivalTime time.Time
 }
 
-func NewStream(w *io.PipeWriter, r *io.PipeReader, dir inet.Direction) *stream {
+func NewStream(w *io.PipeWriter, r *io.PipeReader, dir network.Direction) *stream {
 	s := &stream{
 		read:      r,
 		write:     w,
@@ -45,7 +45,7 @@ func NewStream(w *io.PipeWriter, r *io.PipeReader, dir inet.Direction) *stream {
 		close:     make(chan struct{}, 1),
 		closed:    make(chan struct{}),
 		toDeliver: make(chan *transportObject),
-		stat:      inet.Stat{Direction: dir},
+		stat:      network.Stat{Direction: dir},
 	}
 
 	go s.transport()
@@ -76,7 +76,7 @@ func (s *stream) Protocol() protocol.ID {
 	return p
 }
 
-func (s *stream) Stat() inet.Stat {
+func (s *stream) Stat() network.Stat {
 	return s.stat
 }
 
@@ -118,12 +118,12 @@ func (s *stream) teardown() {
 	// Mark as closed.
 	close(s.closed)
 
-	s.conn.net.notifyAll(func(n inet.Notifiee) {
+	s.conn.net.notifyAll(func(n network.Notifiee) {
 		n.ClosedStream(s.conn.net, s)
 	})
 }
 
-func (s *stream) Conn() inet.Conn {
+func (s *stream) Conn() network.Conn {
 	return s.conn
 }
 

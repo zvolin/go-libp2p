@@ -5,8 +5,9 @@ import (
 	"testing"
 	"time"
 
-	inet "github.com/libp2p/go-libp2p-net"
-	peer "github.com/libp2p/go-libp2p-peer"
+	"github.com/libp2p/go-libp2p-core/helpers"
+	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -37,7 +38,7 @@ func TestNotifications(t *testing.T) {
 	// test everyone got the correct connection opened calls
 	for i, s := range nets {
 		n := notifiees[i]
-		notifs := make(map[peer.ID][]inet.Conn)
+		notifs := make(map[peer.ID][]network.Conn)
 		for j, s2 := range nets {
 			if i == j {
 				continue
@@ -77,7 +78,7 @@ func TestNotifications(t *testing.T) {
 		}
 	}
 
-	complement := func(c inet.Conn) (inet.Network, *netNotifiee, *conn) {
+	complement := func(c network.Conn) (network.Network, *netNotifiee, *conn) {
 		for i, s := range nets {
 			for _, c2 := range s.Conns() {
 				if c2.(*conn).rconn == c {
@@ -89,8 +90,8 @@ func TestNotifications(t *testing.T) {
 		return nil, nil, nil
 	}
 
-	testOCStream := func(n *netNotifiee, s inet.Stream) {
-		var s2 inet.Stream
+	testOCStream := func(n *netNotifiee, s network.Stream) {
+		var s2 network.Stream
 		select {
 		case s2 = <-n.openedStream:
 			t.Log("got notif for opened stream")
@@ -113,8 +114,8 @@ func TestNotifications(t *testing.T) {
 	}
 
 	for _, s := range nets {
-		s.SetStreamHandler(func(s inet.Stream) {
-			inet.FullClose(s)
+		s.SetStreamHandler(func(s network.Stream) {
+			helpers.FullClose(s)
 		})
 	}
 
@@ -127,11 +128,11 @@ func TestNotifications(t *testing.T) {
 		}
 	}
 
-	streams := make(chan inet.Stream)
+	streams := make(chan network.Stream)
 	for _, s := range nets {
-		s.SetStreamHandler(func(s inet.Stream) {
+		s.SetStreamHandler(func(s network.Stream) {
 			streams <- s
-			inet.FullClose(s)
+			helpers.FullClose(s)
 		})
 	}
 
@@ -146,7 +147,7 @@ func TestNotifications(t *testing.T) {
 			} else {
 				t.Logf("%s %s <--%p--> %s %s", c.LocalPeer(), c.LocalMultiaddr(), st1, c.RemotePeer(), c.RemoteMultiaddr())
 				// st1.Write([]byte("hello"))
-				go inet.FullClose(st1)
+				go helpers.FullClose(st1)
 				st2 := <-streams
 				t.Logf("%s %s <--%p--> %s %s", c2.LocalPeer(), c2.LocalMultiaddr(), st2, c2.RemotePeer(), c2.RemoteMultiaddr())
 				testOCStream(notifiees[i], st1)
@@ -163,7 +164,7 @@ func TestNotifications(t *testing.T) {
 			c.(*conn).Close()
 			c2.Close()
 
-			var c3, c4 inet.Conn
+			var c3, c4 network.Conn
 			select {
 			case c3 = <-n.disconnected:
 			case <-time.After(timeout):
@@ -188,38 +189,38 @@ func TestNotifications(t *testing.T) {
 type netNotifiee struct {
 	listen       chan ma.Multiaddr
 	listenClose  chan ma.Multiaddr
-	connected    chan inet.Conn
-	disconnected chan inet.Conn
-	openedStream chan inet.Stream
-	closedStream chan inet.Stream
+	connected    chan network.Conn
+	disconnected chan network.Conn
+	openedStream chan network.Stream
+	closedStream chan network.Stream
 }
 
 func newNetNotifiee(buffer int) *netNotifiee {
 	return &netNotifiee{
 		listen:       make(chan ma.Multiaddr, buffer),
 		listenClose:  make(chan ma.Multiaddr, buffer),
-		connected:    make(chan inet.Conn, buffer),
-		disconnected: make(chan inet.Conn, buffer),
-		openedStream: make(chan inet.Stream, buffer),
-		closedStream: make(chan inet.Stream, buffer),
+		connected:    make(chan network.Conn, buffer),
+		disconnected: make(chan network.Conn, buffer),
+		openedStream: make(chan network.Stream, buffer),
+		closedStream: make(chan network.Stream, buffer),
 	}
 }
 
-func (nn *netNotifiee) Listen(n inet.Network, a ma.Multiaddr) {
+func (nn *netNotifiee) Listen(n network.Network, a ma.Multiaddr) {
 	nn.listen <- a
 }
-func (nn *netNotifiee) ListenClose(n inet.Network, a ma.Multiaddr) {
+func (nn *netNotifiee) ListenClose(n network.Network, a ma.Multiaddr) {
 	nn.listenClose <- a
 }
-func (nn *netNotifiee) Connected(n inet.Network, v inet.Conn) {
+func (nn *netNotifiee) Connected(n network.Network, v network.Conn) {
 	nn.connected <- v
 }
-func (nn *netNotifiee) Disconnected(n inet.Network, v inet.Conn) {
+func (nn *netNotifiee) Disconnected(n network.Network, v network.Conn) {
 	nn.disconnected <- v
 }
-func (nn *netNotifiee) OpenedStream(n inet.Network, v inet.Stream) {
+func (nn *netNotifiee) OpenedStream(n network.Network, v network.Stream) {
 	nn.openedStream <- v
 }
-func (nn *netNotifiee) ClosedStream(n inet.Network, v inet.Stream) {
+func (nn *netNotifiee) ClosedStream(n network.Network, v network.Stream) {
 	nn.closedStream <- v
 }

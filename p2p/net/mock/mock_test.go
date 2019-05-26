@@ -10,15 +10,18 @@ import (
 	"testing"
 	"time"
 
+	ci "github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/protocol"
+	"github.com/libp2p/go-libp2p-core/test"
+
 	detectrace "github.com/ipfs/go-detect-race"
-	inet "github.com/libp2p/go-libp2p-net"
-	peer "github.com/libp2p/go-libp2p-peer"
-	protocol "github.com/libp2p/go-libp2p-protocol"
-	testutil "github.com/libp2p/go-testutil"
+	tnet "github.com/libp2p/go-libp2p-testing/net"
 )
 
 func randPeer(t *testing.T) peer.ID {
-	p, err := testutil.RandPeerID()
+	p, err := test.RandPeerID()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,15 +31,15 @@ func randPeer(t *testing.T) peer.ID {
 func TestNetworkSetup(t *testing.T) {
 
 	ctx := context.Background()
-	sk1, _, err := testutil.RandTestKeyPair(512)
+	sk1, _, err := test.RandTestKeyPair(ci.RSA, 512)
 	if err != nil {
 		t.Fatal(t)
 	}
-	sk2, _, err := testutil.RandTestKeyPair(512)
+	sk2, _, err := test.RandTestKeyPair(ci.RSA, 512)
 	if err != nil {
 		t.Fatal(t)
 	}
-	sk3, _, err := testutil.RandTestKeyPair(512)
+	sk3, _, err := test.RandTestKeyPair(ci.RSA, 512)
 	if err != nil {
 		t.Fatal(t)
 	}
@@ -45,9 +48,9 @@ func TestNetworkSetup(t *testing.T) {
 
 	// add peers to mock net
 
-	a1 := testutil.RandLocalTCPAddress()
-	a2 := testutil.RandLocalTCPAddress()
-	a3 := testutil.RandLocalTCPAddress()
+	a1 := tnet.RandLocalTCPAddress()
+	a2 := tnet.RandLocalTCPAddress()
+	a3 := tnet.RandLocalTCPAddress()
 
 	h1, err := mn.AddPeer(sk1, a1)
 	if err != nil {
@@ -278,7 +281,7 @@ func TestStreams(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	handler := func(s inet.Stream) {
+	handler := func(s network.Stream) {
 		b := make([]byte, 4)
 		if _, err := io.ReadFull(s, b); err != nil {
 			panic(err)
@@ -315,8 +318,8 @@ func TestStreams(t *testing.T) {
 
 }
 
-func makePinger(st string, n int) func(inet.Stream) {
-	return func(s inet.Stream) {
+func makePinger(st string, n int) func(network.Stream) {
+	return func(s network.Stream) {
 		go func() {
 			defer s.Close()
 
@@ -336,8 +339,8 @@ func makePinger(st string, n int) func(inet.Stream) {
 	}
 }
 
-func makePonger(st string) func(inet.Stream) {
-	return func(s inet.Stream) {
+func makePonger(st string) func(network.Stream) {
+	return func(s network.Stream) {
 		go func() {
 			defer s.Close()
 
@@ -409,12 +412,12 @@ func TestAdding(t *testing.T) {
 
 	peers := []peer.ID{}
 	for i := 0; i < 3; i++ {
-		sk, _, err := testutil.RandTestKeyPair(512)
+		sk, _, err := test.RandTestKeyPair(ci.RSA, 512)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		a := testutil.RandLocalTCPAddress()
+		a := tnet.RandLocalTCPAddress()
 		h, err := mn.AddPeer(sk, a)
 		if err != nil {
 			t.Fatal(err)
@@ -440,7 +443,7 @@ func TestAdding(t *testing.T) {
 	if h2 == nil {
 		t.Fatalf("no host for %s", p2)
 	}
-	h2.SetStreamHandler(protocol.TestingID, func(s inet.Stream) {
+	h2.SetStreamHandler(protocol.TestingID, func(s network.Stream) {
 		defer s.Close()
 
 		b := make([]byte, 4)
@@ -535,7 +538,7 @@ func TestLimitedStreams(t *testing.T) {
 	var wg sync.WaitGroup
 	messages := 4
 	messageSize := 500
-	handler := func(s inet.Stream) {
+	handler := func(s network.Stream) {
 		b := make([]byte, messageSize)
 		for i := 0; i < messages; i++ {
 			if _, err := io.ReadFull(s, b); err != nil {
@@ -619,7 +622,7 @@ func TestStreamsWithLatency(t *testing.T) {
 	// we'll write once to a single stream
 	wg.Add(1)
 
-	handler := func(s inet.Stream) {
+	handler := func(s network.Stream) {
 		b := make([]byte, mln)
 
 		if _, err := io.ReadFull(s, b); err != nil {

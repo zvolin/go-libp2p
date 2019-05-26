@@ -5,19 +5,18 @@ import (
 	"testing"
 	"time"
 
-	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
+	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/peer"
 
-	host "github.com/libp2p/go-libp2p-host"
 	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
-
-	pstore "github.com/libp2p/go-libp2p-peerstore"
+	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
 )
 
 type DiscoveryNotifee struct {
 	h host.Host
 }
 
-func (n *DiscoveryNotifee) HandlePeerFound(pi pstore.PeerInfo) {
+func (n *DiscoveryNotifee) HandlePeerFound(pi peer.AddrInfo) {
 	n.h.Connect(context.Background(), pi)
 }
 
@@ -49,7 +48,7 @@ func TestMdnsDiscovery(t *testing.T) {
 
 	time.Sleep(time.Second * 2)
 
-	err = a.Connect(ctx, pstore.PeerInfo{ID: b.ID()})
+	err = a.Connect(ctx, peer.AddrInfo{ID: b.ID()})
 	if err != nil {
 		t.Fatal(err)
 	}

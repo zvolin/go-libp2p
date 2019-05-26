@@ -7,16 +7,18 @@ import (
 	"sort"
 	"sync"
 
-	host "github.com/libp2p/go-libp2p-host"
+	ic "github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peerstore"
+
 	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
 
 	"github.com/jbenet/goprocess"
 	goprocessctx "github.com/jbenet/goprocess/context"
-	ic "github.com/libp2p/go-libp2p-crypto"
-	inet "github.com/libp2p/go-libp2p-net"
+
 	p2putil "github.com/libp2p/go-libp2p-netutil"
-	peer "github.com/libp2p/go-libp2p-peer"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
 	pstoremem "github.com/libp2p/go-libp2p-peerstore/pstoremem"
 	ma "github.com/multiformats/go-multiaddr"
 )
@@ -88,14 +90,14 @@ func (mn *mocknet) AddPeer(k ic.PrivKey, a ma.Multiaddr) (host.Host, error) {
 	}
 
 	ps := pstoremem.NewPeerstore()
-	ps.AddAddr(p, a, pstore.PermanentAddrTTL)
+	ps.AddAddr(p, a, peerstore.PermanentAddrTTL)
 	ps.AddPrivKey(p, k)
 	ps.AddPubKey(p, k.GetPublic())
 
 	return mn.AddPeerWithPeerstore(p, ps)
 }
 
-func (mn *mocknet) AddPeerWithPeerstore(p peer.ID, ps pstore.Peerstore) (host.Host, error) {
+func (mn *mocknet) AddPeerWithPeerstore(p peer.ID, ps peerstore.Peerstore) (host.Host, error) {
 	n, err := newPeernet(mn.ctx, mn, p, ps)
 	if err != nil {
 		return nil, err
@@ -138,7 +140,7 @@ func (mn *mocknet) Host(pid peer.ID) host.Host {
 	return host
 }
 
-func (mn *mocknet) Net(pid peer.ID) inet.Network {
+func (mn *mocknet) Net(pid peer.ID) network.Network {
 	mn.Lock()
 	n := mn.nets[pid]
 	mn.Unlock()
@@ -158,11 +160,11 @@ func (mn *mocknet) Hosts() []host.Host {
 	return cp
 }
 
-func (mn *mocknet) Nets() []inet.Network {
+func (mn *mocknet) Nets() []network.Network {
 	mn.Lock()
 	defer mn.Unlock()
 
-	cp := make([]inet.Network, 0, len(mn.nets))
+	cp := make([]network.Network, 0, len(mn.nets))
 	for _, n := range mn.nets {
 		cp = append(cp, n)
 	}
@@ -220,7 +222,7 @@ func (mn *mocknet) LinkPeers(p1, p2 peer.ID) (Link, error) {
 	return mn.LinkNets(n1, n2)
 }
 
-func (mn *mocknet) validate(n inet.Network) (*peernet, error) {
+func (mn *mocknet) validate(n network.Network) (*peernet, error) {
 	// WARNING: assumes locks acquired
 
 	nr, ok := n.(*peernet)
@@ -235,7 +237,7 @@ func (mn *mocknet) validate(n inet.Network) (*peernet, error) {
 	return nr, nil
 }
 
-func (mn *mocknet) LinkNets(n1, n2 inet.Network) (Link, error) {
+func (mn *mocknet) LinkNets(n1, n2 network.Network) (Link, error) {
 	mn.Lock()
 	n1r, err1 := mn.validate(n1)
 	n2r, err2 := mn.validate(n2)
@@ -280,7 +282,7 @@ func (mn *mocknet) UnlinkPeers(p1, p2 peer.ID) error {
 	return nil
 }
 
-func (mn *mocknet) UnlinkNets(n1, n2 inet.Network) error {
+func (mn *mocknet) UnlinkNets(n1, n2 network.Network) error {
 	return mn.UnlinkPeers(n1.LocalPeer(), n2.LocalPeer())
 }
 
@@ -337,11 +339,11 @@ func (mn *mocknet) ConnectAllButSelf() error {
 	return nil
 }
 
-func (mn *mocknet) ConnectPeers(a, b peer.ID) (inet.Conn, error) {
+func (mn *mocknet) ConnectPeers(a, b peer.ID) (network.Conn, error) {
 	return mn.Net(a).DialPeer(mn.ctx, b)
 }
 
-func (mn *mocknet) ConnectNets(a, b inet.Network) (inet.Conn, error) {
+func (mn *mocknet) ConnectNets(a, b network.Network) (network.Conn, error) {
 	return a.DialPeer(mn.ctx, b.LocalPeer())
 }
 
@@ -349,7 +351,7 @@ func (mn *mocknet) DisconnectPeers(p1, p2 peer.ID) error {
 	return mn.Net(p1).ClosePeer(p2)
 }
 
-func (mn *mocknet) DisconnectNets(n1, n2 inet.Network) error {
+func (mn *mocknet) DisconnectNets(n1, n2 network.Network) error {
 	return n1.ClosePeer(n2.LocalPeer())
 }
 
@@ -365,7 +367,7 @@ func (mn *mocknet) LinksBetweenPeers(p1, p2 peer.ID) []Link {
 	return cp
 }
 
-func (mn *mocknet) LinksBetweenNets(n1, n2 inet.Network) []Link {
+func (mn *mocknet) LinksBetweenNets(n1, n2 network.Network) []Link {
 	return mn.LinksBetweenPeers(n1.LocalPeer(), n2.LocalPeer())
 }
 
@@ -382,7 +384,7 @@ func (mn *mocknet) LinkDefaults() LinkOptions {
 }
 
 // netSlice for sorting by peer
-type netSlice []inet.Network
+type netSlice []network.Network
 
 func (es netSlice) Len() int           { return len(es) }
 func (es netSlice) Swap(i, j int)      { es[i], es[j] = es[j], es[i] }

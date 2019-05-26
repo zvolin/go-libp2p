@@ -4,7 +4,8 @@ import (
 	"context"
 	"time"
 
-	discovery "github.com/libp2p/go-libp2p-discovery"
+	"github.com/libp2p/go-libp2p-discovery"
+
 	ma "github.com/multiformats/go-multiaddr"
 )
 

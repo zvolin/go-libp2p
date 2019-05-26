@@ -5,14 +5,15 @@ import (
 	"testing"
 	"time"
 
-	ic "github.com/libp2p/go-libp2p-crypto"
-	peer "github.com/libp2p/go-libp2p-peer"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
+	ic "github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peerstore"
+
+	blhost "github.com/libp2p/go-libp2p-blankhost"
 	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
 	identify "github.com/libp2p/go-libp2p/p2p/protocol/identify"
 
-	blhost "github.com/libp2p/go-libp2p-blankhost"
-	host "github.com/libp2p/go-libp2p-host"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -34,7 +35,7 @@ func subtestIDService(t *testing.T) {
 
 	forgetMe, _ := ma.NewMultiaddr("/ip4/1.2.3.4/tcp/1234")
 
-	h2.Peerstore().AddAddr(h1p, forgetMe, pstore.RecentlyConnectedAddrTTL)
+	h2.Peerstore().AddAddr(h1p, forgetMe, peerstore.RecentlyConnectedAddrTTL)
 	time.Sleep(500 * time.Millisecond)
 
 	h2pi := h2.Peerstore().PeerInfo(h2p)
@@ -155,10 +156,10 @@ func testHasPublicKey(t *testing.T, h host.Host, p peer.ID, shouldBe ic.PubKey) 
 // this is becasue it used to be concurrent. Now, Dial wait till the
 // id service is done.
 func TestIDService(t *testing.T) {
-	oldTTL := pstore.RecentlyConnectedAddrTTL
-	pstore.RecentlyConnectedAddrTTL = time.Second
+	oldTTL := peerstore.RecentlyConnectedAddrTTL
+	peerstore.RecentlyConnectedAddrTTL = time.Second
 	defer func() {
-		pstore.RecentlyConnectedAddrTTL = oldTTL
+		peerstore.RecentlyConnectedAddrTTL = oldTTL
 	}()
 
 	N := 3
