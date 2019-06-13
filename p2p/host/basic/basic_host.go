@@ -76,8 +76,6 @@ type BasicHost struct {
 
 	proc goprocess.Process
 
-	ctx       context.Context
-	cancel    func()
 	mx        sync.Mutex
 	lastAddrs []ma.Multiaddr
 }
@@ -121,21 +119,20 @@ type HostOpts struct {
 
 // NewHost constructs a new *BasicHost and activates it by attaching its stream and connection handlers to the given inet.Network.
 func NewHost(ctx context.Context, net network.Network, opts *HostOpts) (*BasicHost, error) {
-	bgctx, cancel := context.WithCancel(ctx)
-
 	h := &BasicHost{
 		network:      net,
 		mux:          msmux.NewMultistreamMuxer(),
 		negtimeout:   DefaultNegotiationTimeout,
 		AddrsFactory: DefaultAddrsFactory,
 		maResolver:   madns.DefaultResolver,
-		ctx:          bgctx,
-		cancel:       cancel,
 	}
 
 	h.proc = goprocessctx.WithContextAndTeardown(ctx, func() error {
 		if h.natmgr != nil {
 			h.natmgr.Close()
+		}
+		if h.cmgr != nil {
+			h.cmgr.Close()
 		}
 		return h.Network().Close()
 	})
@@ -148,7 +145,7 @@ func NewHost(ctx context.Context, net network.Network, opts *HostOpts) (*BasicHo
 		h.ids = opts.IdentifyService
 	} else {
 		// we can't set this as a default above because it depends on the *BasicHost.
-		h.ids = identify.NewIDService(bgctx, h)
+		h.ids = identify.NewIDService(goprocessctx.WithProcessClosing(ctx, h.proc), h)
 	}
 
 	if uint64(opts.NegotiationTimeout) != 0 {
@@ -223,7 +220,7 @@ func New(net network.Network, opts ...interface{}) *BasicHost {
 
 // Start starts background tasks in the host
 func (h *BasicHost) Start() {
-	go h.background()
+	h.proc.Go(h.background)
 }
 
 // newConnHandler is the remote-opened conn handler for inet.Network
@@ -300,7 +297,7 @@ func (h *BasicHost) PushIdentify() {
 	}
 }
 
-func (h *BasicHost) background() {
+func (h *BasicHost) background(p goprocess.Process) {
 	// periodically schedules an IdentifyPush to update our peers for changes
 	// in our address set (if needed)
 	ticker := time.NewTicker(1 * time.Minute)
@@ -318,7 +315,7 @@ func (h *BasicHost) background() {
 		case <-ticker.C:
 			h.PushIdentify()
 
-		case <-h.ctx.Done():
+		case <-p.Closing():
 			return
 		}
 	}
@@ -724,8 +721,6 @@ func (h *BasicHost) AllAddrs() []ma.Multiaddr {
 
 // Close shuts down the Host's services (network, etc).
 func (h *BasicHost) Close() error {
-	h.cancel()
-	h.cmgr.Close()
 	return h.proc.Close()
 }
 
