@@ -7,21 +7,24 @@ import (
 	"sync"
 	"time"
 
+	"github.com/libp2p/go-libp2p/p2p/protocol/identify"
+	"github.com/libp2p/go-libp2p/p2p/protocol/ping"
+
 	"github.com/libp2p/go-libp2p-core/connmgr"
+	"github.com/libp2p/go-libp2p-core/event"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/protocol"
 
-	logging "github.com/ipfs/go-log"
-	goprocess "github.com/jbenet/goprocess"
-	goprocessctx "github.com/jbenet/goprocess/context"
-
+	"github.com/libp2p/go-eventbus"
 	inat "github.com/libp2p/go-libp2p-nat"
 
-	identify "github.com/libp2p/go-libp2p/p2p/protocol/identify"
-	ping "github.com/libp2p/go-libp2p/p2p/protocol/ping"
+	logging "github.com/ipfs/go-log"
+	"github.com/jbenet/goprocess"
+	goprocessctx "github.com/jbenet/goprocess/context"
+
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
 	manet "github.com/multiformats/go-multiaddr-net"
@@ -69,6 +72,7 @@ type BasicHost struct {
 	natmgr     NATManager
 	maResolver *madns.Resolver
 	cmgr       connmgr.ConnManager
+	eventbus   event.Bus
 
 	AddrsFactory AddrsFactory
 
@@ -78,6 +82,9 @@ type BasicHost struct {
 
 	mx        sync.Mutex
 	lastAddrs []ma.Multiaddr
+	emitters  struct {
+		evtLocalProtocolsUpdated event.Emitter
+	}
 }
 
 var _ host.Host = (*BasicHost)(nil)
@@ -85,7 +92,6 @@ var _ host.Host = (*BasicHost)(nil)
 // HostOpts holds options that can be passed to NewHost in order to
 // customize construction of the *BasicHost.
 type HostOpts struct {
-
 	// MultistreamMuxer is essential for the *BasicHost and will use a sensible default value if omitted.
 	MultistreamMuxer *msmux.MultistreamMuxer
 
@@ -125,6 +131,12 @@ func NewHost(ctx context.Context, net network.Network, opts *HostOpts) (*BasicHo
 		negtimeout:   DefaultNegotiationTimeout,
 		AddrsFactory: DefaultAddrsFactory,
 		maResolver:   madns.DefaultResolver,
+		eventbus:     eventbus.NewBus(),
+	}
+
+	var err error
+	if h.emitters.evtLocalProtocolsUpdated, err = h.eventbus.Emitter(&event.EvtLocalProtocolsUpdated{}); err != nil {
+		return nil, err
 	}
 
 	h.proc = goprocessctx.WithContextAndTeardown(ctx, func() error {
@@ -366,6 +378,10 @@ func (h *BasicHost) IDService() *identify.IDService {
 	return h.ids
 }
 
+func (h *BasicHost) EventBus() event.Bus {
+	return h.eventbus
+}
+
 // SetStreamHandler sets the protocol handler on the Host's Mux.
 // This is equivalent to:
 //   host.Mux().SetHandler(proto, handler)
@@ -376,6 +392,9 @@ func (h *BasicHost) SetStreamHandler(pid protocol.ID, handler network.StreamHand
 		is.SetProtocol(protocol.ID(p))
 		handler(is)
 		return nil
+	})
+	h.emitters.evtLocalProtocolsUpdated.Emit(event.EvtLocalProtocolsUpdated{
+		Added: []protocol.ID{pid},
 	})
 }
 
@@ -388,11 +407,17 @@ func (h *BasicHost) SetStreamHandlerMatch(pid protocol.ID, m func(string) bool, 
 		handler(is)
 		return nil
 	})
+	h.emitters.evtLocalProtocolsUpdated.Emit(event.EvtLocalProtocolsUpdated{
+		Added: []protocol.ID{pid},
+	})
 }
 
 // RemoveStreamHandler returns ..
 func (h *BasicHost) RemoveStreamHandler(pid protocol.ID) {
 	h.Mux().RemoveHandler(string(pid))
+	h.emitters.evtLocalProtocolsUpdated.Emit(event.EvtLocalProtocolsUpdated{
+		Removed: []protocol.ID{pid},
+	})
 }
 
 // NewStream opens a new stream to given peer p, and writes a p2p/protocol
@@ -721,6 +746,7 @@ func (h *BasicHost) AllAddrs() []ma.Multiaddr {
 
 // Close shuts down the Host's services (network, etc).
 func (h *BasicHost) Close() error {
+	_ = h.emitters.evtLocalProtocolsUpdated.Close()
 	return h.proc.Close()
 }
 
