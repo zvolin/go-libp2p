@@ -209,11 +209,19 @@ func TestHostProtoPreference(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// XXX: This is racy now that we push protocol updates. If this tests
+	// fails, try allowing both protoOld and protoMinor.
 	assertWait(t, connectedOn, protoOld)
 
 	s2.Close()
 
 	s3, err := h2.NewStream(ctx, h1.ID(), protoMinor)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Force a lazy handshake as we may have received a protocol update by this point.
+	_, err = s3.Write([]byte("hello"))
 	if err != nil {
 		t.Fatal(err)
 	}
