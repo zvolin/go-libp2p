@@ -23,6 +23,13 @@ import (
 	madns "github.com/multiformats/go-multiaddr-dns"
 )
 
+func TestHostDoubleClose(t *testing.T) {
+	ctx := context.Background()
+	h1 := New(swarmt.GenSwarm(t, ctx))
+	h1.Close()
+	h1.Close()
+}
+
 func TestHostSimple(t *testing.T) {
 	ctx := context.Background()
 	h1 := New(swarmt.GenSwarm(t, ctx))
