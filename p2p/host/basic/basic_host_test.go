@@ -136,6 +136,8 @@ func TestHostAddrsFactory(t *testing.T) {
 }
 
 func getHostPair(ctx context.Context, t *testing.T) (host.Host, host.Host) {
+	t.Helper()
+
 	h1 := New(swarmt.GenSwarm(t, ctx))
 	h2 := New(swarmt.GenSwarm(t, ctx))
 
@@ -148,6 +150,7 @@ func getHostPair(ctx context.Context, t *testing.T) (host.Host, host.Host) {
 }
 
 func assertWait(t *testing.T, c chan protocol.ID, exp protocol.ID) {
+	t.Helper()
 	select {
 	case proto := <-c:
 		if proto != exp {
