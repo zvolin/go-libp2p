@@ -11,6 +11,7 @@ import (
 	"time"
 
 	ci "github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/helpers"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
@@ -321,7 +322,7 @@ func TestStreams(t *testing.T) {
 func makePinger(st string, n int) func(network.Stream) {
 	return func(s network.Stream) {
 		go func() {
-			defer s.Close()
+			defer helpers.FullClose(s)
 
 			for i := 0; i < n; i++ {
 				b := make([]byte, 4+len(st))
@@ -342,7 +343,7 @@ func makePinger(st string, n int) func(network.Stream) {
 func makePonger(st string) func(network.Stream) {
 	return func(s network.Stream) {
 		go func() {
-			defer s.Close()
+			defer helpers.FullClose(s)
 
 			for {
 				b := make([]byte, 4+len(st))
