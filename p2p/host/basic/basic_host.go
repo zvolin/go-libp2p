@@ -747,6 +747,13 @@ func (h *BasicHost) AllAddrs() []ma.Multiaddr {
 
 // Close shuts down the Host's services (network, etc).
 func (h *BasicHost) Close() error {
+	// You're thinking of adding some teardown logic here, right? Well
+	// don't! Add any process teardown logic to the teardown function in the
+	// constructor.
+	//
+	// This:
+	// 1. May be called multiple times.
+	// 2. May _never_ be called if the host is stopped by the context.
 	return h.proc.Close()
 }
 
