@@ -146,6 +146,7 @@ func NewHost(ctx context.Context, net network.Network, opts *HostOpts) (*BasicHo
 		if h.cmgr != nil {
 			h.cmgr.Close()
 		}
+		_ = h.emitters.evtLocalProtocolsUpdated.Close()
 		return h.Network().Close()
 	})
 
@@ -746,7 +747,6 @@ func (h *BasicHost) AllAddrs() []ma.Multiaddr {
 
 // Close shuts down the Host's services (network, etc).
 func (h *BasicHost) Close() error {
-	_ = h.emitters.evtLocalProtocolsUpdated.Close()
 	return h.proc.Close()
 }
 
