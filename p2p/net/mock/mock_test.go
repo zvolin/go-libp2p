@@ -3,6 +3,7 @@ package mocknet
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"math"
 	"math/rand"
@@ -318,33 +319,27 @@ func TestStreams(t *testing.T) {
 
 }
 
-func makePinger(t *testing.T, st string, n int) func(network.Stream) chan struct{} {
+func performPing(t *testing.T, st string, n int, s network.Stream) error {
 	t.Helper()
 
-	return func(s network.Stream) chan struct{} {
-		done := make(chan struct{}, 1)
-		go func() {
-			defer func() { done <- struct{}{} }()
-			defer helpers.FullClose(s)
+	defer helpers.FullClose(s)
 
-			for i := 0; i < n; i++ {
-				b := make([]byte, 4+len(st))
-				if _, err := s.Write([]byte("ping" + st)); err != nil {
-					t.Fatal(err)
-				}
-				if _, err := io.ReadFull(s, b); err != nil {
-					t.Fatal(err)
-				}
-				if !bytes.Equal(b, []byte("pong"+st)) {
-					t.Fatal("bytes mismatch")
-				}
-			}
-		}()
-		return done
+	for i := 0; i < n; i++ {
+		b := make([]byte, 4+len(st))
+		if _, err := s.Write([]byte("ping" + st)); err != nil {
+			return err
+		}
+		if _, err := io.ReadFull(s, b); err != nil {
+			return err
+		}
+		if !bytes.Equal(b, []byte("pong"+st)) {
+			return errors.New("bytes mismatch")
+		}
 	}
+	return nil
 }
 
-func makePonger(t *testing.T, st string) func(network.Stream) {
+func makePonger(t *testing.T, st string, errs chan<- error) func(network.Stream) {
 	t.Helper()
 
 	return func(s network.Stream) {
@@ -357,13 +352,13 @@ func makePonger(t *testing.T, st string) func(network.Stream) {
 					if err == io.EOF {
 						return
 					}
-					t.Fatal(err)
+					errs <- err
 				}
 				if !bytes.Equal(b, []byte("ping"+st)) {
-					t.Fatal("bytes mismatch")
+					errs <- errors.New("bytes mismatch")
 				}
 				if _, err := s.Write([]byte("pong" + st)); err != nil {
-					t.Fatal(err)
+					errs <- err
 				}
 			}
 		}()
@@ -382,9 +377,11 @@ func TestStreamsStress(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	errs := make(chan error)
+
 	hosts := mn.Hosts()
 	for _, h := range hosts {
-		ponger := makePonger(t, "pingpong")
+		ponger := makePonger(t, "pingpong", errs)
 		h.SetStreamHandler(protocol.TestingID, ponger)
 	}
 
@@ -405,18 +402,28 @@ func TestStreamsStress(t *testing.T) {
 			}
 
 			log.Infof("%d start pinging", i)
-			<-makePinger(t, "pingpong", rand.Intn(100))(s)
+			errs <- performPing(t, "pingpong", rand.Intn(100), s)
 			log.Infof("%d done pinging", i)
 		}(i)
 	}
 
-	wg.Wait()
+	go func() {
+		wg.Wait()
+		close(errs)
+	}()
+
+	for err := range errs {
+		if err == nil {
+			continue
+		}
+		t.Fatal(err)
+	}
 }
 
 func TestAdding(t *testing.T) {
 	mn := New(context.Background())
 
-	peers := []peer.ID{}
+	var peers []peer.ID
 	for i := 0; i < 3; i++ {
 		sk, _, err := test.RandTestKeyPair(ci.RSA, 512)
 		if err != nil {
