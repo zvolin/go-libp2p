@@ -368,7 +368,7 @@ func TestStreamsStress(t *testing.T) {
 	ctx := context.Background()
 	nnodes := 100
 	if detectrace.WithRace() {
-		nnodes = 50
+		nnodes = 30
 	}
 
 	mn, err := FullMeshConnected(context.Background(), nnodes)
