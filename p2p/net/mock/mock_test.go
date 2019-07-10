@@ -30,7 +30,6 @@ func randPeer(t *testing.T) peer.ID {
 }
 
 func TestNetworkSetup(t *testing.T) {
-
 	ctx := context.Background()
 	sk1, _, err := test.RandTestKeyPair(ci.RSA, 512)
 	if err != nil {
@@ -319,28 +318,35 @@ func TestStreams(t *testing.T) {
 
 }
 
-func makePinger(st string, n int) func(network.Stream) {
-	return func(s network.Stream) {
+func makePinger(t *testing.T, st string, n int) func(network.Stream) chan struct{} {
+	t.Helper()
+
+	return func(s network.Stream) chan struct{} {
+		done := make(chan struct{}, 1)
 		go func() {
+			defer func() { done <- struct{}{} }()
 			defer helpers.FullClose(s)
 
 			for i := 0; i < n; i++ {
 				b := make([]byte, 4+len(st))
 				if _, err := s.Write([]byte("ping" + st)); err != nil {
-					panic(err)
+					t.Fatal(err)
 				}
 				if _, err := io.ReadFull(s, b); err != nil {
-					panic(err)
+					t.Fatal(err)
 				}
 				if !bytes.Equal(b, []byte("pong"+st)) {
-					panic("bytes mismatch")
+					t.Fatal("bytes mismatch")
 				}
 			}
 		}()
+		return done
 	}
 }
 
-func makePonger(st string) func(network.Stream) {
+func makePonger(t *testing.T, st string) func(network.Stream) {
+	t.Helper()
+
 	return func(s network.Stream) {
 		go func() {
 			defer helpers.FullClose(s)
@@ -351,13 +357,13 @@ func makePonger(st string) func(network.Stream) {
 					if err == io.EOF {
 						return
 					}
-					panic(err)
+					t.Fatal(err)
 				}
 				if !bytes.Equal(b, []byte("ping"+st)) {
-					panic("bytes mismatch")
+					t.Fatal("bytes mismatch")
 				}
 				if _, err := s.Write([]byte("pong" + st)); err != nil {
-					panic(err)
+					t.Fatal(err)
 				}
 			}
 		}()
@@ -378,7 +384,7 @@ func TestStreamsStress(t *testing.T) {
 
 	hosts := mn.Hosts()
 	for _, h := range hosts {
-		ponger := makePonger(string(protocol.TestingID))
+		ponger := makePonger(t, "pingpong")
 		h.SetStreamHandler(protocol.TestingID, ponger)
 	}
 
@@ -399,7 +405,7 @@ func TestStreamsStress(t *testing.T) {
 			}
 
 			log.Infof("%d start pinging", i)
-			makePinger("pingpong", rand.Intn(100))(s)
+			<-makePinger(t, "pingpong", rand.Intn(100))(s)
 			log.Infof("%d done pinging", i)
 		}(i)
 	}
@@ -408,7 +414,6 @@ func TestStreamsStress(t *testing.T) {
 }
 
 func TestAdding(t *testing.T) {
-
 	mn := New(context.Background())
 
 	peers := []peer.ID{}
