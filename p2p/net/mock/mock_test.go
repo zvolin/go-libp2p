@@ -3,6 +3,7 @@ package mocknet
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"math"
 	"math/rand"
@@ -30,7 +31,6 @@ func randPeer(t *testing.T) peer.ID {
 }
 
 func TestNetworkSetup(t *testing.T) {
-
 	ctx := context.Background()
 	sk1, _, err := test.RandTestKeyPair(ci.RSA, 512)
 	if err != nil {
@@ -319,28 +319,29 @@ func TestStreams(t *testing.T) {
 
 }
 
-func makePinger(st string, n int) func(network.Stream) {
-	return func(s network.Stream) {
-		go func() {
-			defer helpers.FullClose(s)
+func performPing(t *testing.T, st string, n int, s network.Stream) error {
+	t.Helper()
 
-			for i := 0; i < n; i++ {
-				b := make([]byte, 4+len(st))
-				if _, err := s.Write([]byte("ping" + st)); err != nil {
-					panic(err)
-				}
-				if _, err := io.ReadFull(s, b); err != nil {
-					panic(err)
-				}
-				if !bytes.Equal(b, []byte("pong"+st)) {
-					panic("bytes mismatch")
-				}
-			}
-		}()
+	defer helpers.FullClose(s)
+
+	for i := 0; i < n; i++ {
+		b := make([]byte, 4+len(st))
+		if _, err := s.Write([]byte("ping" + st)); err != nil {
+			return err
+		}
+		if _, err := io.ReadFull(s, b); err != nil {
+			return err
+		}
+		if !bytes.Equal(b, []byte("pong"+st)) {
+			return errors.New("bytes mismatch")
+		}
 	}
+	return nil
 }
 
-func makePonger(st string) func(network.Stream) {
+func makePonger(t *testing.T, st string, errs chan<- error) func(network.Stream) {
+	t.Helper()
+
 	return func(s network.Stream) {
 		go func() {
 			defer helpers.FullClose(s)
@@ -351,13 +352,13 @@ func makePonger(st string) func(network.Stream) {
 					if err == io.EOF {
 						return
 					}
-					panic(err)
+					errs <- err
 				}
 				if !bytes.Equal(b, []byte("ping"+st)) {
-					panic("bytes mismatch")
+					errs <- errors.New("bytes mismatch")
 				}
 				if _, err := s.Write([]byte("pong" + st)); err != nil {
-					panic(err)
+					errs <- err
 				}
 			}
 		}()
@@ -368,7 +369,7 @@ func TestStreamsStress(t *testing.T) {
 	ctx := context.Background()
 	nnodes := 100
 	if detectrace.WithRace() {
-		nnodes = 50
+		nnodes = 30
 	}
 
 	mn, err := FullMeshConnected(context.Background(), nnodes)
@@ -376,9 +377,11 @@ func TestStreamsStress(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	errs := make(chan error)
+
 	hosts := mn.Hosts()
 	for _, h := range hosts {
-		ponger := makePonger(string(protocol.TestingID))
+		ponger := makePonger(t, "pingpong", errs)
 		h.SetStreamHandler(protocol.TestingID, ponger)
 	}
 
@@ -399,19 +402,28 @@ func TestStreamsStress(t *testing.T) {
 			}
 
 			log.Infof("%d start pinging", i)
-			makePinger("pingpong", rand.Intn(100))(s)
+			errs <- performPing(t, "pingpong", rand.Intn(100), s)
 			log.Infof("%d done pinging", i)
 		}(i)
 	}
 
-	wg.Wait()
+	go func() {
+		wg.Wait()
+		close(errs)
+	}()
+
+	for err := range errs {
+		if err == nil {
+			continue
+		}
+		t.Fatal(err)
+	}
 }
 
 func TestAdding(t *testing.T) {
-
 	mn := New(context.Background())
 
-	peers := []peer.ID{}
+	var peers []peer.ID
 	for i := 0; i < 3; i++ {
 		sk, _, err := test.RandTestKeyPair(ci.RSA, 512)
 		if err != nil {
