@@ -183,17 +183,15 @@ func (pn *peernet) addConn(c *conn) {
 	pn.Lock()
 	defer pn.Unlock()
 
-	cs, found := pn.connsByPeer[c.RemotePeer()]
+	_, found := pn.connsByPeer[c.RemotePeer()]
 	if !found {
-		cs = map[*conn]struct{}{}
-		pn.connsByPeer[c.RemotePeer()] = cs
+		pn.connsByPeer[c.RemotePeer()] = map[*conn]struct{}{}
 	}
 	pn.connsByPeer[c.RemotePeer()][c] = struct{}{}
 
-	cs, found = pn.connsByLink[c.link]
+	_, found = pn.connsByLink[c.link]
 	if !found {
-		cs = map[*conn]struct{}{}
-		pn.connsByLink[c.link] = cs
+		pn.connsByLink[c.link] = map[*conn]struct{}{}
 	}
 	pn.connsByLink[c.link][c] = struct{}{}
 }
