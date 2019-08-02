@@ -11,14 +11,12 @@ import (
 	"testing"
 	"time"
 
-	ci "github.com/libp2p/go-libp2p-core/crypto"
+	detectrace "github.com/ipfs/go-detect-race"
 	"github.com/libp2p/go-libp2p-core/helpers"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/libp2p/go-libp2p-core/test"
-
-	detectrace "github.com/ipfs/go-detect-race"
 	tnet "github.com/libp2p/go-libp2p-testing/net"
 )
 
@@ -32,18 +30,9 @@ func randPeer(t *testing.T) peer.ID {
 
 func TestNetworkSetup(t *testing.T) {
 	ctx := context.Background()
-	sk1, _, err := test.RandTestKeyPair(ci.RSA, 512)
-	if err != nil {
-		t.Fatal(t)
-	}
-	sk2, _, err := test.RandTestKeyPair(ci.RSA, 512)
-	if err != nil {
-		t.Fatal(t)
-	}
-	sk3, _, err := test.RandTestKeyPair(ci.RSA, 512)
-	if err != nil {
-		t.Fatal(t)
-	}
+	id1 := tnet.RandIdentityOrFatal(t)
+	id2 := tnet.RandIdentityOrFatal(t)
+	id3 := tnet.RandIdentityOrFatal(t)
 	mn := New(ctx)
 	// peers := []peer.ID{p1, p2, p3}
 
@@ -53,19 +42,19 @@ func TestNetworkSetup(t *testing.T) {
 	a2 := tnet.RandLocalTCPAddress()
 	a3 := tnet.RandLocalTCPAddress()
 
-	h1, err := mn.AddPeer(sk1, a1)
+	h1, err := mn.AddPeer(id1.PrivateKey(), a1)
 	if err != nil {
 		t.Fatal(err)
 	}
 	p1 := h1.ID()
 
-	h2, err := mn.AddPeer(sk2, a2)
+	h2, err := mn.AddPeer(id2.PrivateKey(), a2)
 	if err != nil {
 		t.Fatal(err)
 	}
 	p2 := h2.ID()
 
-	h3, err := mn.AddPeer(sk3, a3)
+	h3, err := mn.AddPeer(id3.PrivateKey(), a3)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -425,13 +414,10 @@ func TestAdding(t *testing.T) {
 
 	var peers []peer.ID
 	for i := 0; i < 3; i++ {
-		sk, _, err := test.RandTestKeyPair(ci.RSA, 512)
-		if err != nil {
-			t.Fatal(err)
-		}
+		id := tnet.RandIdentityOrFatal(t)
 
 		a := tnet.RandLocalTCPAddress()
-		h, err := mn.AddPeer(sk, a)
+		h, err := mn.AddPeer(id.PrivateKey(), a)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -597,7 +583,7 @@ func TestLimitedStreams(t *testing.T) {
 	}
 
 	wg.Wait()
-	if !within(time.Since(before), time.Duration(time.Second*2), time.Second/3) {
+	if !within(time.Since(before), time.Second*2, time.Second) {
 		t.Fatal("Expected 2ish seconds but got ", time.Since(before))
 	}
 }
@@ -662,7 +648,7 @@ func TestStreamsWithLatency(t *testing.T) {
 	wg.Wait()
 
 	delta := time.Since(checkpoint)
-	tolerance := time.Millisecond * 100
+	tolerance := time.Second
 	if !within(delta, latency, tolerance) {
 		t.Fatalf("Expected write to take ~%s (+/- %s), but took %s", latency.String(), tolerance.String(), delta.String())
 	}
