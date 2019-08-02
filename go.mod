@@ -19,9 +19,9 @@ require (
 	github.com/libp2p/go-libp2p-mplex v0.2.1
 	github.com/libp2p/go-libp2p-nat v0.0.4
 	github.com/libp2p/go-libp2p-netutil v0.1.0
-	github.com/libp2p/go-libp2p-peerstore v0.1.2
+	github.com/libp2p/go-libp2p-peerstore v0.1.3
 	github.com/libp2p/go-libp2p-secio v0.2.0
-	github.com/libp2p/go-libp2p-swarm v0.1.1
+	github.com/libp2p/go-libp2p-swarm v0.2.0
 	github.com/libp2p/go-libp2p-testing v0.1.0
 	github.com/libp2p/go-libp2p-transport-upgrader v0.1.1
 	github.com/libp2p/go-libp2p-yamux v0.2.1
