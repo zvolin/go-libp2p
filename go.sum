@@ -145,6 +145,8 @@ github.com/libp2p/go-libp2p-peerstore v0.1.2 h1:MamqRA9OU9U/hbpeiowG3q3QNrWI+omK
 github.com/libp2p/go-libp2p-peerstore v0.1.2/go.mod h1:BJ9sHlm59/80oSkpWgr1MyY1ciXAXV397W6h1GH/uKI=
 github.com/libp2p/go-libp2p-secio v0.1.0 h1:NNP5KLxuP97sE5Bu3iuwOWyT/dKEGMN5zSLMWdB7GTQ=
 github.com/libp2p/go-libp2p-secio v0.1.0/go.mod h1:tMJo2w7h3+wN4pgU2LSYeiKPrfqBgkOsdiKK77hE7c8=
+github.com/libp2p/go-libp2p-secio v0.2.0 h1:ywzZBsWEEz2KNTn5RtzauEDq5RFEefPsttXYwAWqHng=
+github.com/libp2p/go-libp2p-secio v0.2.0/go.mod h1:2JdZepB8J5V9mBp79BmwsaPQhRPNN2NrnB2lKQcdy6g=
 github.com/libp2p/go-libp2p-swarm v0.1.0/go.mod h1:wQVsCdjsuZoc730CgOvh5ox6K8evllckjebkdiY5ta4=
 github.com/libp2p/go-libp2p-swarm v0.1.1 h1:QW7pjyTRIxt9yyBid52YmMRGtkFXUE/rbEVWsQ0ae+w=
 github.com/libp2p/go-libp2p-swarm v0.1.1/go.mod h1:4NVJaLwq/dr5kEq79Jo6pMin7ZFwLx73ln1FTefR91Q=
