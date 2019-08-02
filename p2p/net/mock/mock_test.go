@@ -583,7 +583,7 @@ func TestLimitedStreams(t *testing.T) {
 	}
 
 	wg.Wait()
-	if !within(time.Since(before), time.Duration(time.Second*2), time.Second/3) {
+	if !within(time.Since(before), time.Second*2, time.Second) {
 		t.Fatal("Expected 2ish seconds but got ", time.Since(before))
 	}
 }
@@ -648,7 +648,7 @@ func TestStreamsWithLatency(t *testing.T) {
 	wg.Wait()
 
 	delta := time.Since(checkpoint)
-	tolerance := time.Millisecond * 100
+	tolerance := time.Second
 	if !within(delta, latency, tolerance) {
 		t.Fatalf("Expected write to take ~%s (+/- %s), but took %s", latency.String(), tolerance.String(), delta.String())
 	}
