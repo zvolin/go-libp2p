@@ -47,7 +47,8 @@ const transientTTL = 10 * time.Second
 //  * Our IPFS Agent Version
 //  * Our public Listen Addresses
 type IDService struct {
-	Host host.Host
+	Host      host.Host
+	UserAgent string
 
 	ctx context.Context
 
@@ -70,9 +71,21 @@ type IDService struct {
 
 // NewIDService constructs a new *IDService and activates it by
 // attaching its stream handler to the given host.Host.
-func NewIDService(ctx context.Context, h host.Host) *IDService {
+func NewIDService(ctx context.Context, h host.Host, opts ...Option) *IDService {
+	var cfg config
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+
+	userAgent := ClientVersion
+	if cfg.userAgent != "" {
+		userAgent = cfg.userAgent
+	}
+
 	s := &IDService{
-		Host:          h,
+		Host:      h,
+		UserAgent: userAgent,
+
 		ctx:           ctx,
 		currid:        make(map[network.Conn]chan struct{}),
 		observedAddrs: NewObservedAddrSet(ctx),
@@ -306,7 +319,7 @@ func (ids *IDService) populateMessage(mes *pb.Identify, c network.Conn) {
 
 	// set protocol versions
 	pv := LibP2PVersion
-	av := ClientVersion
+	av := ids.UserAgent
 	mes.ProtocolVersion = &pv
 	mes.AgentVersion = &av
 }

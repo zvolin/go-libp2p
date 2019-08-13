@@ -44,6 +44,8 @@ type RoutingC func(host.Host) (routing.PeerRouting, error)
 // This is *not* a stable interface. Use the options defined in the root
 // package.
 type Config struct {
+	UserAgent string
+
 	PeerKey crypto.PrivKey
 
 	Transports         []TptC
@@ -120,6 +122,7 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 		AddrsFactory: cfg.AddrsFactory,
 		NATManager:   cfg.NATManager,
 		EnablePing:   !cfg.DisablePing,
+		UserAgent:    cfg.UserAgent,
 	})
 
 	if err != nil {
