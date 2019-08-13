@@ -2,6 +2,8 @@ package identify
 
 import (
 	"context"
+	"fmt"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -31,9 +33,27 @@ const ID = "/ipfs/id/1.0.0"
 
 // LibP2PVersion holds the current protocol version for a client running this code
 // TODO(jbenet): fix the versioning mess.
+// XXX: Don't change this till 2020. You'll break all go-ipfs versions prior to
+// 0.4.17 which asserted an exact version match.
 const LibP2PVersion = "ipfs/0.1.0"
 
-var ClientVersion = "go-libp2p/3.3.4"
+// ClientVersion is the default user agent.
+//
+// Deprecated: Set this with the UserAgent option.
+var ClientVersion = "github.com/libp2p/go-libp2p"
+
+func init() {
+	bi, ok := debug.ReadBuildInfo()
+	if !ok {
+		return
+	}
+	version := bi.Main.Version
+	if version == "(devel)" {
+		ClientVersion = bi.Main.Path
+	} else {
+		ClientVersion = fmt.Sprintf("%s@%s", bi.Main.Path, bi.Main.Version)
+	}
+}
 
 // transientTTL is a short ttl for invalidated previously connected addrs
 const transientTTL = 10 * time.Second
