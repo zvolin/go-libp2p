@@ -10,6 +10,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/connmgr"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/metrics"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/pnet"
 
@@ -241,6 +242,39 @@ func DisableRelay() Option {
 func EnableAutoRelay() Option {
 	return func(cfg *Config) error {
 		cfg.EnableAutoRelay = true
+		return nil
+	}
+}
+
+// StaticRelays configures known relays for autorelay; when this option is enabled
+// then the system will use the configured relays instead of querying the DHT to
+// discover relays
+func StaticRelays(relays []peer.AddrInfo) Option {
+	return func(cfg *Config) error {
+		cfg.StaticRelays = relays
+		return nil
+	}
+}
+
+// DefaultRelays configures the static relays to use the known PL-operated relays
+func DefaultRelays() Option {
+	return func(cfg *Config) error {
+		for _, addr := range []string{
+			"/ip4/147.75.80.110/tcp/4001/p2p/QmbFgm5zan8P6eWWmeyfncR5feYEMPbht5b1FW1C37aQ7y",
+			"/ip4/147.75.195.153/tcp/4001/p2p/QmW9m57aiBDHAkKj9nmFSEn7ZqrcF1fZS4bipsTCHburei",
+			"/ip4/147.75.70.221/tcp/4001/p2p/Qme8g49gm3q4Acp7xWBKg3nAa9fxZ1YmyDJdyGgoG6LsXh",
+		} {
+			a, err := ma.NewMultiaddr(addr)
+			if err != nil {
+				return err
+			}
+			pi, err := peer.AddrInfoFromP2pAddr(a)
+			if err != nil {
+				return err
+			}
+			cfg.StaticRelays = append(cfg.StaticRelays, *pi)
+		}
+
 		return nil
 	}
 }
