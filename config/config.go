@@ -44,6 +44,10 @@ type RoutingC func(host.Host) (routing.PeerRouting, error)
 // This is *not* a stable interface. Use the options defined in the root
 // package.
 type Config struct {
+	// UserAgent is the identifier this node will send to other peers when
+	// identifying itself, e.g. via the identify protocol.
+	//
+	// Set it via the UserAgent option function.
 	UserAgent string
 
 	PeerKey crypto.PrivKey
