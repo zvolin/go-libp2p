@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/libp2p/go-eventbus"
+	libp2p "github.com/libp2p/go-libp2p"
 	ic "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/event"
 	"github.com/libp2p/go-libp2p-core/helpers"
@@ -365,5 +366,42 @@ func TestIdentifyDeltaWhileIdentifyingConn(t *testing.T) {
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatalf("timed out while waiting for an event for the protocol changes in h2")
+	}
+}
+
+func TestUserAgent(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	h1, err := libp2p.New(
+		ctx,
+		libp2p.UserAgent("foo"),
+		libp2p.ListenAddrStrings("/ip4/127.0.0.1/tcp/0"),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer h1.Close()
+
+	h2, err := libp2p.New(
+		ctx,
+		libp2p.UserAgent("bar"),
+		libp2p.ListenAddrStrings("/ip4/127.0.0.1/tcp/0"),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer h2.Close()
+
+	err = h1.Connect(ctx, peer.AddrInfo{ID: h2.ID(), Addrs: h2.Addrs()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	av, err := h1.Peerstore().Get(h2.ID(), "AgentVersion")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ver, ok := av.(string); !ok || ver != "bar" {
+		t.Errorf("expected agent version %q, got %q", "bar", av)
 	}
 }
