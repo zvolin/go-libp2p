@@ -12,7 +12,7 @@ require (
 	github.com/libp2p/go-eventbus v0.1.0
 	github.com/libp2p/go-libp2p-autonat v0.1.0
 	github.com/libp2p/go-libp2p-blankhost v0.1.3
-	github.com/libp2p/go-libp2p-circuit v0.1.1
+	github.com/libp2p/go-libp2p-circuit v0.1.2
 	github.com/libp2p/go-libp2p-core v0.2.2
 	github.com/libp2p/go-libp2p-discovery v0.1.0
 	github.com/libp2p/go-libp2p-loggables v0.1.0
@@ -36,3 +36,5 @@ require (
 	github.com/multiformats/go-multistream v0.1.0
 	github.com/whyrusleeping/mdns v0.0.0-20180901202407-ef14215e6b30
 )
+
+go 1.12
