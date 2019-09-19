@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	ma "github.com/multiformats/go-multiaddr"
-	_ "github.com/multiformats/go-multiaddr-dns"
 )
 
 func TestCleanupAddrs(t *testing.T) {
