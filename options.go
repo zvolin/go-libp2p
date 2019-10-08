@@ -17,6 +17,7 @@ import (
 	circuit "github.com/libp2p/go-libp2p-circuit"
 	config "github.com/libp2p/go-libp2p/config"
 	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
+	autorelay "github.com/libp2p/go-libp2p/p2p/host/relay"
 
 	filter "github.com/libp2p/go-maddr-filter"
 	ma "github.com/multiformats/go-multiaddr"
@@ -251,19 +252,15 @@ func EnableAutoRelay() Option {
 // discover relays
 func StaticRelays(relays []peer.AddrInfo) Option {
 	return func(cfg *Config) error {
-		cfg.StaticRelays = relays
+		cfg.StaticRelays = append(cfg.StaticRelays, relays...)
 		return nil
 	}
 }
 
-// DefaultRelays configures the static relays to use the known PL-operated relays
-func DefaultRelays() Option {
+// DefaultStaticRelays configures the static relays to use the known PL-operated relays
+func DefaultStaticRelays() Option {
 	return func(cfg *Config) error {
-		for _, addr := range []string{
-			"/ip4/147.75.80.110/tcp/4001/p2p/QmbFgm5zan8P6eWWmeyfncR5feYEMPbht5b1FW1C37aQ7y",
-			"/ip4/147.75.195.153/tcp/4001/p2p/QmW9m57aiBDHAkKj9nmFSEn7ZqrcF1fZS4bipsTCHburei",
-			"/ip4/147.75.70.221/tcp/4001/p2p/Qme8g49gm3q4Acp7xWBKg3nAa9fxZ1YmyDJdyGgoG6LsXh",
-		} {
+		for _, addr := range autorelay.DefaultRelays {
 			a, err := ma.NewMultiaddr(addr)
 			if err != nil {
 				return err
