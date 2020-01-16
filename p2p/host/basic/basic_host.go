@@ -732,20 +732,23 @@ func (h *BasicHost) AllAddrs() []ma.Multiaddr {
 				continue
 			}
 
+			extMaddr := mappedMaddr
+			if rest != nil {
+				extMaddr = ma.Join(extMaddr, rest)
+			}
+
+			// Add in the mapped addr.
+			finalAddrs = append(finalAddrs, extMaddr)
+
 			// Did the router give us a routable public addr?
 			if manet.IsPublicAddr(mappedMaddr) {
-				// Yes, use it.
-				extMaddr := mappedMaddr
-				if rest != nil {
-					extMaddr = ma.Join(extMaddr, rest)
-				}
-
-				// Add in the mapped addr.
-				finalAddrs = append(finalAddrs, extMaddr)
+				//well done
 				continue
 			}
 
-			// No. Ok, let's try our observed addresses.
+			// No.
+			// in case router give us a wrong address.
+			// also add observed addresses
 
 			// Now, check if we have any observed addresses that
 			// differ from the one reported by the router. Routers
@@ -776,6 +779,7 @@ func (h *BasicHost) AllAddrs() []ma.Multiaddr {
 		}
 		finalAddrs = append(finalAddrs, observedAddrs...)
 	}
+
 	return dedupAddrs(finalAddrs)
 }
 
