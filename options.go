@@ -10,12 +10,14 @@ import (
 	"github.com/libp2p/go-libp2p-core/connmgr"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/metrics"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/pnet"
 
 	circuit "github.com/libp2p/go-libp2p-circuit"
 	config "github.com/libp2p/go-libp2p/config"
 	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
+	autorelay "github.com/libp2p/go-libp2p/p2p/host/relay"
 
 	filter "github.com/libp2p/go-maddr-filter"
 	ma "github.com/multiformats/go-multiaddr"
@@ -241,6 +243,35 @@ func DisableRelay() Option {
 func EnableAutoRelay() Option {
 	return func(cfg *Config) error {
 		cfg.EnableAutoRelay = true
+		return nil
+	}
+}
+
+// StaticRelays configures known relays for autorelay; when this option is enabled
+// then the system will use the configured relays instead of querying the DHT to
+// discover relays
+func StaticRelays(relays []peer.AddrInfo) Option {
+	return func(cfg *Config) error {
+		cfg.StaticRelays = append(cfg.StaticRelays, relays...)
+		return nil
+	}
+}
+
+// DefaultStaticRelays configures the static relays to use the known PL-operated relays
+func DefaultStaticRelays() Option {
+	return func(cfg *Config) error {
+		for _, addr := range autorelay.DefaultRelays {
+			a, err := ma.NewMultiaddr(addr)
+			if err != nil {
+				return err
+			}
+			pi, err := peer.AddrInfoFromP2pAddr(a)
+			if err != nil {
+				return err
+			}
+			cfg.StaticRelays = append(cfg.StaticRelays, *pi)
+		}
+
 		return nil
 	}
 }

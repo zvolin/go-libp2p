@@ -25,10 +25,17 @@ const (
 )
 
 var (
-	DesiredRelays = 3
+	DesiredRelays = 1
 
 	BootDelay = 20 * time.Second
 )
+
+// These are the known PL-operated relays
+var DefaultRelays = []string{
+	"/ip4/147.75.80.110/tcp/4001/p2p/QmbFgm5zan8P6eWWmeyfncR5feYEMPbht5b1FW1C37aQ7y",
+	"/ip4/147.75.195.153/tcp/4001/p2p/QmW9m57aiBDHAkKj9nmFSEn7ZqrcF1fZS4bipsTCHburei",
+	"/ip4/147.75.70.221/tcp/4001/p2p/Qme8g49gm3q4Acp7xWBKg3nAa9fxZ1YmyDJdyGgoG6LsXh",
+}
 
 // AutoRelay is a Host that uses relays for connectivity when a NAT is detected.
 type AutoRelay struct {
@@ -37,6 +44,8 @@ type AutoRelay struct {
 	router   routing.PeerRouting
 	autonat  autonat.AutoNAT
 	addrsF   basic.AddrsFactory
+
+	static []peer.AddrInfo
 
 	disconnect chan struct{}
 
@@ -48,12 +57,13 @@ type AutoRelay struct {
 	cachedAddrsExpiry time.Time
 }
 
-func NewAutoRelay(ctx context.Context, bhost *basic.BasicHost, discover discovery.Discoverer, router routing.PeerRouting) *AutoRelay {
+func NewAutoRelay(ctx context.Context, bhost *basic.BasicHost, discover discovery.Discoverer, router routing.PeerRouting, static []peer.AddrInfo) *AutoRelay {
 	ar := &AutoRelay{
 		host:       bhost,
 		discover:   discover,
 		router:     router,
 		addrsF:     bhost.AddrsFactory,
+		static:     static,
 		relays:     make(map[peer.ID]struct{}),
 		disconnect: make(chan struct{}, 1),
 		status:     autonat.NATStatusUnknown,
@@ -245,6 +255,10 @@ func (ar *AutoRelay) connect(ctx context.Context, pi peer.AddrInfo) bool {
 }
 
 func (ar *AutoRelay) discoverRelays(ctx context.Context) ([]peer.AddrInfo, error) {
+	if len(ar.static) > 0 {
+		return ar.static, nil
+	}
+
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	return discovery.FindPeers(ctx, ar.discover, RelayRendezvous, discovery.Limit(1000))
