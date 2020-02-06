@@ -32,7 +32,7 @@ require (
 	github.com/miekg/dns v1.1.12 // indirect
 	github.com/multiformats/go-multiaddr v0.2.0
 	github.com/multiformats/go-multiaddr-dns v0.2.0
-	github.com/multiformats/go-multiaddr-net v0.1.1
+	github.com/multiformats/go-multiaddr-net v0.1.2
 	github.com/multiformats/go-multistream v0.1.1
 	github.com/whyrusleeping/mdns v0.0.0-20190826153040-b9b60ed33aa9
 	golang.org/x/sys v0.0.0-20190922100055-0a153f010e69 // indirect
