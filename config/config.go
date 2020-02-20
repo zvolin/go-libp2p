@@ -56,7 +56,7 @@ type Config struct {
 	Muxers             []MsMuxC
 	SecurityTransports []MsSecC
 	Insecure           bool
-	Protector          pnet.Protector
+	PSK                pnet.PSK
 
 	RelayCustom bool
 	Relay       bool
@@ -84,7 +84,7 @@ type Config struct {
 // This function consumes the config. Do not reuse it (really!).
 func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 	// Check this early. Prevents us from even *starting* without verifying this.
-	if pnet.ForcePrivateNetwork && cfg.Protector == nil {
+	if pnet.ForcePrivateNetwork && len(cfg.PSK) == 0 {
 		log.Error("tried to create a libp2p node with no Private" +
 			" Network Protector but usage of Private Networks" +
 			" is forced by the enviroment")
@@ -145,7 +145,7 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 	}
 
 	upgrader := new(tptu.Upgrader)
-	upgrader.Protector = cfg.Protector
+	upgrader.PSK = cfg.PSK
 	upgrader.Filters = swrm.Filters
 	if cfg.Insecure {
 		upgrader.Secure = makeInsecureTransport(pid, cfg.PeerKey)
