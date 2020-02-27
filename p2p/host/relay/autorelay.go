@@ -86,25 +86,25 @@ func (ar *AutoRelay) hostAddrs(addrs []ma.Multiaddr) []ma.Multiaddr {
 
 func (ar *AutoRelay) background(ctx context.Context) {
 	subNatPublic, _ := ar.host.EventBus().Subscribe(new(event.EvtLocalRoutabilityPublic))
-	pubChan := subNatPublic.Out()
+	defer subNatPublic.Close()
 	subNatPrivate, _ := ar.host.EventBus().Subscribe(new(event.EvtLocalRoutabilityPrivate))
-	priChan := subNatPrivate.Out()
+	defer subNatPrivate.Close()
 	subNatUnknown, _ := ar.host.EventBus().Subscribe(new(event.EvtLocalRoutabilityUnknown))
-	unkChan := subNatUnknown.Out()
+	defer subNatUnknown.Close()
 
 	// when true, we need to identify push
 	push := false
 
 	for {
 		select {
-		case <-pubChan:
+		case <-subNatPublic.Out():
 			ar.mx.Lock()
 			if ar.status != autonat.NATStatusPublic {
 				push = true
 			}
 			ar.status = autonat.NATStatusPublic
 			ar.mx.Unlock()
-		case <-priChan:
+		case <-subNatPrivate.Out():
 			// TODO: this is a long-lived (2.5min task) that should get spun up in a separate thread
 			// and canceled if the relay learns the nat is now public.
 			update := ar.findRelays(ctx)
@@ -114,7 +114,7 @@ func (ar *AutoRelay) background(ctx context.Context) {
 			}
 			ar.status = autonat.NATStatusPrivate
 			ar.mx.Unlock()
-		case <-unkChan:
+		case <-subNatUnknown.Out():
 			ar.mx.Lock()
 			ar.status = autonat.NATStatusUnknown
 			ar.mx.Unlock()
