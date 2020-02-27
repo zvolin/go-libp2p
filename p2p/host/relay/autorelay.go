@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/libp2p/go-libp2p-core/event"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/routing"
@@ -84,33 +85,28 @@ func (ar *AutoRelay) hostAddrs(addrs []ma.Multiaddr) []ma.Multiaddr {
 }
 
 func (ar *AutoRelay) background(ctx context.Context) {
-	select {
-	case <-time.After(autonat.AutoNATBootDelay + BootDelay):
-	case <-ctx.Done():
-		return
-	}
+	subNatPublic, _ := ar.host.EventBus().Subscribe(new(event.EvtLocalRoutabilityPublic))
+	pubChan := subNatPublic.Out()
+	subNatPrivate, _ := ar.host.EventBus().Subscribe(new(event.EvtLocalRoutabilityPrivate))
+	priChan := subNatPrivate.Out()
+	subNatUnknown, _ := ar.host.EventBus().Subscribe(new(event.EvtLocalRoutabilityUnknown))
+	unkChan := subNatUnknown.Out()
 
 	// when true, we need to identify push
 	push := false
 
 	for {
-		wait := autonat.AutoNATRefreshInterval
-		switch ar.autonat.Status() {
-		case autonat.NATStatusUnknown:
-			ar.mx.Lock()
-			ar.status = autonat.NATStatusUnknown
-			ar.mx.Unlock()
-			wait = autonat.AutoNATRetryInterval
-
-		case autonat.NATStatusPublic:
+		select {
+		case <-pubChan:
 			ar.mx.Lock()
 			if ar.status != autonat.NATStatusPublic {
 				push = true
 			}
 			ar.status = autonat.NATStatusPublic
 			ar.mx.Unlock()
-
-		case autonat.NATStatusPrivate:
+		case <-priChan:
+			// TODO: this is a long-lived (2.5min task) that should get spun up in a separate thread
+			// and canceled if the relay learns the nat is now public.
 			update := ar.findRelays(ctx)
 			ar.mx.Lock()
 			if update || ar.status != autonat.NATStatusPrivate {
@@ -118,6 +114,14 @@ func (ar *AutoRelay) background(ctx context.Context) {
 			}
 			ar.status = autonat.NATStatusPrivate
 			ar.mx.Unlock()
+		case <-unkChan:
+			ar.mx.Lock()
+			ar.status = autonat.NATStatusUnknown
+			ar.mx.Unlock()
+		case <-ar.disconnect:
+			push = true
+		case <-ctx.Done():
+			return
 		}
 
 		if push {
@@ -126,14 +130,6 @@ func (ar *AutoRelay) background(ctx context.Context) {
 			ar.mx.Unlock()
 			push = false
 			ar.host.PushIdentify()
-		}
-
-		select {
-		case <-ar.disconnect:
-			push = true
-		case <-time.After(wait):
-		case <-ctx.Done():
-			return
 		}
 	}
 }

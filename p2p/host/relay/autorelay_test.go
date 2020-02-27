@@ -16,6 +16,7 @@ import (
 	autonat "github.com/libp2p/go-libp2p-autonat"
 	autonatpb "github.com/libp2p/go-libp2p-autonat/pb"
 	circuit "github.com/libp2p/go-libp2p-circuit"
+	"github.com/libp2p/go-libp2p-core/event"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -181,9 +182,13 @@ func TestAutoRelay(t *testing.T) {
 		}
 	}
 
-	// connect to AutoNAT and let detection/discovery work its magic
+	// connect to AutoNAT, have it resolve to private.
 	connect(t, h1, h3)
-	time.Sleep(5 * time.Second)
+	time.Sleep(300 * time.Millisecond)
+	privEmitter, _ := h3.EventBus().Emitter(new(event.EvtLocalRoutabilityPrivate))
+	privEmitter.Emit(event.EvtLocalRoutabilityPrivate{})
+	// Wait for detection to do its magic
+	time.Sleep(3000 * time.Millisecond)
 
 	// verify that we now advertise relay addrs (but not unspecific relay addrs)
 	unspecificRelay, err := ma.NewMultiaddr("/p2p-circuit")
