@@ -207,19 +207,6 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 			return nil, fmt.Errorf("cannot enable autorelay; relay is not enabled")
 		}
 
-		if router == nil {
-			h.Close()
-			return nil, fmt.Errorf("cannot enable autorelay; no routing for discovery")
-		}
-
-		crouter, ok := router.(routing.ContentRouting)
-		if !ok {
-			h.Close()
-			return nil, fmt.Errorf("cannot enable autorelay; no suitable routing for discovery")
-		}
-
-		discovery := discovery.NewRoutingDiscovery(crouter)
-
 		hop := false
 		for _, opt := range cfg.RelayOpts {
 			if opt == circuit.OptHop {
@@ -228,11 +215,28 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 			}
 		}
 
-		if hop {
-			// advertise ourselves
-			relay.Advertise(ctx, discovery)
+		if !hop && len(cfg.StaticRelays) > 0 {
+			_ = relay.NewAutoRelay(swrm.Context(), h, nil, router, cfg.StaticRelays)
 		} else {
-			_ = relay.NewAutoRelay(swrm.Context(), h, discovery, router, cfg.StaticRelays)
+			if router == nil {
+				h.Close()
+				return nil, fmt.Errorf("cannot enable autorelay; no routing for discovery")
+			}
+
+			crouter, ok := router.(routing.ContentRouting)
+			if !ok {
+				h.Close()
+				return nil, fmt.Errorf("cannot enable autorelay; no suitable routing for discovery")
+			}
+
+			discovery := discovery.NewRoutingDiscovery(crouter)
+
+			if hop {
+				// advertise ourselves
+				relay.Advertise(ctx, discovery)
+			} else {
+				_ = relay.NewAutoRelay(swrm.Context(), h, discovery, router, cfg.StaticRelays)
+			}
 		}
 	}
 
