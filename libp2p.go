@@ -8,7 +8,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/host"
 )
 
-// Config describes a set of settings for a libp2p node
+// Config describes a set of settings for a libp2p node.
 type Config = config.Config
 
 // Option is a libp2p config option that can be given to the libp2p constructor
