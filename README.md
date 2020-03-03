@@ -29,12 +29,11 @@
   - [API](#api)
   - [Examples](#examples)
 - [Development](#development)
-  - [Using the libp2p Workspace](#using-the-libp2p-workspace)
+  - [Using the go-libp2p Workspace](#using-the-go-libp2p-workspace)
   - [About gx](#about-gx)
   - [Tests](#tests)
   - [Packages](#packages)
 - [Contribute](#contribute)
-- [Weekly Core Dev Calls](https://github.com/ipfs/pm/issues/674)
 
 ## Background
 
@@ -83,7 +82,7 @@ Examples can be found in the [examples repo](https://github.com/libp2p/go-libp2p
 
 ## Development
 
-### Using the libp2p Workspace
+### Using the go-libp2p Workspace
 
 While developing, you may need to make changes to several modules at once, or you may want changes made locally in one module to be available for import by another.
 
