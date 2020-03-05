@@ -52,7 +52,7 @@ type AutoRelay struct {
 
 	mx     sync.Mutex
 	relays map[peer.ID]struct{}
-	status autonat.NATStatus
+	status network.Reachability
 
 	cachedAddrs       []ma.Multiaddr
 	cachedAddrsExpiry time.Time
@@ -67,7 +67,7 @@ func NewAutoRelay(ctx context.Context, bhost *basic.BasicHost, discover discover
 		static:     static,
 		relays:     make(map[peer.ID]struct{}),
 		disconnect: make(chan struct{}, 1),
-		status:     autonat.NATStatusUnknown,
+		status:     network.ReachabilityUnknown,
 	}
 	ar.autonat = autonat.NewAutoNAT(ctx, bhost, ar.baseAddrs)
 	bhost.AddrsFactory = ar.hostAddrs
@@ -85,38 +85,37 @@ func (ar *AutoRelay) hostAddrs(addrs []ma.Multiaddr) []ma.Multiaddr {
 }
 
 func (ar *AutoRelay) background(ctx context.Context) {
-	subNatPublic, _ := ar.host.EventBus().Subscribe(new(event.EvtLocalRoutabilityPublic))
-	defer subNatPublic.Close()
-	subNatPrivate, _ := ar.host.EventBus().Subscribe(new(event.EvtLocalRoutabilityPrivate))
-	defer subNatPrivate.Close()
-	subNatUnknown, _ := ar.host.EventBus().Subscribe(new(event.EvtLocalRoutabilityUnknown))
-	defer subNatUnknown.Close()
+	subReachability, _ := ar.host.EventBus().Subscribe(new(event.EvtLocalReachabilityChanged))
+	defer subReachability.Close()
 
 	// when true, we need to identify push
 	push := false
 
 	for {
 		select {
-		case <-subNatPublic.Out():
+		case ev, ok := <-subReachability.Out():
+			if !ok {
+				return
+			}
+			evt, ok := ev.(event.EvtLocalReachabilityChanged)
+			if !ok {
+				return
+			}
+
+			var update bool
+			if evt.Reachability == network.ReachabilityPrivate {
+				// TODO: this is a long-lived (2.5min task) that should get spun up in a separate thread
+				// and canceled if the relay learns the nat is now public.
+				update = ar.findRelays(ctx)
+			}
+
 			ar.mx.Lock()
-			if ar.status != autonat.NATStatusPublic {
+			if ar.status != evt.Reachability && evt.Reachability != network.ReachabilityUnknown {
+				push = true
+			} else if update {
 				push = true
 			}
-			ar.status = autonat.NATStatusPublic
-			ar.mx.Unlock()
-		case <-subNatPrivate.Out():
-			// TODO: this is a long-lived (2.5min task) that should get spun up in a separate thread
-			// and canceled if the relay learns the nat is now public.
-			update := ar.findRelays(ctx)
-			ar.mx.Lock()
-			if update || ar.status != autonat.NATStatusPrivate {
-				push = true
-			}
-			ar.status = autonat.NATStatusPrivate
-			ar.mx.Unlock()
-		case <-subNatUnknown.Out():
-			ar.mx.Lock()
-			ar.status = autonat.NATStatusUnknown
+			ar.status = evt.Reachability
 			ar.mx.Unlock()
 		case <-ar.disconnect:
 			push = true
@@ -279,7 +278,7 @@ func (ar *AutoRelay) relayAddrs(addrs []ma.Multiaddr) []ma.Multiaddr {
 	ar.mx.Lock()
 	defer ar.mx.Unlock()
 
-	if ar.status != autonat.NATStatusPrivate {
+	if ar.status != network.ReachabilityPrivate {
 		return addrs
 	}
 

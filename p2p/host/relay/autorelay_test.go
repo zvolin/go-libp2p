@@ -185,8 +185,8 @@ func TestAutoRelay(t *testing.T) {
 	// connect to AutoNAT, have it resolve to private.
 	connect(t, h1, h3)
 	time.Sleep(300 * time.Millisecond)
-	privEmitter, _ := h3.EventBus().Emitter(new(event.EvtLocalRoutabilityPrivate))
-	privEmitter.Emit(event.EvtLocalRoutabilityPrivate{})
+	privEmitter, _ := h3.EventBus().Emitter(new(event.EvtLocalReachabilityChanged))
+	privEmitter.Emit(event.EvtLocalReachabilityChanged{Reachability: network.ReachabilityPrivate})
 	// Wait for detection to do its magic
 	time.Sleep(3000 * time.Millisecond)
 
