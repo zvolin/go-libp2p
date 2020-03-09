@@ -228,9 +228,11 @@ func DisableRelay() Option {
 	}
 }
 
-// EnableAutoRelay configures libp2p to enable the AutoRelay subsystem. It is an
-// error to enable AutoRelay without enabling relay (enabled by default) and
-// routing (not enabled by default).
+// EnableAutoRelay configures libp2p to enable the AutoRelay subsystem.
+//
+// Dependencies:
+//  * Relay (enabled by default)
+//  * Routing (to find relays), or StaticRelays/DefaultStaticRelays.
 //
 // This subsystem performs two functions:
 //
