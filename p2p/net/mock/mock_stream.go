@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -15,9 +16,13 @@ import (
 
 // stream implements network.Stream
 type stream struct {
+	notifLk sync.Mutex
+
+	rstream *stream
+	conn    *conn
+
 	write     *io.PipeWriter
 	read      *io.PipeReader
-	conn      *conn
 	toDeliver chan *transportObject
 
 	reset  chan struct{}
@@ -37,7 +42,18 @@ type transportObject struct {
 	arrivalTime time.Time
 }
 
-func NewStream(w *io.PipeWriter, r *io.PipeReader, dir network.Direction) *stream {
+func newStreamPair() (*stream, *stream) {
+	ra, wb := io.Pipe()
+	rb, wa := io.Pipe()
+
+	sa := newStream(wa, ra, network.DirOutbound)
+	sb := newStream(wb, rb, network.DirInbound)
+	sa.rstream = sb
+	sb.rstream = sa
+	return sa, sb
+}
+
+func newStream(w *io.PipeWriter, r *io.PipeReader, dir network.Direction) *stream {
 	s := &stream{
 		read:      r,
 		write:     w,
@@ -117,10 +133,6 @@ func (s *stream) teardown() {
 
 	// Mark as closed.
 	close(s.closed)
-
-	s.conn.net.notifyAll(func(n network.Notifiee) {
-		n.ClosedStream(s.conn.net, s)
-	})
 }
 
 func (s *stream) Conn() network.Conn {
