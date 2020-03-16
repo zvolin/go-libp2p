@@ -12,7 +12,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/routing"
 
-	autonat "github.com/libp2p/go-libp2p-autonat"
 	circuit "github.com/libp2p/go-libp2p-circuit"
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	basic "github.com/libp2p/go-libp2p/p2p/host/basic"
@@ -43,7 +42,6 @@ type AutoRelay struct {
 	host     *basic.BasicHost
 	discover discovery.Discoverer
 	router   routing.PeerRouting
-	autonat  autonat.AutoNAT
 	addrsF   basic.AddrsFactory
 
 	static []peer.AddrInfo
@@ -69,15 +67,10 @@ func NewAutoRelay(ctx context.Context, bhost *basic.BasicHost, discover discover
 		disconnect: make(chan struct{}, 1),
 		status:     network.ReachabilityUnknown,
 	}
-	ar.autonat = autonat.NewAutoNAT(ctx, bhost, ar.baseAddrs)
 	bhost.AddrsFactory = ar.hostAddrs
 	bhost.Network().Notify(ar)
 	go ar.background(ctx)
 	return ar
-}
-
-func (ar *AutoRelay) baseAddrs() []ma.Multiaddr {
-	return ar.addrsF(ar.host.AllAddrs())
 }
 
 func (ar *AutoRelay) hostAddrs(addrs []ma.Multiaddr) []ma.Multiaddr {
