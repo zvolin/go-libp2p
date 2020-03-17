@@ -213,6 +213,9 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 	}
 
 	hop := false
+	// Note: h.AddrsFactory may be changed by AutoRelay, but non-relay version is
+	// used by AutoNAT below.
+	addrF := h.AddrsFactory
 	if cfg.EnableAutoRelay {
 		if !cfg.Relay {
 			h.Close()
@@ -252,7 +255,9 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 	}
 
 	if cfg.EnableAutoRelay || cfg.EnableAutoNAT {
-		var autonatOpts []autonat.Option
+		autonatOpts := []autonat.Option{autonat.AddressGuesser(func() []ma.Multiaddr {
+			return addrF(h.AllAddrs())
+		})}
 		if hop {
 			dialerStore := pstoremem.NewPeerstore()
 			dialerHost, err := cfg.newHost(ctx, dialerStore)
