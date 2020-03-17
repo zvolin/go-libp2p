@@ -278,6 +278,15 @@ func DefaultStaticRelays() Option {
 	}
 }
 
+// EnableAutoNAT configures libp2p to monitor its NAT status and track when
+// the local host is externally reachable.
+func EnableAutoNAT() Option {
+	return func(cfg *Config) error {
+		cfg.EnableAutoNAT = true
+		return nil
+	}
+}
+
 // FilterAddresses configures libp2p to never dial nor accept connections from
 // the given addresses. FilterAddresses should be used for cases where the
 // addresses you want to deny are known ahead of time.
