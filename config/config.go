@@ -255,7 +255,7 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 	}
 
 	if cfg.EnableAutoRelay || cfg.EnableAutoNAT {
-		autonatOpts := []autonat.Option{autonat.AddressGuesser(func() []ma.Multiaddr {
+		autonatOpts := []autonat.Option{autonat.UsingAddresses(func() []ma.Multiaddr {
 			return addrF(h.AllAddrs())
 		})}
 		if hop {
