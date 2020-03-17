@@ -18,6 +18,7 @@ import (
 	relay "github.com/libp2p/go-libp2p/p2p/host/relay"
 	routed "github.com/libp2p/go-libp2p/p2p/host/routed"
 
+	autonat "github.com/libp2p/go-libp2p-autonat"
 	circuit "github.com/libp2p/go-libp2p-circuit"
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	swarm "github.com/libp2p/go-libp2p-swarm"
@@ -76,6 +77,7 @@ type Config struct {
 	Routing RoutingC
 
 	EnableAutoRelay bool
+	AutoNATOpts     []autonat.Option
 	StaticRelays    []peer.AddrInfo
 }
 
@@ -198,6 +200,13 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 		if err != nil {
 			h.Close()
 			return nil, err
+		}
+	}
+
+	if cfg.EnableAutoRelay || cfg.AutoNATOpts != nil {
+		if _, err = autonat.New(ctx, h, cfg.AutoNATOpts...); err != nil {
+			h.Close()
+			return nil, fmt.Errorf("cannot enable autorelay; autonat failed to start: %v", err)
 		}
 	}
 
