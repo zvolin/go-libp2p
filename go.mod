@@ -10,7 +10,7 @@ require (
 	github.com/jbenet/goprocess v0.1.3
 	github.com/libp2p/go-conn-security-multistream v0.1.0
 	github.com/libp2p/go-eventbus v0.1.0
-	github.com/libp2p/go-libp2p-autonat v0.1.2-0.20200317183318-4b2cc5830d44
+	github.com/libp2p/go-libp2p-autonat v0.1.2-0.20200319175655-901286ad641d
 	github.com/libp2p/go-libp2p-blankhost v0.1.4
 	github.com/libp2p/go-libp2p-circuit v0.1.4
 	github.com/libp2p/go-libp2p-core v0.5.0

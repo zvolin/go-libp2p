@@ -155,6 +155,8 @@ github.com/libp2p/go-libp2p-autonat v0.1.2-0.20200316221154-f1cd6ba0fd67 h1:3UM/
 github.com/libp2p/go-libp2p-autonat v0.1.2-0.20200316221154-f1cd6ba0fd67/go.mod h1:yoF5B6yi+Wjxci55xdLlJo7gfyHwG80df4B9hiO2A88=
 github.com/libp2p/go-libp2p-autonat v0.1.2-0.20200317183318-4b2cc5830d44 h1:xfmItLrKVdinHJJouT4ocZFWK+Y0WaEONku6aYN92+s=
 github.com/libp2p/go-libp2p-autonat v0.1.2-0.20200317183318-4b2cc5830d44/go.mod h1:yoF5B6yi+Wjxci55xdLlJo7gfyHwG80df4B9hiO2A88=
+github.com/libp2p/go-libp2p-autonat v0.1.2-0.20200319175655-901286ad641d h1:iA6ZxnrWVFW4Q4QlmKYctSapkGKbcbalnHygPVRCCfc=
+github.com/libp2p/go-libp2p-autonat v0.1.2-0.20200319175655-901286ad641d/go.mod h1:yoF5B6yi+Wjxci55xdLlJo7gfyHwG80df4B9hiO2A88=
 github.com/libp2p/go-libp2p-blankhost v0.1.1/go.mod h1:pf2fvdLJPsC1FsVrNP3DUUvMzUts2dsLLBEpo1vW1ro=
 github.com/libp2p/go-libp2p-blankhost v0.1.4 h1:I96SWjR4rK9irDHcHq3XHN6hawCRTPUADzkJacgZLvk=
 github.com/libp2p/go-libp2p-blankhost v0.1.4/go.mod h1:oJF0saYsAXQCSfDq254GMNmLNz6ZTHTOvtF4ZydUvwU=

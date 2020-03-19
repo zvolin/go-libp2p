@@ -103,9 +103,7 @@ func (ar *AutoRelay) background(ctx context.Context) {
 			}
 
 			ar.mx.Lock()
-			if ar.status != evt.Reachability && evt.Reachability != network.ReachabilityUnknown {
-				push = true
-			} else if update {
+			if update || (ar.status != evt.Reachability && evt.Reachability != network.ReachabilityUnknown) {
 				push = true
 			}
 			ar.status = evt.Reachability

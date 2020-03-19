@@ -41,6 +41,8 @@ type NATManagerC func(network.Network) bhost.NATManager
 
 type RoutingC func(host.Host) (routing.PeerRouting, error)
 
+// AutoNATMode defines the AutoNAT behavior for the libp2p host.
+
 // Config describes a set of settings for a libp2p node
 //
 // This is *not* a stable interface. Use the options defined in the root
@@ -78,7 +80,8 @@ type Config struct {
 	Routing RoutingC
 
 	EnableAutoRelay bool
-	EnableAutoNAT   bool
+	Reachability    network.Reachability
+	AutoNATService  bool
 	StaticRelays    []peer.AddrInfo
 }
 
@@ -212,7 +215,6 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 		}
 	}
 
-	hop := false
 	// Note: h.AddrsFactory may be changed by AutoRelay, but non-relay version is
 	// used by AutoNAT below.
 	addrF := h.AddrsFactory
@@ -222,6 +224,7 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 			return nil, fmt.Errorf("cannot enable autorelay; relay is not enabled")
 		}
 
+		hop := false
 		for _, opt := range cfg.RelayOpts {
 			if opt == circuit.OptHop {
 				hop = true
@@ -254,25 +257,26 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 		}
 	}
 
-	if cfg.EnableAutoRelay || cfg.EnableAutoNAT {
-		autonatOpts := []autonat.Option{autonat.UsingAddresses(func() []ma.Multiaddr {
-			return addrF(h.AllAddrs())
-		})}
-		if hop {
-			dialerStore := pstoremem.NewPeerstore()
-			dialerHost, err := cfg.newHost(ctx, dialerStore)
-			if err != nil {
-				h.Close()
-				return nil, err
-			}
-
-			autonatOpts = append(autonatOpts, autonat.EnableService(dialerHost.Network(), false))
-		}
-
-		if _, err = autonat.New(ctx, h, autonatOpts...); err != nil {
+	autonatOpts := []autonat.Option{autonat.UsingAddresses(func() []ma.Multiaddr {
+		return addrF(h.AllAddrs())
+	})}
+	if cfg.AutoNATService {
+		dialerStore := pstoremem.NewPeerstore()
+		dialerHost, err := cfg.newHost(ctx, dialerStore)
+		if err != nil {
 			h.Close()
-			return nil, fmt.Errorf("cannot enable autorelay; autonat failed to start: %v", err)
+			return nil, err
 		}
+
+		autonatOpts = append(autonatOpts, autonat.EnableService(dialerHost.Network()))
+	}
+	if cfg.Reachability != network.ReachabilityUnknown {
+		autonatOpts = append(autonatOpts, autonat.WithReachability(cfg.Reachability))
+	}
+
+	if _, err = autonat.New(ctx, h, autonatOpts...); err != nil {
+		h.Close()
+		return nil, fmt.Errorf("cannot enable autorelay; autonat failed to start: %v", err)
 	}
 
 	// start the host background tasks

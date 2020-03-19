@@ -10,6 +10,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/connmgr"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/metrics"
+	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/pnet"
@@ -278,11 +279,25 @@ func DefaultStaticRelays() Option {
 	}
 }
 
-// EnableAutoNAT configures libp2p to monitor its NAT status and track when
-// the local host is externally reachable.
-func EnableAutoNAT() Option {
+// WithReachability overrides automatic reachability detection to force the local node
+// to believe it is either unreachable or reachable externally.
+func WithReachability(reachable bool) Option {
 	return func(cfg *Config) error {
-		cfg.EnableAutoNAT = true
+		if reachable {
+			cfg.Reachability = network.ReachabilityPublic
+		} else {
+			cfg.Reachability = network.ReachabilityPrivate
+		}
+		return nil
+	}
+}
+
+// EnableNATService configures libp2p to provide a service to peers for determining
+// their reachability status. When enabled, the host will attempt to dial back
+// to peers, and then tell them if it was successful in making such connections.
+func EnableNATService() Option {
+	return func(cfg *Config) error {
+		cfg.AutoNATService = true
 		return nil
 	}
 }
