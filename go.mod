@@ -10,7 +10,7 @@ require (
 	github.com/jbenet/goprocess v0.1.3
 	github.com/libp2p/go-conn-security-multistream v0.1.0
 	github.com/libp2p/go-eventbus v0.1.0
-	github.com/libp2p/go-libp2p-autonat v0.1.1
+	github.com/libp2p/go-libp2p-autonat v0.2.0
 	github.com/libp2p/go-libp2p-blankhost v0.1.4
 	github.com/libp2p/go-libp2p-circuit v0.1.4
 	github.com/libp2p/go-libp2p-core v0.5.0
@@ -29,15 +29,12 @@ require (
 	github.com/libp2p/go-stream-muxer-multistream v0.2.0
 	github.com/libp2p/go-tcp-transport v0.1.1
 	github.com/libp2p/go-ws-transport v0.2.0
-	github.com/miekg/dns v1.1.12 // indirect
+	github.com/miekg/dns v1.1.28 // indirect
 	github.com/multiformats/go-multiaddr v0.2.1
 	github.com/multiformats/go-multiaddr-dns v0.2.0
 	github.com/multiformats/go-multiaddr-net v0.1.3
 	github.com/multiformats/go-multistream v0.1.1
 	github.com/whyrusleeping/mdns v0.0.0-20190826153040-b9b60ed33aa9
-	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d // indirect
-	golang.org/x/sync v0.0.0-20190423024810-112230192c58 // indirect
-	golang.org/x/sys v0.0.0-20200223170610-d5e6a3e2c0ae // indirect
 )
 
 go 1.12

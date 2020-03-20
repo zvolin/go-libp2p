@@ -13,11 +13,13 @@ import (
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/pnet"
 	"github.com/libp2p/go-libp2p-core/routing"
+	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
 
 	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
 	relay "github.com/libp2p/go-libp2p/p2p/host/relay"
 	routed "github.com/libp2p/go-libp2p/p2p/host/routed"
 
+	autonat "github.com/libp2p/go-libp2p-autonat"
 	circuit "github.com/libp2p/go-libp2p-circuit"
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	swarm "github.com/libp2p/go-libp2p-swarm"
@@ -38,6 +40,8 @@ type AddrsFactory = bhost.AddrsFactory
 type NATManagerC func(network.Network) bhost.NATManager
 
 type RoutingC func(host.Host) (routing.PeerRouting, error)
+
+// AutoNATMode defines the AutoNAT behavior for the libp2p host.
 
 // Config describes a set of settings for a libp2p node
 //
@@ -76,13 +80,12 @@ type Config struct {
 	Routing RoutingC
 
 	EnableAutoRelay bool
+	Reachability    network.Reachability
+	AutoNATService  bool
 	StaticRelays    []peer.AddrInfo
 }
 
-// NewNode constructs a new libp2p Host from the Config.
-//
-// This function consumes the config. Do not reuse it (really!).
-func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
+func (cfg *Config) newHost(ctx context.Context, store peerstore.Peerstore) (*bhost.BasicHost, error) {
 	// Check this early. Prevents us from even *starting* without verifying this.
 	if pnet.ForcePrivateNetwork && len(cfg.PSK) == 0 {
 		log.Error("tried to create a libp2p node with no Private" +
@@ -103,19 +106,15 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 		return nil, err
 	}
 
-	if cfg.Peerstore == nil {
-		return nil, fmt.Errorf("no peerstore specified")
-	}
-
-	if err := cfg.Peerstore.AddPrivKey(pid, cfg.PeerKey); err != nil {
+	if err := store.AddPrivKey(pid, cfg.PeerKey); err != nil {
 		return nil, err
 	}
-	if err := cfg.Peerstore.AddPubKey(pid, cfg.PeerKey.GetPublic()); err != nil {
+	if err := store.AddPubKey(pid, cfg.PeerKey.GetPublic()); err != nil {
 		return nil, err
 	}
 
 	// TODO: Make the swarm implementation configurable.
-	swrm := swarm.NewSwarm(ctx, pid, cfg.Peerstore, cfg.Reporter)
+	swrm := swarm.NewSwarm(ctx, pid, store, cfg.Reporter)
 	if cfg.Filters != nil {
 		swrm.Filters = cfg.Filters
 	}
@@ -183,6 +182,21 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 			return nil, err
 		}
 	}
+	return h, nil
+}
+
+// NewNode constructs a new libp2p Host from the Config.
+//
+// This function consumes the config. Do not reuse it (really!).
+func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
+	if cfg.Peerstore == nil {
+		return nil, fmt.Errorf("no peerstore specified")
+	}
+
+	h, err := cfg.newHost(ctx, cfg.Peerstore)
+	if err != nil {
+		return nil, err
+	}
 
 	// TODO: This method succeeds if listening on one address succeeds. We
 	// should probably fail if listening on *any* addr fails.
@@ -201,6 +215,9 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 		}
 	}
 
+	// Note: h.AddrsFactory may be changed by AutoRelay, but non-relay version is
+	// used by AutoNAT below.
+	addrF := h.AddrsFactory
 	if cfg.EnableAutoRelay {
 		if !cfg.Relay {
 			h.Close()
@@ -216,7 +233,7 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 		}
 
 		if !hop && len(cfg.StaticRelays) > 0 {
-			_ = relay.NewAutoRelay(swrm.Context(), h, nil, router, cfg.StaticRelays)
+			_ = relay.NewAutoRelay(ctx, h, nil, router, cfg.StaticRelays)
 		} else {
 			if router == nil {
 				h.Close()
@@ -235,9 +252,31 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 				// advertise ourselves
 				relay.Advertise(ctx, discovery)
 			} else {
-				_ = relay.NewAutoRelay(swrm.Context(), h, discovery, router, cfg.StaticRelays)
+				_ = relay.NewAutoRelay(ctx, h, discovery, router, cfg.StaticRelays)
 			}
 		}
+	}
+
+	autonatOpts := []autonat.Option{autonat.UsingAddresses(func() []ma.Multiaddr {
+		return addrF(h.AllAddrs())
+	})}
+	if cfg.AutoNATService {
+		dialerStore := pstoremem.NewPeerstore()
+		dialerHost, err := cfg.newHost(ctx, dialerStore)
+		if err != nil {
+			h.Close()
+			return nil, err
+		}
+
+		autonatOpts = append(autonatOpts, autonat.EnableService(dialerHost.Network()))
+	}
+	if cfg.Reachability != network.ReachabilityUnknown {
+		autonatOpts = append(autonatOpts, autonat.WithReachability(cfg.Reachability))
+	}
+
+	if _, err = autonat.New(ctx, h, autonatOpts...); err != nil {
+		h.Close()
+		return nil, fmt.Errorf("cannot enable autorelay; autonat failed to start: %v", err)
 	}
 
 	// start the host background tasks
