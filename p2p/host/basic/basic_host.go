@@ -88,6 +88,7 @@ type BasicHost struct {
 	lastAddrs []ma.Multiaddr
 	emitters  struct {
 		evtLocalProtocolsUpdated event.Emitter
+		evtLocalAddrsUpdated     event.Emitter
 	}
 }
 
@@ -141,6 +142,9 @@ func NewHost(ctx context.Context, net network.Network, opts *HostOpts) (*BasicHo
 	if h.emitters.evtLocalProtocolsUpdated, err = h.eventbus.Emitter(&event.EvtLocalProtocolsUpdated{}); err != nil {
 		return nil, err
 	}
+	if h.emitters.evtLocalAddrsUpdated, err = h.eventbus.Emitter(&event.EvtLocalAddressesUpdated{}); err != nil {
+		return nil, err
+	}
 
 	h.proc = goprocessctx.WithContextAndTeardown(ctx, func() error {
 		if h.natmgr != nil {
@@ -150,6 +154,7 @@ func NewHost(ctx context.Context, net network.Network, opts *HostOpts) (*BasicHo
 			h.cmgr.Close()
 		}
 		_ = h.emitters.evtLocalProtocolsUpdated.Close()
+		_ = h.emitters.evtLocalAddrsUpdated.Close()
 		return h.Network().Close()
 	})
 
@@ -295,28 +300,63 @@ func (h *BasicHost) newStreamHandler(s network.Stream) {
 	go handle(protoID, s)
 }
 
-// PushIdentify pushes an identify update through the identify push protocol
+// CheckForAddressChanges determines whether our listen addresses have recently
+// changed and emits an EvtLocalAddressesUpdatedEvent & a Push Identify if so.
 // Warning: this interface is unstable and may disappear in the future.
-func (h *BasicHost) PushIdentify() {
-	push := false
-
+func (h *BasicHost) CheckForAddressChanges() {
 	h.mx.Lock()
 	addrs := h.Addrs()
-	if !sameAddrs(addrs, h.lastAddrs) {
-		push = true
+	changeEvt := makeUpdatedAddrEvent(h.lastAddrs, addrs)
+	if changeEvt != nil {
 		h.lastAddrs = addrs
 	}
 	h.mx.Unlock()
 
-	if push {
+	if changeEvt != nil {
+		err := h.emitters.evtLocalAddrsUpdated.Emit(*changeEvt)
+		if err != nil {
+			log.Warnf("error emitting event for updated addrs: %s", err)
+		}
 		h.ids.Push()
 	}
+}
+
+func makeUpdatedAddrEvent(prev, current []ma.Multiaddr) *event.EvtLocalAddressesUpdated {
+	prevmap := make(map[string]ma.Multiaddr, len(prev))
+	evt := event.EvtLocalAddressesUpdated{Diffs: true}
+	addrsAdded := false
+
+	for _, addr := range prev {
+		prevmap[string(addr.Bytes())] = addr
+	}
+	for _, addr := range current {
+		_, ok := prevmap[string(addr.Bytes())]
+		updated := event.UpdatedAddress{Address: addr}
+		if ok {
+			updated.Action = event.Maintained
+		} else {
+			updated.Action = event.Added
+			addrsAdded = true
+		}
+		evt.Current = append(evt.Current, updated)
+		delete(prevmap, string(addr.Bytes()))
+	}
+	for _, addr := range prevmap {
+		updated := event.UpdatedAddress{Action: event.Removed, Address: addr}
+		evt.Removed = append(evt.Removed, updated)
+	}
+
+	if !addrsAdded && len(evt.Removed) == 0 {
+		return nil
+	}
+
+	return &evt
 }
 
 func (h *BasicHost) background(p goprocess.Process) {
 	// periodically schedules an IdentifyPush to update our peers for changes
 	// in our address set (if needed)
-	ticker := time.NewTicker(1 * time.Minute)
+	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
 
 	// initialize lastAddrs
@@ -329,7 +369,7 @@ func (h *BasicHost) background(p goprocess.Process) {
 	for {
 		select {
 		case <-ticker.C:
-			h.PushIdentify()
+			h.CheckForAddressChanges()
 
 		case <-p.Closing():
 			return

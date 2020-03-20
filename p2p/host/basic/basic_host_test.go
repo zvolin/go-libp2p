@@ -507,6 +507,145 @@ func TestAddrResolutionRecursive(t *testing.T) {
 	}
 }
 
+func TestHostAddrChangeDetection(t *testing.T) {
+	// This test uses the address factory to provide several
+	// sets of listen addresses for the host. It advances through
+	// the sets by changing the currentAddrSet index var below.
+	addrSets := [][]ma.Multiaddr{
+		{},
+		{ma.StringCast("/ip4/1.2.3.4/tcp/1234")},
+		{ma.StringCast("/ip4/1.2.3.4/tcp/1234"), ma.StringCast("/ip4/2.3.4.5/tcp/1234")},
+		{ma.StringCast("/ip4/2.3.4.5/tcp/1234"), ma.StringCast("/ip4/3.4.5.6/tcp/4321")},
+	}
+
+	// The events we expect the host to emit when CheckForAddressChanges is called
+	// and the changes between addr sets are detected
+	expectedEvents := []event.EvtLocalAddressesUpdated{
+		{
+			Diffs: true,
+			Current: []event.UpdatedAddress{
+				{Action: event.Added, Address: ma.StringCast("/ip4/1.2.3.4/tcp/1234")},
+			},
+			Removed: []event.UpdatedAddress{},
+		},
+		{
+			Diffs: true,
+			Current: []event.UpdatedAddress{
+				{Action: event.Maintained, Address: ma.StringCast("/ip4/1.2.3.4/tcp/1234")},
+				{Action: event.Added, Address: ma.StringCast("/ip4/2.3.4.5/tcp/1234")},
+			},
+			Removed: []event.UpdatedAddress{},
+		},
+		{
+			Diffs: true,
+			Current: []event.UpdatedAddress{
+				{Action: event.Added, Address: ma.StringCast("/ip4/3.4.5.6/tcp/4321")},
+				{Action: event.Maintained, Address: ma.StringCast("/ip4/2.3.4.5/tcp/1234")},
+			},
+			Removed: []event.UpdatedAddress{
+				{Action: event.Removed, Address: ma.StringCast("/ip4/1.2.3.4/tcp/1234")},
+			},
+		},
+	}
+
+	currentAddrSet := 0
+	addrsFactory := func(addrs []ma.Multiaddr) []ma.Multiaddr {
+		return addrSets[currentAddrSet]
+	}
+
+	ctx := context.Background()
+	h := New(swarmt.GenSwarm(t, ctx), AddrsFactory(addrsFactory))
+	defer h.Close()
+
+	sub, err := h.EventBus().Subscribe(&event.EvtLocalAddressesUpdated{}, eventbus.BufSize(10))
+	if err != nil {
+		t.Error(err)
+	}
+	defer sub.Close()
+
+	// host should start with no addrs (addrSet 0)
+	addrs := h.Addrs()
+	if len(addrs) != 0 {
+		t.Fatalf("expected 0 addrs, got %d", len(addrs))
+	}
+
+	// Advance between addrSets
+	for i := 1; i < len(addrSets); i++ {
+		currentAddrSet = i
+		h.CheckForAddressChanges() // forces the host to check for changes now, instead of waiting for background update
+	}
+
+	// drain events from the subscription
+	var receivedEvents []event.EvtLocalAddressesUpdated
+readEvents:
+	for {
+		select {
+		case evt, more := <-sub.Out():
+			if !more {
+				break readEvents
+			}
+			receivedEvents = append(receivedEvents, evt.(event.EvtLocalAddressesUpdated))
+			if len(receivedEvents) == len(expectedEvents) {
+				break readEvents
+			}
+		case <-ctx.Done():
+			break readEvents
+		case <-time.After(1 * time.Second):
+			break readEvents
+		}
+	}
+
+	// assert that we received the events we expected
+	if len(receivedEvents) != len(expectedEvents) {
+		t.Errorf("expected to receive %d addr change events, got %d", len(expectedEvents), len(receivedEvents))
+	}
+	for i, expected := range expectedEvents {
+		actual := receivedEvents[i]
+		if !updatedAddrEventsEqual(expected, actual) {
+			t.Errorf("change events not equal: \n\texpected: %v \n\tactual: %v", expected, actual)
+		}
+	}
+}
+
+// updatedAddrsEqual is a helper to check whether two lists of
+// event.UpdatedAddress have the same contents, ignoring ordering.
+func updatedAddrsEqual(a, b []event.UpdatedAddress) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	// We can't use an UpdatedAddress directly as a map key, since
+	// Multiaddr is an interface, and go won't know how to compare
+	// for equality. So we convert to this little struct, which
+	// stores the multiaddr as a string.
+	type ua struct {
+		action  event.AddrAction
+		addrStr string
+	}
+	aSet := make(map[ua]struct{})
+	for _, addr := range a {
+		k := ua{action: addr.Action, addrStr: string(addr.Address.Bytes())}
+		aSet[k] = struct{}{}
+	}
+	for _, addr := range b {
+		k := ua{action: addr.Action, addrStr: string(addr.Address.Bytes())}
+		_, ok := aSet[k]
+		if !ok {
+			return false
+		}
+	}
+	return true
+}
+
+// updatedAddrEventsEqual is a helper to check whether two
+// event.EvtLocalAddressesUpdated are equal, ignoring the ordering of
+// addresses in the inner lists.
+func updatedAddrEventsEqual(a, b event.EvtLocalAddressesUpdated) bool {
+	return a.Diffs == b.Diffs &&
+		updatedAddrsEqual(a.Current, b.Current) &&
+		updatedAddrsEqual(a.Removed, b.Removed)
+}
+
 type sortedMultiaddrs []ma.Multiaddr
 
 func (sma sortedMultiaddrs) Len() int      { return len(sma) }
