@@ -13,6 +13,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/pnet"
 	"github.com/libp2p/go-libp2p-core/routing"
+	"github.com/libp2p/go-libp2p-core/transport"
 	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
 
 	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
@@ -28,6 +29,8 @@ import (
 	logging "github.com/ipfs/go-log"
 	filter "github.com/libp2p/go-maddr-filter"
 	ma "github.com/multiformats/go-multiaddr"
+
+	blankhost "github.com/libp2p/go-libp2p-blankhost"
 )
 
 var log = logging.Logger("p2p-config")
@@ -85,7 +88,11 @@ type Config struct {
 	StaticRelays    []peer.AddrInfo
 }
 
-func (cfg *Config) newHost(ctx context.Context, store peerstore.Peerstore) (*bhost.BasicHost, error) {
+func (cfg *Config) makeSwarm(ctx context.Context) (*swarm.Swarm, error) {
+	if cfg.Peerstore == nil {
+		return nil, fmt.Errorf("no peerstore specified")
+	}
+
 	// Check this early. Prevents us from even *starting* without verifying this.
 	if pnet.ForcePrivateNetwork && len(cfg.PSK) == 0 {
 		log.Error("tried to create a libp2p node with no Private" +
@@ -106,17 +113,73 @@ func (cfg *Config) newHost(ctx context.Context, store peerstore.Peerstore) (*bho
 		return nil, err
 	}
 
-	if err := store.AddPrivKey(pid, cfg.PeerKey); err != nil {
+	if err := cfg.Peerstore.AddPrivKey(pid, cfg.PeerKey); err != nil {
 		return nil, err
 	}
-	if err := store.AddPubKey(pid, cfg.PeerKey.GetPublic()); err != nil {
+	if err := cfg.Peerstore.AddPubKey(pid, cfg.PeerKey.GetPublic()); err != nil {
 		return nil, err
 	}
 
 	// TODO: Make the swarm implementation configurable.
-	swrm := swarm.NewSwarm(ctx, pid, store, cfg.Reporter)
+	swrm := swarm.NewSwarm(ctx, pid, cfg.Peerstore, cfg.Reporter)
 	if cfg.Filters != nil {
 		swrm.Filters = cfg.Filters
+	}
+	return swrm, nil
+}
+
+func (cfg *Config) addTransports(ctx context.Context, h host.Host) (err error) {
+	swrm, ok := h.Network().(transport.TransportNetwork)
+	if !ok {
+		// Should probably skip this if no transports.
+		return fmt.Errorf("swarm does not support transports")
+	}
+	upgrader := new(tptu.Upgrader)
+	upgrader.PSK = cfg.PSK
+	upgrader.Filters = cfg.Filters
+	if cfg.Insecure {
+		upgrader.Secure = makeInsecureTransport(h.ID(), cfg.PeerKey)
+	} else {
+		upgrader.Secure, err = makeSecurityTransport(h, cfg.SecurityTransports)
+		if err != nil {
+			return err
+		}
+	}
+
+	upgrader.Muxer, err = makeMuxer(h, cfg.Muxers)
+	if err != nil {
+		return err
+	}
+
+	tpts, err := makeTransports(h, upgrader, cfg.Transports)
+	if err != nil {
+		return err
+	}
+	for _, t := range tpts {
+		err = swrm.AddTransport(t)
+		if err != nil {
+			return err
+		}
+	}
+
+	if cfg.Relay {
+		err := circuit.AddRelayTransport(ctx, h, upgrader, cfg.RelayOpts...)
+		if err != nil {
+			h.Close()
+			return err
+		}
+	}
+
+	return nil
+}
+
+// NewNode constructs a new libp2p Host from the Config.
+//
+// This function consumes the config. Do not reuse it (really!).
+func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
+	swrm, err := cfg.makeSwarm(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	h, err := bhost.NewHost(ctx, swrm, &bhost.HostOpts{
@@ -132,6 +195,14 @@ func (cfg *Config) newHost(ctx context.Context, store peerstore.Peerstore) (*bho
 		return nil, err
 	}
 
+	// XXX: This is the only sane way to get a context out that's guaranteed
+	// to be canceled when we shut down.
+	//
+	// TODO: Stop using contexts to stop services. This is just lazy.
+	// Contexts are for canceling requests, services should be managed
+	// explicitly.
+	ctx = swrm.Context()
+
 	if cfg.Relay {
 		// If we've enabled the relay, we should filter out relay
 		// addresses by default.
@@ -143,58 +214,9 @@ func (cfg *Config) newHost(ctx context.Context, store peerstore.Peerstore) (*bho
 		}
 	}
 
-	upgrader := new(tptu.Upgrader)
-	upgrader.PSK = cfg.PSK
-	upgrader.Filters = swrm.Filters
-	if cfg.Insecure {
-		upgrader.Secure = makeInsecureTransport(pid, cfg.PeerKey)
-	} else {
-		upgrader.Secure, err = makeSecurityTransport(h, cfg.SecurityTransports)
-		if err != nil {
-			h.Close()
-			return nil, err
-		}
-	}
-
-	upgrader.Muxer, err = makeMuxer(h, cfg.Muxers)
+	err = cfg.addTransports(ctx, h)
 	if err != nil {
 		h.Close()
-		return nil, err
-	}
-
-	tpts, err := makeTransports(h, upgrader, cfg.Transports)
-	if err != nil {
-		h.Close()
-		return nil, err
-	}
-	for _, t := range tpts {
-		err = swrm.AddTransport(t)
-		if err != nil {
-			h.Close()
-			return nil, err
-		}
-	}
-
-	if cfg.Relay {
-		err := circuit.AddRelayTransport(swrm.Context(), h, upgrader, cfg.RelayOpts...)
-		if err != nil {
-			h.Close()
-			return nil, err
-		}
-	}
-	return h, nil
-}
-
-// NewNode constructs a new libp2p Host from the Config.
-//
-// This function consumes the config. Do not reuse it (really!).
-func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
-	if cfg.Peerstore == nil {
-		return nil, fmt.Errorf("no peerstore specified")
-	}
-
-	h, err := cfg.newHost(ctx, cfg.Peerstore)
-	if err != nil {
 		return nil, err
 	}
 
@@ -261,13 +283,35 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 		return addrF(h.AllAddrs())
 	})}
 	if cfg.AutoNATService {
-		dialerStore := pstoremem.NewPeerstore()
-		dialerHost, err := cfg.newHost(ctx, dialerStore)
+		// Pull out the pieces of the config that we _actually_ care about.
+		// Specifically, don't setup things like autorelay, listeners,
+		// identify, etc.
+		autoNatCfg := Config{
+			Transports:         cfg.Transports,
+			Muxers:             cfg.Muxers,
+			SecurityTransports: cfg.SecurityTransports,
+			Insecure:           cfg.Insecure,
+			PSK:                cfg.PSK,
+			Filters:            cfg.Filters,
+			Reporter:           cfg.Reporter,
+
+			Peerstore: pstoremem.NewPeerstore(),
+		}
+		dialer, err := autoNatCfg.makeSwarm(ctx)
 		if err != nil {
 			h.Close()
 			return nil, err
 		}
-
+		dialerHost := blankhost.NewBlankHost(dialer)
+		err = autoNatCfg.addTransports(ctx, dialerHost)
+		if err != nil {
+			dialerHost.Close()
+			h.Close()
+			return nil, err
+		}
+		// NOTE: We're dropping the blank host here but that's fine. It
+		// doesn't really _do_ anything and doesn't even need to be
+		// closed (as long as we close the underlying network).
 		autonatOpts = append(autonatOpts, autonat.EnableService(dialerHost.Network()))
 	}
 	if cfg.Reachability != network.ReachabilityUnknown {
