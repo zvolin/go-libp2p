@@ -62,11 +62,13 @@ func (c *conn) teardown() error {
 	}
 	c.net.removeConn(c)
 
-	c.notifLk.Lock()
-	defer c.notifLk.Unlock()
-	c.net.notifyAll(func(n network.Notifiee) {
-		n.Disconnected(c.net, c)
-	})
+	go func() {
+		c.notifLk.Lock()
+		defer c.notifLk.Unlock()
+		c.net.notifyAll(func(n network.Notifiee) {
+			n.Disconnected(c.net, c)
+		})
+	}()
 	return nil
 }
 
@@ -92,11 +94,13 @@ func (c *conn) removeStream(s *stream) {
 	}
 	c.Unlock()
 
-	s.notifLk.Lock()
-	defer s.notifLk.Unlock()
-	s.conn.net.notifyAll(func(n network.Notifiee) {
-		n.ClosedStream(s.conn.net, s)
-	})
+	go func() {
+		s.notifLk.Lock()
+		defer s.notifLk.Unlock()
+		s.conn.net.notifyAll(func(n network.Notifiee) {
+			n.ClosedStream(s.conn.net, s)
+		})
+	}()
 }
 
 func (c *conn) allStreams() []network.Stream {
