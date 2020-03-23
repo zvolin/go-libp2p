@@ -64,7 +64,7 @@ func (pn *peernet) teardown() error {
 	for _, c := range pn.allConns() {
 		c.Close()
 	}
-	return nil
+	return pn.ps.Close()
 }
 
 // allConns returns all the connections between this peer and others
