@@ -64,7 +64,7 @@ func (pn *peernet) teardown() error {
 	for _, c := range pn.allConns() {
 		c.Close()
 	}
-	return nil
+	return pn.ps.Close()
 }
 
 // allConns returns all the connections between this peer and others
@@ -191,6 +191,10 @@ func (pn *peernet) addConn(c *conn) {
 	c.notifLk.Lock()
 	defer c.notifLk.Unlock()
 	pn.Unlock()
+
+	// Call this after unlocking as it might cause us to immediately close
+	// the connection and remove it from the swarm.
+	c.setup()
 
 	pn.notifyAll(func(n network.Notifiee) {
 		n.Connected(pn, c)

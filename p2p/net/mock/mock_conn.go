@@ -30,14 +30,15 @@ type conn struct {
 	link    *link
 	rconn   *conn // counterpart
 	streams list.List
-	proc    process.Process
 	stat    network.Stat
+
+	pairProc, connProc process.Process
 
 	sync.RWMutex
 }
 
 func newConn(p process.Process, ln, rn *peernet, l *link, dir network.Direction) *conn {
-	c := &conn{net: ln, link: l, proc: p}
+	c := &conn{net: ln, link: l, pairProc: p}
 	c.local = ln.peer
 	c.remote = rn.peer
 	c.stat = network.Stat{Direction: dir}
@@ -47,13 +48,16 @@ func newConn(p process.Process, ln, rn *peernet, l *link, dir network.Direction)
 
 	c.localPrivKey = ln.ps.PrivKey(ln.peer)
 	c.remotePubKey = rn.ps.PubKey(rn.peer)
-
-	c.proc.AddChild(process.WithTeardown(c.teardown))
+	c.connProc = process.WithParent(c.pairProc)
 	return c
 }
 
 func (c *conn) Close() error {
-	return c.proc.Close()
+	return c.pairProc.Close()
+}
+
+func (c *conn) setup() {
+	c.connProc.SetTeardown(c.teardown)
 }
 
 func (c *conn) teardown() error {
@@ -62,11 +66,13 @@ func (c *conn) teardown() error {
 	}
 	c.net.removeConn(c)
 
-	c.notifLk.Lock()
-	defer c.notifLk.Unlock()
-	c.net.notifyAll(func(n network.Notifiee) {
-		n.Disconnected(c.net, c)
-	})
+	go func() {
+		c.notifLk.Lock()
+		defer c.notifLk.Unlock()
+		c.net.notifyAll(func(n network.Notifiee) {
+			n.Disconnected(c.net, c)
+		})
+	}()
 	return nil
 }
 
@@ -92,11 +98,13 @@ func (c *conn) removeStream(s *stream) {
 	}
 	c.Unlock()
 
-	s.notifLk.Lock()
-	defer s.notifLk.Unlock()
-	s.conn.net.notifyAll(func(n network.Notifiee) {
-		n.ClosedStream(s.conn.net, s)
-	})
+	go func() {
+		s.notifLk.Lock()
+		defer s.notifLk.Unlock()
+		s.conn.net.notifyAll(func(n network.Notifiee) {
+			n.ClosedStream(s.conn.net, s)
+		})
+	}()
 }
 
 func (c *conn) allStreams() []network.Stream {
