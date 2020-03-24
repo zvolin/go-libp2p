@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 	"net"
-	"sync"
 	"time"
 
 	"github.com/libp2p/go-libp2p/p2p/protocol/identify"
@@ -84,12 +83,12 @@ type BasicHost struct {
 
 	proc goprocess.Process
 
-	mx        sync.Mutex
-	lastAddrs []ma.Multiaddr
-	emitters  struct {
+	emitters struct {
 		evtLocalProtocolsUpdated event.Emitter
 		evtLocalAddrsUpdated     event.Emitter
 	}
+
+	addrChangeChan chan struct{}
 }
 
 var _ host.Host = (*BasicHost)(nil)
@@ -130,12 +129,13 @@ type HostOpts struct {
 // NewHost constructs a new *BasicHost and activates it by attaching its stream and connection handlers to the given inet.Network.
 func NewHost(ctx context.Context, net network.Network, opts *HostOpts) (*BasicHost, error) {
 	h := &BasicHost{
-		network:      net,
-		mux:          msmux.NewMultistreamMuxer(),
-		negtimeout:   DefaultNegotiationTimeout,
-		AddrsFactory: DefaultAddrsFactory,
-		maResolver:   madns.DefaultResolver,
-		eventbus:     eventbus.NewBus(),
+		network:        net,
+		mux:            msmux.NewMultistreamMuxer(),
+		negtimeout:     DefaultNegotiationTimeout,
+		AddrsFactory:   DefaultAddrsFactory,
+		maResolver:     madns.DefaultResolver,
+		eventbus:       eventbus.NewBus(),
+		addrChangeChan: make(chan struct{}, 1),
 	}
 
 	var err error
@@ -230,6 +230,7 @@ func New(net network.Network, opts ...interface{}) *BasicHost {
 	}
 
 	h, err := NewHost(context.Background(), net, hostopts)
+	h.Start()
 	if err != nil {
 		// this cannot happen with legacy options
 		// plus we want to keep the (deprecated) legacy interface unchanged
@@ -300,24 +301,13 @@ func (h *BasicHost) newStreamHandler(s network.Stream) {
 	go handle(protoID, s)
 }
 
-// CheckForAddressChanges determines whether our listen addresses have recently
-// changed and emits an EvtLocalAddressesUpdatedEvent & a Push Identify if so.
+// SignalAddressChange signals to the host that it needs to determine whether our listen addresses have recently
+// changed.
 // Warning: this interface is unstable and may disappear in the future.
-func (h *BasicHost) CheckForAddressChanges() {
-	h.mx.Lock()
-	addrs := h.Addrs()
-	changeEvt := makeUpdatedAddrEvent(h.lastAddrs, addrs)
-	if changeEvt != nil {
-		h.lastAddrs = addrs
-	}
-	h.mx.Unlock()
-
-	if changeEvt != nil {
-		err := h.emitters.evtLocalAddrsUpdated.Emit(*changeEvt)
-		if err != nil {
-			log.Warnf("error emitting event for updated addrs: %s", err)
-		}
-		h.ids.Push()
+func (h *BasicHost) SignalAddressChange() {
+	select {
+	case h.addrChangeChan <- struct{}{}:
+	default:
 	}
 }
 
@@ -360,41 +350,31 @@ func (h *BasicHost) background(p goprocess.Process) {
 	defer ticker.Stop()
 
 	// initialize lastAddrs
-	h.mx.Lock()
-	if h.lastAddrs == nil {
-		h.lastAddrs = h.Addrs()
-	}
-	h.mx.Unlock()
+	lastAddrs := h.Addrs()
 
 	for {
 		select {
 		case <-ticker.C:
-			h.CheckForAddressChanges()
-
+		case <-h.addrChangeChan:
 		case <-p.Closing():
 			return
 		}
-	}
-}
 
-func sameAddrs(a, b []ma.Multiaddr) bool {
-	if len(a) != len(b) {
-		return false
-	}
+		//  emit an EvtLocalAddressesUpdatedEvent & a Push Identify if our listen addresses have changed.
+		addrs := h.Addrs()
+		changeEvt := makeUpdatedAddrEvent(lastAddrs, addrs)
+		if changeEvt != nil {
+			lastAddrs = addrs
+		}
 
-	bmap := make(map[string]struct{}, len(b))
-	for _, addr := range b {
-		bmap[string(addr.Bytes())] = struct{}{}
-	}
-
-	for _, addr := range a {
-		_, ok := bmap[string(addr.Bytes())]
-		if !ok {
-			return false
+		if changeEvt != nil {
+			err := h.emitters.evtLocalAddrsUpdated.Emit(*changeEvt)
+			if err != nil {
+				log.Warnf("error emitting event for updated addrs: %s", err)
+			}
+			h.ids.Push()
 		}
 	}
-
-	return true
 }
 
 // ID returns the (local) peer.ID associated with this Host
