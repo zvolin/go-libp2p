@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 	"net"
-	"sync"
 	"time"
 
 	"github.com/libp2p/go-libp2p/p2p/protocol/identify"
@@ -84,9 +83,7 @@ type BasicHost struct {
 
 	proc goprocess.Process
 
-	mx        sync.Mutex
-	lastAddrs []ma.Multiaddr
-	emitters  struct {
+	emitters struct {
 		evtLocalProtocolsUpdated event.Emitter
 		evtLocalAddrsUpdated     event.Emitter
 	}
@@ -353,11 +350,7 @@ func (h *BasicHost) background(p goprocess.Process) {
 	defer ticker.Stop()
 
 	// initialize lastAddrs
-	h.mx.Lock()
-	if h.lastAddrs == nil {
-		h.lastAddrs = h.Addrs()
-	}
-	h.mx.Unlock()
+	lastAddrs := h.Addrs()
 
 	for {
 		select {
@@ -368,13 +361,11 @@ func (h *BasicHost) background(p goprocess.Process) {
 		}
 
 		//  emit an EvtLocalAddressesUpdatedEvent & a Push Identify if our listen addresses have changed.
-		h.mx.Lock()
 		addrs := h.Addrs()
-		changeEvt := makeUpdatedAddrEvent(h.lastAddrs, addrs)
+		changeEvt := makeUpdatedAddrEvent(lastAddrs, addrs)
 		if changeEvt != nil {
-			h.lastAddrs = addrs
+			lastAddrs = addrs
 		}
-		h.mx.Unlock()
 
 		if changeEvt != nil {
 			err := h.emitters.evtLocalAddrsUpdated.Emit(*changeEvt)
@@ -384,26 +375,6 @@ func (h *BasicHost) background(p goprocess.Process) {
 			h.ids.Push()
 		}
 	}
-}
-
-func sameAddrs(a, b []ma.Multiaddr) bool {
-	if len(a) != len(b) {
-		return false
-	}
-
-	bmap := make(map[string]struct{}, len(b))
-	for _, addr := range b {
-		bmap[string(addr.Bytes())] = struct{}{}
-	}
-
-	for _, addr := range a {
-		_, ok := bmap[string(addr.Bytes())]
-		if !ok {
-			return false
-		}
-	}
-
-	return true
 }
 
 // ID returns the (local) peer.ID associated with this Host
