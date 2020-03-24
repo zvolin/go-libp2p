@@ -359,39 +359,29 @@ func (h *BasicHost) background(p goprocess.Process) {
 	}
 	h.mx.Unlock()
 
-	//  emit an EvtLocalAddressesUpdatedEvent & a Push Identify if our listen addresses have changed.
-	go func() {
-		for {
-			select {
-			case <-h.addrChangeChan:
-				h.mx.Lock()
-				addrs := h.Addrs()
-				changeEvt := makeUpdatedAddrEvent(h.lastAddrs, addrs)
-				if changeEvt != nil {
-					h.lastAddrs = addrs
-				}
-				h.mx.Unlock()
-
-				if changeEvt != nil {
-					err := h.emitters.evtLocalAddrsUpdated.Emit(*changeEvt)
-					if err != nil {
-						log.Warnf("error emitting event for updated addrs: %s", err)
-					}
-					h.ids.Push()
-				}
-			case <-p.Closing():
-				return
-			}
-		}
-	}()
-
 	for {
 		select {
 		case <-ticker.C:
-			h.SignalAddressChange()
-
+		case <-h.addrChangeChan:
 		case <-p.Closing():
 			return
+		}
+
+		//  emit an EvtLocalAddressesUpdatedEvent & a Push Identify if our listen addresses have changed.
+		h.mx.Lock()
+		addrs := h.Addrs()
+		changeEvt := makeUpdatedAddrEvent(h.lastAddrs, addrs)
+		if changeEvt != nil {
+			h.lastAddrs = addrs
+		}
+		h.mx.Unlock()
+
+		if changeEvt != nil {
+			err := h.emitters.evtLocalAddrsUpdated.Emit(*changeEvt)
+			if err != nil {
+				log.Warnf("error emitting event for updated addrs: %s", err)
+			}
+			h.ids.Push()
 		}
 	}
 }
