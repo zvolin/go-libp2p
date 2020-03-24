@@ -2,6 +2,7 @@ package config
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
 
 	"github.com/libp2p/go-libp2p-core/connmgr"
@@ -283,6 +284,11 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 		return addrF(h.AllAddrs())
 	})}
 	if cfg.AutoNATService {
+		autonatPrivKey, _, err := crypto.GenerateEd25519Key(rand.Reader)
+		if err != nil {
+			return nil, err
+		}
+
 		// Pull out the pieces of the config that we _actually_ care about.
 		// Specifically, don't setup things like autorelay, listeners,
 		// identify, etc.
@@ -294,9 +300,11 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 			PSK:                cfg.PSK,
 			Filters:            cfg.Filters,
 			Reporter:           cfg.Reporter,
+			PeerKey:            autonatPrivKey,
 
 			Peerstore: pstoremem.NewPeerstore(),
 		}
+
 		dialer, err := autoNatCfg.makeSwarm(ctx)
 		if err != nil {
 			h.Close()
