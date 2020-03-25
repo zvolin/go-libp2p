@@ -5,12 +5,12 @@ require (
 	github.com/ipfs/go-cid v0.0.5
 	github.com/ipfs/go-detect-race v0.0.1
 	github.com/ipfs/go-ipfs-util v0.0.1
-	github.com/ipfs/go-log v1.0.2
+	github.com/ipfs/go-log v1.0.3
 	github.com/jbenet/go-cienv v0.1.0
 	github.com/jbenet/goprocess v0.1.4
 	github.com/libp2p/go-conn-security-multistream v0.1.0
 	github.com/libp2p/go-eventbus v0.1.0
-	github.com/libp2p/go-libp2p-autonat v0.2.0
+	github.com/libp2p/go-libp2p-autonat v0.2.1
 	github.com/libp2p/go-libp2p-blankhost v0.1.4
 	github.com/libp2p/go-libp2p-circuit v0.1.4
 	github.com/libp2p/go-libp2p-core v0.5.0
