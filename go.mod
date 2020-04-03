@@ -12,23 +12,23 @@ require (
 	github.com/libp2p/go-eventbus v0.1.0
 	github.com/libp2p/go-libp2p-autonat v0.2.1
 	github.com/libp2p/go-libp2p-blankhost v0.1.4
-	github.com/libp2p/go-libp2p-circuit v0.1.4
-	github.com/libp2p/go-libp2p-core v0.5.0
-	github.com/libp2p/go-libp2p-discovery v0.2.0
+	github.com/libp2p/go-libp2p-circuit v0.2.1
+	github.com/libp2p/go-libp2p-core v0.5.1
+	github.com/libp2p/go-libp2p-discovery v0.3.0
 	github.com/libp2p/go-libp2p-loggables v0.1.0
 	github.com/libp2p/go-libp2p-mplex v0.2.3
-	github.com/libp2p/go-libp2p-nat v0.0.5
+	github.com/libp2p/go-libp2p-nat v0.0.6
 	github.com/libp2p/go-libp2p-netutil v0.1.0
 	github.com/libp2p/go-libp2p-peerstore v0.2.2
-	github.com/libp2p/go-libp2p-secio v0.2.1
+	github.com/libp2p/go-libp2p-secio v0.2.2
 	github.com/libp2p/go-libp2p-swarm v0.2.3
 	github.com/libp2p/go-libp2p-testing v0.1.1
 	github.com/libp2p/go-libp2p-transport-upgrader v0.2.0
 	github.com/libp2p/go-libp2p-yamux v0.2.7
 	github.com/libp2p/go-maddr-filter v0.0.5
 	github.com/libp2p/go-stream-muxer-multistream v0.2.0
-	github.com/libp2p/go-tcp-transport v0.1.1
-	github.com/libp2p/go-ws-transport v0.2.0
+	github.com/libp2p/go-tcp-transport v0.2.0
+	github.com/libp2p/go-ws-transport v0.3.0
 	github.com/multiformats/go-multiaddr v0.2.1
 	github.com/multiformats/go-multiaddr-dns v0.2.0
 	github.com/multiformats/go-multiaddr-net v0.1.4
