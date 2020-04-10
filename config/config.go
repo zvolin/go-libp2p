@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	"time"
 
 	"github.com/libp2p/go-libp2p-core/connmgr"
 	"github.com/libp2p/go-libp2p-core/crypto"
@@ -83,10 +84,12 @@ type Config struct {
 
 	Routing RoutingC
 
-	EnableAutoRelay bool
-	Reachability    network.Reachability
-	AutoNATService  bool
-	StaticRelays    []peer.AddrInfo
+	EnableAutoRelay   bool
+	Reachability      network.Reachability
+	AutoNATService    bool
+	AutoNATThrottling bool
+	AutoNATThrottles  [2]int
+	StaticRelays      []peer.AddrInfo
 }
 
 func (cfg *Config) makeSwarm(ctx context.Context) (*swarm.Swarm, error) {
@@ -280,9 +283,16 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 		}
 	}
 
-	autonatOpts := []autonat.Option{autonat.UsingAddresses(func() []ma.Multiaddr {
-		return addrF(h.AllAddrs())
-	})}
+	autonatOpts := []autonat.Option{
+		autonat.UsingAddresses(func() []ma.Multiaddr {
+			return addrF(h.AllAddrs())
+		}),
+	}
+	if cfg.AutoNATThrottling {
+		autonatOpts = append(autonatOpts,
+			autonat.WithThrottling(cfg.AutoNATThrottles[0], 1*time.Minute),
+			autonat.WithPeerThrottling(cfg.AutoNATThrottles[1]))
+	}
 	if cfg.AutoNATService {
 		autonatPrivKey, _, err := crypto.GenerateEd25519Key(rand.Reader)
 		if err != nil {

@@ -307,6 +307,19 @@ func EnableNATService() Option {
 	}
 }
 
+// OverrideNATServiceThrottling changes the default rate limiting configured in helping
+// other peers determine their reachability status. When set, the host will limit
+// the number of requests it responds to in each 60 second period to the set
+// numbers. A value of '0' disables throttling.
+func OverrideNATServiceThrottling(globalThrottle, perPeerThrottle int) Option {
+	return func(cfg *Config) error {
+		cfg.AutoNATThrottling = true
+		cfg.AutoNATThrottles[0] = globalThrottle
+		cfg.AutoNATThrottles[1] = perPeerThrottle
+		return nil
+	}
+}
+
 // FilterAddresses configures libp2p to never dial nor accept connections from
 // the given addresses. FilterAddresses should be used for cases where the
 // addresses you want to deny are known ahead of time.
