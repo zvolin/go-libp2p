@@ -46,7 +46,15 @@ type NATManagerC func(network.Network) bhost.NATManager
 
 type RoutingC func(host.Host) (routing.PeerRouting, error)
 
-// AutoNATMode defines the AutoNAT behavior for the libp2p host.
+// autoNATConfig defines the AutoNAT behavior for the libp2p host.
+type AutoNATConfig struct {
+	ForceReachabilityPublic  bool
+	ForceReachabilityPrivate bool
+	EnableService            bool
+	ThrottleGlobalLimit      int
+	ThrottlePeerLimit        int
+	ThrottleInterval         time.Duration
+}
 
 // Config describes a set of settings for a libp2p node
 //
@@ -84,12 +92,9 @@ type Config struct {
 
 	Routing RoutingC
 
-	EnableAutoRelay   bool
-	Reachability      network.Reachability
-	AutoNATService    bool
-	AutoNATThrottling bool
-	AutoNATThrottles  [2]int
-	StaticRelays      []peer.AddrInfo
+	EnableAutoRelay bool
+	AutoNATConfig
+	StaticRelays []peer.AddrInfo
 }
 
 func (cfg *Config) makeSwarm(ctx context.Context) (*swarm.Swarm, error) {
@@ -288,12 +293,12 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 			return addrF(h.AllAddrs())
 		}),
 	}
-	if cfg.AutoNATThrottling {
+	if cfg.AutoNATConfig.ThrottleInterval != 0 {
 		autonatOpts = append(autonatOpts,
-			autonat.WithThrottling(cfg.AutoNATThrottles[0], 1*time.Minute),
-			autonat.WithPeerThrottling(cfg.AutoNATThrottles[1]))
+			autonat.WithThrottling(cfg.AutoNATConfig.ThrottleGlobalLimit, cfg.AutoNATConfig.ThrottleInterval),
+			autonat.WithPeerThrottling(cfg.AutoNATConfig.ThrottlePeerLimit))
 	}
-	if cfg.AutoNATService {
+	if cfg.AutoNATConfig.EnableService {
 		autonatPrivKey, _, err := crypto.GenerateEd25519Key(rand.Reader)
 		if err != nil {
 			return nil, err
@@ -332,8 +337,10 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 		// closed (as long as we close the underlying network).
 		autonatOpts = append(autonatOpts, autonat.EnableService(dialerHost.Network()))
 	}
-	if cfg.Reachability != network.ReachabilityUnknown {
-		autonatOpts = append(autonatOpts, autonat.WithReachability(cfg.Reachability))
+	if cfg.AutoNATConfig.ForceReachabilityPublic {
+		autonatOpts = append(autonatOpts, autonat.WithReachability(network.ReachabilityPublic))
+	} else if cfg.AutoNATConfig.ForceReachabilityPrivate {
+		autonatOpts = append(autonatOpts, autonat.WithReachability(network.ReachabilityPrivate))
 	}
 
 	if _, err = autonat.New(ctx, h, autonatOpts...); err != nil {
