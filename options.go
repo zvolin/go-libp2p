@@ -11,6 +11,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/connmgr"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/metrics"
+	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/pnet"
@@ -283,8 +284,8 @@ func DefaultStaticRelays() Option {
 // forcing the local node to believe it is reachable externally.
 func ForceReachabilityPublic() Option {
 	return func(cfg *Config) error {
-		cfg.AutoNATConfig.ForceReachabilityPublic = true
-		cfg.AutoNATConfig.ForceReachabilityPrivate = false
+		public := network.Reachability(network.ReachabilityPublic)
+		cfg.AutoNATConfig.ForceReachability = &public
 		return nil
 	}
 }
@@ -293,8 +294,8 @@ func ForceReachabilityPublic() Option {
 // forceing the local node to believe it is behind a NAT and not reachable externally.
 func ForceReachabilityPrivate() Option {
 	return func(cfg *Config) error {
-		cfg.AutoNATConfig.ForceReachabilityPrivate = true
-		cfg.AutoNATConfig.ForceReachabilityPublic = false
+		private := network.Reachability(network.ReachabilityPrivate)
+		cfg.AutoNATConfig.ForceReachability = &private
 		return nil
 	}
 }

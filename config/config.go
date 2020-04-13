@@ -48,12 +48,11 @@ type RoutingC func(host.Host) (routing.PeerRouting, error)
 
 // autoNATConfig defines the AutoNAT behavior for the libp2p host.
 type AutoNATConfig struct {
-	ForceReachabilityPublic  bool
-	ForceReachabilityPrivate bool
-	EnableService            bool
-	ThrottleGlobalLimit      int
-	ThrottlePeerLimit        int
-	ThrottleInterval         time.Duration
+	ForceReachability   *network.Reachability
+	EnableService       bool
+	ThrottleGlobalLimit int
+	ThrottlePeerLimit   int
+	ThrottleInterval    time.Duration
 }
 
 // Config describes a set of settings for a libp2p node
@@ -337,10 +336,8 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 		// closed (as long as we close the underlying network).
 		autonatOpts = append(autonatOpts, autonat.EnableService(dialerHost.Network()))
 	}
-	if cfg.AutoNATConfig.ForceReachabilityPublic {
-		autonatOpts = append(autonatOpts, autonat.WithReachability(network.ReachabilityPublic))
-	} else if cfg.AutoNATConfig.ForceReachabilityPrivate {
-		autonatOpts = append(autonatOpts, autonat.WithReachability(network.ReachabilityPrivate))
+	if cfg.AutoNATConfig.ForceReachability != nil {
+		autonatOpts = append(autonatOpts, autonat.WithReachability(*cfg.AutoNATConfig.ForceReachability))
 	}
 
 	if _, err = autonat.New(ctx, h, autonatOpts...); err != nil {
