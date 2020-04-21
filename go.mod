@@ -5,7 +5,7 @@ require (
 	github.com/ipfs/go-cid v0.0.5
 	github.com/ipfs/go-detect-race v0.0.1
 	github.com/ipfs/go-ipfs-util v0.0.1
-	github.com/ipfs/go-log v1.0.3
+	github.com/ipfs/go-log v1.0.4
 	github.com/jbenet/go-cienv v0.1.0
 	github.com/jbenet/goprocess v0.1.4
 	github.com/libp2p/go-conn-security-multistream v0.1.0
