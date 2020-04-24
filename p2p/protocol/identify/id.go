@@ -78,10 +78,9 @@ type IDService struct {
 	// track resources that need to be shut down before we shut down
 	refCount sync.WaitGroup
 
-	// connections undergoing identification
-	// for wait purposes
-	currid map[network.Conn]chan struct{}
-	currmu sync.RWMutex
+	// Identified connections (finished and in progress).
+	connsMu sync.RWMutex
+	conns   map[network.Conn]chan struct{}
 
 	addrMu sync.Mutex
 
@@ -117,7 +116,7 @@ func NewIDService(h host.Host, opts ...Option) *IDService {
 
 		ctx:           hostCtx,
 		ctxCancel:     cancel,
-		currid:        make(map[network.Conn]chan struct{}),
+		conns:         make(map[network.Conn]chan struct{}),
 		observedAddrs: NewObservedAddrSet(hostCtx),
 	}
 
@@ -187,28 +186,58 @@ func (ids *IDService) ObservedAddrsFor(local ma.Multiaddr) []ma.Multiaddr {
 	return ids.observedAddrs.AddrsFor(local)
 }
 
+// IdentifyConn synchronously triggers an identify request on the connection and
+// waits for it to complete. If the connection is being identified by another
+// caller, this call will wait. If the connection has already been identified,
+// it will return immediately.
 func (ids *IDService) IdentifyConn(c network.Conn) {
+	<-ids.IdentifyWait(c)
+}
+
+// IdentifyWait triggers an identify (if the connection has not already been
+// identified) and returns a channel that is closed when the identify protocol
+// completes.
+func (ids *IDService) IdentifyWait(c network.Conn) <-chan struct{} {
+	ids.connsMu.RLock()
+	wait, found := ids.conns[c]
+	ids.connsMu.RUnlock()
+
+	if found {
+		return wait
+	}
+
+	ids.connsMu.Lock()
+	defer ids.connsMu.Unlock()
+
+	wait, found = ids.conns[c]
+
+	if !found {
+		wait = make(chan struct{})
+		ids.conns[c] = wait
+
+		// Spawn an identify. The connection may actually be closed
+		// already, but that doesn't really matter. We'll fail to open a
+		// stream then forget the connection.
+		go ids.identifyConn(c, wait)
+	}
+
+	return wait
+}
+
+func (ids *IDService) removeConn(c network.Conn) {
+	ids.connsMu.Lock()
+	delete(ids.conns, c)
+	ids.connsMu.Unlock()
+}
+
+func (ids *IDService) identifyConn(c network.Conn, signal chan struct{}) {
 	var (
 		s   network.Stream
 		err error
 	)
 
-	ids.currmu.Lock()
-	if wait, found := ids.currid[c]; found {
-		ids.currmu.Unlock()
-		log.Debugf("IdentifyConn called twice on: %s", c)
-		<-wait // already identifying it. wait for it.
-		return
-	}
-	ch := make(chan struct{})
-	ids.currid[c] = ch
-	ids.currmu.Unlock()
-
 	defer func() {
-		close(ch)
-		ids.currmu.Lock()
-		delete(ids.currid, c)
-		ids.currmu.Unlock()
+		close(signal)
 
 		// emit the appropriate event.
 		if p := c.RemotePeer(); err == nil {
@@ -220,9 +249,14 @@ func (ids *IDService) IdentifyConn(c network.Conn) {
 
 	s, err = c.NewStream()
 	if err != nil {
-		log.Debugf("error opening initial stream for %s: %s", ID, err)
-		log.Event(context.TODO(), "IdentifyOpenFailed", c.RemotePeer())
+		log.Debugw("error opening identify stream", "error", err)
+		// the connection is probably already closed if we hit this.
+		// TODO: Remove this?
 		c.Close()
+
+		// We usually do this on disconnect, but we may have already
+		// processed the disconnect event.
+		ids.removeConn(c)
 		return
 	}
 
@@ -280,21 +314,14 @@ func (ids *IDService) broadcast(proto protocol.ID, payloadWriter func(s network.
 		go func(p peer.ID, conns []network.Conn) {
 			defer wg.Done()
 
-			// if we're in the process of identifying the connection, let's wait.
-			// we don't use ids.IdentifyWait() to avoid unnecessary channel creation.
-		Loop:
+			// Wait till identify completes so we can check the
+			// supported protocols.
 			for _, c := range conns {
-				ids.currmu.RLock()
-				if wait, ok := ids.currid[c]; ok {
-					ids.currmu.RUnlock()
-					select {
-					case <-wait:
-						break Loop
-					case <-ctx.Done():
-						return
-					}
+				select {
+				case <-ids.IdentifyWait(c):
+				case <-ctx.Done():
+					return
 				}
-				ids.currmu.RUnlock()
 			}
 
 			// avoid the unnecessary stream if the peer does not support the protocol.
@@ -546,26 +573,6 @@ func HasConsistentTransport(a ma.Multiaddr, green []ma.Multiaddr) bool {
 	return false
 }
 
-// IdentifyWait returns a channel which will be closed once
-// "ProtocolIdentify" (handshake3) finishes on given conn.
-// This happens async so the connection can start to be used
-// even if handshake3 knowledge is not necessary.
-// Users **MUST** call IdentifyWait _after_ IdentifyConn
-func (ids *IDService) IdentifyWait(c network.Conn) <-chan struct{} {
-	ids.currmu.Lock()
-	ch, found := ids.currid[c]
-	ids.currmu.Unlock()
-	if found {
-		return ch
-	}
-
-	// if not found, it means we are already done identifying it, or
-	// haven't even started. either way, return a new channel closed.
-	ch = make(chan struct{})
-	close(ch)
-	return ch
-}
-
 func (ids *IDService) consumeObservedAddress(observed []byte, c network.Conn) {
 	if observed == nil {
 		return
@@ -621,13 +628,16 @@ func (nn *netNotifiee) IDService() *IDService {
 }
 
 func (nn *netNotifiee) Connected(n network.Network, v network.Conn) {
-	// TODO: deprecate the setConnHandler hook, and kick off
-	// identification here.
+	nn.IDService().IdentifyWait(v)
 }
 
 func (nn *netNotifiee) Disconnected(n network.Network, v network.Conn) {
-	// undo the setting of addresses to peer.ConnectedAddrTTL we did
 	ids := nn.IDService()
+
+	// Stop tracking the connection.
+	ids.removeConn(v)
+
+	// undo the setting of addresses to peer.ConnectedAddrTTL we did
 	ids.addrMu.Lock()
 	defer ids.addrMu.Unlock()
 

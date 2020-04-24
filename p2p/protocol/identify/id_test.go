@@ -310,7 +310,6 @@ func TestIdentifyDeltaOnProtocolChange(t *testing.T) {
 	}
 
 	conn := h1.Network().ConnsToPeer(h2.ID())[0]
-	ids1.IdentifyConn(conn)
 	select {
 	case <-ids1.IdentifyWait(conn):
 	case <-time.After(5 * time.Second):
@@ -438,7 +437,7 @@ func TestIdentifyDeltaWhileIdentifyingConn(t *testing.T) {
 	conn := h2.Network().ConnsToPeer(h1.ID())[0]
 	go func() {
 		ids2.IdentifyConn(conn)
-		<-ids2.IdentifyWait(conn)
+		ids2.IdentifyConn(conn)
 	}()
 
 	<-time.After(500 * time.Millisecond)
