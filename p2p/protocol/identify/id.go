@@ -85,8 +85,7 @@ type IDService struct {
 	addrMu sync.Mutex
 
 	// our own observed addresses.
-	// TODO: instead of expiring, remove these when we disconnect
-	observedAddrs *ObservedAddrSet
+	observedAddrs *ObservedAddrManager
 
 	subscription event.Subscription
 	emitters     struct {
@@ -117,7 +116,7 @@ func NewIDService(h host.Host, opts ...Option) *IDService {
 		ctx:           hostCtx,
 		ctxCancel:     cancel,
 		conns:         make(map[network.Conn]chan struct{}),
-		observedAddrs: NewObservedAddrSet(hostCtx),
+		observedAddrs: NewObservedAddrManager(hostCtx, h),
 	}
 
 	// handle local protocol handler updates, and push deltas to peers.
@@ -584,31 +583,7 @@ func (ids *IDService) consumeObservedAddress(observed []byte, c network.Conn) {
 		return
 	}
 
-	// we should only use ObservedAddr when our connection's LocalAddr is one
-	// of our ListenAddrs. If we Dial out using an ephemeral addr, knowing that
-	// address's external mapping is not very useful because the port will not be
-	// the same as the listen addr.
-	ifaceaddrs, err := ids.Host.Network().InterfaceListenAddresses()
-	if err != nil {
-		log.Infof("failed to get interface listen addrs", err)
-		return
-	}
-
-	log.Debugf("identify identifying observed multiaddr: %s %s", c.LocalMultiaddr(), ifaceaddrs)
-	if !addrInAddrs(c.LocalMultiaddr(), ifaceaddrs) && !addrInAddrs(c.LocalMultiaddr(), ids.Host.Network().ListenAddresses()) {
-		// not in our list
-		return
-	}
-
-	if !HasConsistentTransport(maddr, ids.Host.Addrs()) {
-		log.Debugf("ignoring observed multiaddr that doesn't match the transports of any addresses we're announcing", c.RemoteMultiaddr())
-		return
-	}
-
-	// ok! we have the observed version of one of our ListenAddresses!
-	log.Debugf("added own observed listen addr: %s --> %s", c.LocalMultiaddr(), maddr)
-	ids.observedAddrs.Add(maddr, c.LocalMultiaddr(), c.RemoteMultiaddr(),
-		c.Stat().Direction)
+	ids.observedAddrs.Record(c, maddr)
 }
 
 func addrInAddrs(a ma.Multiaddr, as []ma.Multiaddr) bool {
