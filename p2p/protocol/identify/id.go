@@ -116,7 +116,7 @@ func NewIDService(h host.Host, opts ...Option) *IDService {
 		ctx:           hostCtx,
 		ctxCancel:     cancel,
 		conns:         make(map[network.Conn]chan struct{}),
-		observedAddrs: NewObservedAddrManager(h),
+		observedAddrs: NewObservedAddrManager(hostCtx, h),
 	}
 
 	// handle local protocol handler updates, and push deltas to peers.

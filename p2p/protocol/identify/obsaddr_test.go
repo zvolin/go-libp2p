@@ -70,7 +70,7 @@ func newHarness(ctx context.Context, t *testing.T) harness {
 	}
 
 	return harness{
-		oas:     identify.NewObservedAddrManager(h),
+		oas:     identify.NewObservedAddrManager(ctx, h),
 		mocknet: mn,
 		host:    h,
 	}

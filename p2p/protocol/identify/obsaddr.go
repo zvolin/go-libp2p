@@ -1,6 +1,7 @@
 package identify
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -79,17 +80,18 @@ type ObservedAddrManager struct {
 
 // NewObservedAddrManager returns a new address manager using
 // peerstore.OwnObservedAddressTTL as the TTL.
-func NewObservedAddrManager(host host.Host) *ObservedAddrManager {
+func NewObservedAddrManager(ctx context.Context, host host.Host) *ObservedAddrManager {
 	oas := &ObservedAddrManager{
-		addrs:        make(map[string][]*ObservedAddr),
-		ttl:          peerstore.OwnObservedAddrTTL,
-		wch:          make(chan newObservation, observedAddrManagerWorkerChannelSize),
-		host:         host,
-		activeConns:  make(map[network.Conn]ma.Multiaddr),
+		addrs:       make(map[string][]*ObservedAddr),
+		ttl:         peerstore.OwnObservedAddrTTL,
+		wch:         make(chan newObservation, observedAddrManagerWorkerChannelSize),
+		host:        host,
+		activeConns: make(map[network.Conn]ma.Multiaddr),
+		// refresh every ttl/2 so we don't forget observations from connected peers
 		refreshTimer: time.NewTimer(peerstore.OwnObservedAddrTTL / 2),
 	}
 	oas.host.Network().Notify((*obsAddrNotifiee)(oas))
-	go oas.worker()
+	go oas.worker(ctx)
 	return oas
 }
 
@@ -162,13 +164,13 @@ func (oas *ObservedAddrManager) teardown() {
 	oas.mu.Unlock()
 }
 
-func (oas *ObservedAddrManager) worker() {
+func (oas *ObservedAddrManager) worker(ctx context.Context) {
 	defer oas.teardown()
 
 	ticker := time.NewTicker(GCInterval)
 	defer ticker.Stop()
 
-	closingCh := oas.host.Network().Process().Closing()
+	hostClosing := oas.host.Network().Process().Closing()
 	for {
 		select {
 		case obs := <-oas.wch:
@@ -177,7 +179,9 @@ func (oas *ObservedAddrManager) worker() {
 			oas.gc()
 		case <-oas.refreshTimer.C:
 			oas.refresh()
-		case <-closingCh:
+		case <-hostClosing:
+			return
+		case <-ctx.Done():
 			return
 		}
 	}
@@ -199,6 +203,7 @@ func (oas *ObservedAddrManager) refresh() {
 	for _, obs := range recycledObservations {
 		oas.recordObservationUnlocked(obs.conn, obs.observed)
 	}
+	// refresh every ttl/2 so we don't forget observations from connected peers
 	oas.refreshTimer.Reset(oas.ttl / 2)
 }
 
@@ -356,6 +361,7 @@ func (oas *ObservedAddrManager) SetTTL(ttl time.Duration) {
 	oas.mu.Lock()
 	defer oas.mu.Unlock()
 	oas.ttl = ttl
+	// refresh every ttl/2 so we don't forget observations from connected peers
 	oas.refreshTimer.Reset(ttl / 2)
 }
 
