@@ -188,7 +188,6 @@ func NewHost(ctx context.Context, net network.Network, opts *HostOpts) (*BasicHo
 		h.pings = ping.NewPingService(h)
 	}
 
-	net.SetConnHandler(h.newConnHandler)
 	net.SetStreamHandler(h.newStreamHandler)
 
 	return h, nil
@@ -236,14 +235,6 @@ func New(net network.Network, opts ...interface{}) *BasicHost {
 func (h *BasicHost) Start() {
 	h.refCount.Add(1)
 	go h.background()
-}
-
-// newConnHandler is the remote-opened conn handler for inet.Network
-func (h *BasicHost) newConnHandler(c network.Conn) {
-	// Clear protocols on connecting to new peer to avoid issues caused
-	// by misremembering protocols between reconnects
-	h.Peerstore().SetProtocols(c.RemotePeer())
-	h.ids.IdentifyConn(c)
 }
 
 // newStreamHandler is the remote-opened stream handler for network.Network
@@ -444,48 +435,53 @@ func (h *BasicHost) RemoveStreamHandler(pid protocol.ID) {
 // to create one. If ProtocolID is "", writes no header.
 // (Threadsafe)
 func (h *BasicHost) NewStream(ctx context.Context, p peer.ID, pids ...protocol.ID) (network.Stream, error) {
-	pref, err := h.preferredProtocol(p, pids)
-	if err != nil {
-		return nil, err
-	}
-
-	if pref != "" {
-		return h.newStream(ctx, p, pref)
-	}
-
-	var protoStrs []string
-	for _, pid := range pids {
-		protoStrs = append(protoStrs, string(pid))
-	}
-
 	s, err := h.Network().NewStream(ctx, p)
 	if err != nil {
 		return nil, err
 	}
 
-	selected, err := msmux.SelectOneOf(protoStrs, s)
+	// Wait for any in-progress identifies on the connection to finish. This
+	// is faster than negotiating.
+	//
+	// If the other side doesn't support identify, that's fine. This will
+	// just be a no-op.
+	select {
+	case <-h.ids.IdentifyWait(s.Conn()):
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+
+	pidStrings := protocol.ConvertToStrings(pids)
+
+	pref, err := h.preferredProtocol(p, pidStrings)
+	if err != nil {
+		_ = s.Reset()
+		return nil, err
+	}
+
+	if pref != "" {
+		s.SetProtocol(pref)
+		lzcon := msmux.NewMSSelect(s, string(pref))
+		return &streamWrapper{
+			Stream: s,
+			rw:     lzcon,
+		}, nil
+	}
+
+	selected, err := msmux.SelectOneOf(pidStrings, s)
 	if err != nil {
 		s.Reset()
 		return nil, err
 	}
+
 	selpid := protocol.ID(selected)
 	s.SetProtocol(selpid)
 	h.Peerstore().AddProtocols(p, selected)
-
 	return s, nil
 }
 
-func pidsToStrings(pids []protocol.ID) []string {
-	out := make([]string, len(pids))
-	for i, p := range pids {
-		out[i] = string(p)
-	}
-	return out
-}
-
-func (h *BasicHost) preferredProtocol(p peer.ID, pids []protocol.ID) (protocol.ID, error) {
-	pidstrs := pidsToStrings(pids)
-	supported, err := h.Peerstore().SupportsProtocols(p, pidstrs...)
+func (h *BasicHost) preferredProtocol(p peer.ID, pids []string) (protocol.ID, error) {
+	supported, err := h.Peerstore().SupportsProtocols(p, pids...)
 	if err != nil {
 		return "", err
 	}
@@ -495,21 +491,6 @@ func (h *BasicHost) preferredProtocol(p peer.ID, pids []protocol.ID) (protocol.I
 		out = protocol.ID(supported[0])
 	}
 	return out, nil
-}
-
-func (h *BasicHost) newStream(ctx context.Context, p peer.ID, pid protocol.ID) (network.Stream, error) {
-	s, err := h.Network().NewStream(ctx, p)
-	if err != nil {
-		return nil, err
-	}
-
-	s.SetProtocol(pid)
-
-	lzcon := msmux.NewMSSelect(s, string(pid))
-	return &streamWrapper{
-		Stream: s,
-		rw:     lzcon,
-	}, nil
 }
 
 // Connect ensures there is a connection between this host and the peer with
@@ -605,20 +586,13 @@ func (h *BasicHost) dialPeer(ctx context.Context, p peer.ID) error {
 		return err
 	}
 
-	// Clear protocols on connecting to new peer to avoid issues caused
-	// by misremembering protocols between reconnects
-	h.Peerstore().SetProtocols(p)
-
-	// identify the connection before returning.
-	done := make(chan struct{})
-	go func() {
-		h.ids.IdentifyConn(c)
-		close(done)
-	}()
-
-	// respect don contexteone
+	// TODO: Consider removing this? On one hand, it's nice because we can
+	// assume that things like the agent version are usually set when this
+	// returns. On the other hand, we don't _really_ need to wait for this.
+	//
+	// This is mostly here to preserve existing behavior.
 	select {
-	case <-done:
+	case <-h.ids.IdentifyWait(c):
 	case <-ctx.Done():
 		return ctx.Err()
 	}

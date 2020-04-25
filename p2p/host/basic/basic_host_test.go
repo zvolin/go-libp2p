@@ -199,6 +199,12 @@ func TestHostProtoPreference(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// force the lazy negotiation to complete
+	_, err = s.Write(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	assertWait(t, connectedOn, protoOld)
 	s.Close()
 
@@ -338,6 +344,12 @@ func TestNewDialOld(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// force the lazy negotiation to complete
+	_, err = s.Write(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	assertWait(t, connectedOn, "/testing")
 
 	if s.Protocol() != "/testing" {
@@ -362,6 +374,11 @@ func TestProtoDowngrade(t *testing.T) {
 	})
 
 	s, err := h2.NewStream(ctx, h1.ID(), "/testing/1.0.0", "/testing")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = s.Write(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
