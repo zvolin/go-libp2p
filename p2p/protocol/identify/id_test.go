@@ -116,8 +116,8 @@ func subtestIDService(t *testing.T) {
 	// test that we received the "identify completed" event.
 	select {
 	case <-sub.Out():
-	case <-time.After(5 * time.Second):
-		t.Fatalf("expected EvtPeerIdentificationCompleted event within 5 seconds; none received")
+	case <-time.After(10 * time.Second):
+		t.Fatalf("expected EvtPeerIdentificationCompleted event within 10 seconds; none received")
 	}
 }
 
