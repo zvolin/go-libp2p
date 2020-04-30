@@ -2,27 +2,30 @@ package basichost
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net"
 	"sync"
 	"time"
 
-	"github.com/libp2p/go-libp2p/p2p/protocol/identify"
-	"github.com/libp2p/go-libp2p/p2p/protocol/ping"
-
 	"github.com/libp2p/go-libp2p-core/connmgr"
+	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/event"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/protocol"
+	"github.com/libp2p/go-libp2p-core/record"
 
 	"github.com/libp2p/go-eventbus"
 	inat "github.com/libp2p/go-libp2p-nat"
+	"github.com/libp2p/go-libp2p/p2p/protocol/identify"
+	"github.com/libp2p/go-libp2p/p2p/protocol/ping"
 
 	logging "github.com/ipfs/go-log"
 
+	"github.com/multiformats/go-multiaddr"
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
 	manet "github.com/multiformats/go-multiaddr-net"
@@ -93,6 +96,9 @@ type BasicHost struct {
 	}
 
 	addrChangeChan chan struct{}
+
+	signKey crypto.PrivKey
+	caBook  peerstore.CertifiedAddrBook
 }
 
 var _ host.Host = (*BasicHost)(nil)
@@ -150,8 +156,19 @@ func NewHost(ctx context.Context, net network.Network, opts *HostOpts) (*BasicHo
 	if h.emitters.evtLocalProtocolsUpdated, err = h.eventbus.Emitter(&event.EvtLocalProtocolsUpdated{}); err != nil {
 		return nil, err
 	}
-	if h.emitters.evtLocalAddrsUpdated, err = h.eventbus.Emitter(&event.EvtLocalAddressesUpdated{}); err != nil {
+	if h.emitters.evtLocalAddrsUpdated, err = h.eventbus.Emitter(&event.EvtLocalAddressesUpdated{}, eventbus.Stateful); err != nil {
 		return nil, err
+	}
+
+	cab, ok := peerstore.GetCertifiedAddrBook(net.Peerstore())
+	if !ok {
+		return nil, errors.New("peerstore should also be a certified address book")
+	}
+	h.caBook = cab
+
+	h.signKey = h.Peerstore().PrivKey(h.ID())
+	if h.signKey == nil {
+		return nil, errors.New("unable to access host key")
 	}
 
 	if opts.MultistreamMuxer != nil {
@@ -221,12 +238,12 @@ func New(net network.Network, opts ...interface{}) *BasicHost {
 	}
 
 	h, err := NewHost(context.Background(), net, hostopts)
-	h.Start()
 	if err != nil {
 		// this cannot happen with legacy options
 		// plus we want to keep the (deprecated) legacy interface unchanged
 		panic(err)
 	}
+	h.Start()
 
 	return h
 }
@@ -327,38 +344,67 @@ func makeUpdatedAddrEvent(prev, current []ma.Multiaddr) *event.EvtLocalAddresses
 	return &evt
 }
 
+func (h *BasicHost) makeSignedPeerRecord(evt *event.EvtLocalAddressesUpdated) (*record.Envelope, error) {
+	current := make([]multiaddr.Multiaddr, 0, len(evt.Current))
+	for _, a := range evt.Current {
+		current = append(current, a.Address)
+	}
+
+	rec := peer.PeerRecordFromAddrInfo(peer.AddrInfo{h.ID(), current})
+	return record.Seal(rec, h.signKey)
+}
+
 func (h *BasicHost) background() {
 	defer h.refCount.Done()
+	var lastAddrs []ma.Multiaddr
+
+	emitAddrChange := func(currentAddrs []ma.Multiaddr, lastAddrs []ma.Multiaddr) {
+		// nothing to do if both are nil..defensive check
+		if currentAddrs == nil && lastAddrs == nil {
+			return
+		}
+
+		changeEvt := makeUpdatedAddrEvent(lastAddrs, currentAddrs)
+
+		if changeEvt == nil {
+			return
+		}
+
+		// add signed peer record to the event
+		sr, err := h.makeSignedPeerRecord(changeEvt)
+		if err != nil {
+			log.Errorf("error creating a signed peer record from the set of current addresses, err=%s", err)
+			return
+		}
+		changeEvt.SignedPeerRecord = *sr
+
+		// persist the signed record to the peerstore
+		if _, err := h.caBook.ConsumePeerRecord(sr, peerstore.PermanentAddrTTL); err != nil {
+			log.Errorf("failed to persist signed peer record in peer store, err=%s", err)
+			return
+		}
+
+		// emit addr change event on the bus
+		if err := h.emitters.evtLocalAddrsUpdated.Emit(*changeEvt); err != nil {
+			log.Warnf("error emitting event for updated addrs: %s", err)
+		}
+	}
 
 	// periodically schedules an IdentifyPush to update our peers for changes
 	// in our address set (if needed)
-	ticker := time.NewTicker(10 * time.Second)
+	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
-	// initialize lastAddrs
-	lastAddrs := h.Addrs()
-
 	for {
+		curr := h.Addrs()
+		emitAddrChange(curr, lastAddrs)
+		lastAddrs = curr
+
 		select {
 		case <-ticker.C:
 		case <-h.addrChangeChan:
 		case <-h.ctx.Done():
 			return
-		}
-
-		//  emit an EvtLocalAddressesUpdatedEvent & a Push Identify if our listen addresses have changed.
-		addrs := h.Addrs()
-		changeEvt := makeUpdatedAddrEvent(lastAddrs, addrs)
-		if changeEvt != nil {
-			lastAddrs = addrs
-		}
-
-		if changeEvt != nil {
-			err := h.emitters.evtLocalAddrsUpdated.Emit(*changeEvt)
-			if err != nil {
-				log.Warnf("error emitting event for updated addrs: %s", err)
-			}
-			h.ids.Push()
 		}
 	}
 }

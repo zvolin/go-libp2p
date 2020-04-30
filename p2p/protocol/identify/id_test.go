@@ -2,6 +2,8 @@ package identify_test
 
 import (
 	"context"
+	"fmt"
+	"github.com/libp2p/go-libp2p-core/record"
 	"reflect"
 	"sort"
 	"testing"
@@ -34,6 +36,8 @@ func subtestIDService(t *testing.T) {
 
 	h1 := blhost.NewBlankHost(swarmt.GenSwarm(t, ctx))
 	h2 := blhost.NewBlankHost(swarmt.GenSwarm(t, ctx))
+	generatePeerRecord(t, h1)
+	generatePeerRecord(t, h2)
 
 	h1p := h1.ID()
 	h2p := h2.ID()
@@ -46,6 +50,9 @@ func subtestIDService(t *testing.T) {
 	testKnowsAddrs(t, h1, h2p, []ma.Multiaddr{}) // nothing
 	testKnowsAddrs(t, h2, h1p, []ma.Multiaddr{}) // nothing
 
+	// the forgetMe addr represents an address for h1 that h2 has learned out of band
+	// (not via identify protocol). Shortly after the identify exchange, it will be
+	// forgotten and replaced by the addrs h1 sends during identify
 	forgetMe, _ := ma.NewMultiaddr("/ip4/1.2.3.4/tcp/1234")
 
 	h2.Peerstore().AddAddr(h1p, forgetMe, peerstore.RecentlyConnectedAddrTTL)
@@ -71,7 +78,8 @@ func subtestIDService(t *testing.T) {
 	// the IDService should be opened automatically, by the network.
 	// what we should see now is that both peers know about each others listen addresses.
 	t.Log("test peer1 has peer2 addrs correctly")
-	testKnowsAddrs(t, h1, h2p, h2.Peerstore().Addrs(h2p)) // has them
+	testKnowsAddrs(t, h1, h2p, h2.Peerstore().Addrs(h2p))        // has them
+	testHasCertifiedAddrs(t, h1, h2p, h2.Peerstore().Addrs(h2p)) // should have signed addrs also
 	testHasProtocolVersions(t, h1, h2p)
 	testHasPublicKey(t, h1, h2p, h2.Peerstore().PubKey(h2p)) // h1 should have h2's public key
 
@@ -89,6 +97,7 @@ func subtestIDService(t *testing.T) {
 	// and the protocol versions.
 	t.Log("test peer2 has peer1 addrs correctly")
 	testKnowsAddrs(t, h2, h1p, addrs) // has them
+	testHasCertifiedAddrs(t, h2, h1p, h1.Peerstore().Addrs(h1p))
 	testHasProtocolVersions(t, h2, h1p)
 	testHasPublicKey(t, h2, h1p, h1.Peerstore().PubKey(h1p)) // h1 should have h2's public key
 
@@ -99,19 +108,21 @@ func subtestIDService(t *testing.T) {
 		t.Fatal("should have no connections")
 	}
 
+	t.Log("testing addrs just after disconnect")
+	// addresses don't immediately expire on disconnect, so we should still have them
 	testKnowsAddrs(t, h2, h1p, addrs)
 	testKnowsAddrs(t, h1, h2p, h2.Peerstore().Addrs(h2p))
+	testHasCertifiedAddrs(t, h1, h2p, h2.Peerstore().Addrs(h2p))
+	testHasCertifiedAddrs(t, h2, h1p, h1.Peerstore().Addrs(h1p))
 
-	time.Sleep(500 * time.Millisecond)
-
-	// Forget the first one.
-	testKnowsAddrs(t, h2, h1p, addrs[:len(addrs)-1])
-
-	time.Sleep(1 * time.Second)
-
-	// Forget the rest.
+	// the addrs had their TTLs reduced on disconnect, and
+	// will be forgotten soon after
+	t.Log("testing addrs after TTL expiration")
+	time.Sleep(2 * time.Second)
 	testKnowsAddrs(t, h1, h2p, []ma.Multiaddr{})
 	testKnowsAddrs(t, h2, h1p, []ma.Multiaddr{})
+	testHasCertifiedAddrs(t, h1, h2p, []ma.Multiaddr{})
+	testHasCertifiedAddrs(t, h2, h1p, []ma.Multiaddr{})
 
 	// test that we received the "identify completed" event.
 	select {
@@ -125,7 +136,36 @@ func testKnowsAddrs(t *testing.T, h host.Host, p peer.ID, expected []ma.Multiadd
 	t.Helper()
 
 	actual := h.Peerstore().Addrs(p)
+	checkAddrs(t, expected, actual, fmt.Sprintf("%s did not have addr for %s", h.ID(), p))
+}
 
+func testHasCertifiedAddrs(t *testing.T, h host.Host, p peer.ID, expected []ma.Multiaddr) {
+	t.Helper()
+	cab, ok := peerstore.GetCertifiedAddrBook(h.Peerstore())
+	if !ok {
+		t.Error("expected peerstore to implement CertifiedAddrBook")
+	}
+	recordEnvelope := cab.GetPeerRecord(p)
+	if recordEnvelope == nil {
+		if len(expected) == 0 {
+			return
+		}
+		t.Fatalf("peerstore has no signed record for peer %s", p)
+	}
+	r, err := recordEnvelope.Record()
+	if err != nil {
+		t.Error("Error unwrapping signed PeerRecord from envelope", err)
+	}
+	rec, ok := r.(*peer.PeerRecord)
+	if !ok {
+		t.Error("unexpected record type")
+	}
+
+	checkAddrs(t, expected, rec.Addrs, fmt.Sprintf("%s did not have certified addr for %s", h.ID(), p))
+}
+
+func checkAddrs(t *testing.T, expected, actual []ma.Multiaddr, msg string) {
+	t.Helper()
 	if len(actual) != len(expected) {
 		t.Errorf("expected: %s", expected)
 		t.Errorf("actual: %s", actual)
@@ -138,7 +178,7 @@ func testKnowsAddrs(t *testing.T, h host.Host, p peer.ID, expected []ma.Multiadd
 	}
 	for _, addr := range expected {
 		if _, found := have[addr.String()]; !found {
-			t.Errorf("%s did not have addr for %s: %s", h.ID(), p, addr)
+			t.Errorf("%s: %s", msg, addr)
 		}
 	}
 }
@@ -174,6 +214,36 @@ func testHasPublicKey(t *testing.T, h host.Host, p peer.ID, shouldBe ic.PubKey) 
 		t.Error("could not make key")
 	} else if p != p2 {
 		t.Error("key does not match peerid")
+	}
+}
+
+// we're using BlankHost in our tests, which doesn't automatically generate peer records
+// like BasicHost. This generates a record and puts it on the host's event bus, which
+// will cause the identify service to start supporting new protocol versions that
+// depend on peer records being available.
+func generatePeerRecord(t *testing.T, h host.Host) {
+	t.Helper()
+
+	key := h.Peerstore().PrivKey(h.ID())
+	if key == nil {
+		t.Fatal("no private key for host")
+	}
+
+	rec := peer.NewPeerRecord()
+	rec.PeerID = h.ID()
+	rec.Addrs = h.Addrs()
+	signed, err := record.Seal(rec, key)
+	if err != nil {
+		t.Fatalf("error generating peer record: %s", err)
+	}
+	evt := event.EvtLocalAddressesUpdated{SignedPeerRecord: *signed}
+	emitter, err := h.EventBus().Emitter(new(event.EvtLocalAddressesUpdated), eventbus.Stateful)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = emitter.Emit(evt)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -423,11 +493,14 @@ func TestIdentifyDeltaWhileIdentifyingConn(t *testing.T) {
 	// replace the original identify handler by one that blocks until we close the block channel.
 	// this allows us to control how long identify runs.
 	block := make(chan struct{})
-	h1.RemoveStreamHandler(identify.ID)
-	h1.SetStreamHandler(identify.ID, func(s network.Stream) {
+	handler := func(s network.Stream) {
 		<-block
 		go helpers.FullClose(s)
-	})
+	}
+	h1.RemoveStreamHandler(identify.ID)
+	h1.RemoveStreamHandler(identify.LegacyID)
+	h1.SetStreamHandler(identify.ID, handler)
+	h1.SetStreamHandler(identify.LegacyID, handler)
 
 	// from h2 connect to h1.
 	if err := h2.Connect(ctx, peer.AddrInfo{ID: h1.ID(), Addrs: h1.Addrs()}); err != nil {
@@ -506,4 +579,52 @@ func TestUserAgent(t *testing.T) {
 	if ver, ok := av.(string); !ok || ver != "bar" {
 		t.Errorf("expected agent version %q, got %q", "bar", av)
 	}
+}
+
+// make sure that we still support older peers using "legacy" versions of identify
+func TestCompatibilityWithPeersThatDoNotSupportSignedAddrs(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	h1 := blhost.NewBlankHost(swarmt.GenSwarm(t, ctx))
+	h2 := blhost.NewBlankHost(swarmt.GenSwarm(t, ctx))
+	defer h2.Close()
+	defer h1.Close()
+
+	ids := identify.NewIDService(h1)
+	ids2 := identify.NewIDService(h2)
+
+	defer ids.Close()
+	defer ids2.Close()
+
+	// generate initial peer record only for h1. this will cause h1 to enable
+	// the new protocols, but h2 will still use legacy protos
+	generatePeerRecord(t, h1)
+
+	h2p := h2.ID()
+	h2pi := h2.Peerstore().PeerInfo(h2p)
+	if err := h1.Connect(ctx, h2pi); err != nil {
+		t.Fatal(err)
+	}
+
+	h1t2c := h1.Network().ConnsToPeer(h2p)
+	if len(h1t2c) == 0 {
+		t.Fatal("should have a conn here")
+	}
+
+	ids.IdentifyConn(h1t2c[0])
+	// the IDService should be opened automatically, by the network.
+	// what we should see now is that both peers know about each others listen addresses.
+	t.Log("test peer1 has peer2 addrs correctly")
+	testKnowsAddrs(t, h1, h2p, h2.Peerstore().Addrs(h2p)) // has them
+	testHasCertifiedAddrs(t, h1, h2p, []ma.Multiaddr{})   // should not have signed addrs
+
+	// double check that it works when both peers support the new protos
+	// enable new protos for h2 by generating a peer record
+	generatePeerRecord(t, h2)
+
+	// if we re-identify, h1 should now have certified addrs for h2
+	ids.IdentifyConn(h1t2c[0])
+	t.Log("test peer1 has peer2 certified addrs correctly")
+	testHasCertifiedAddrs(t, h1, h2p, h2.Peerstore().Addrs(h2p))
 }
