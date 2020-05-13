@@ -14,7 +14,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
-	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/libp2p/go-libp2p-core/record"
 
 	"github.com/libp2p/go-eventbus"
@@ -29,12 +28,9 @@ import (
 
 var log = logging.Logger("net/identify")
 
-// ID is the protocol.ID of the Identify Service.
-const ID = "/p2p/id/1.1.0"
-
-// LegacyID is the protocol.ID of version 1.0.0 of the identify
-// service, which does not support signed peer records.
-const LegacyID = "/ipfs/id/1.0.0"
+// ID is the protocol.ID of version 1.0.0 of the identify
+// service.
+const ID = "/ipfs/id/1.0.0"
 
 // LibP2PVersion holds the current protocol version for a client running this code
 // TODO(jbenet): fix the versioning mess.
@@ -63,6 +59,17 @@ func init() {
 // transientTTL is a short ttl for invalidated previously connected addrs
 const transientTTL = 10 * time.Second
 
+type addPeerHandlerReq struct {
+	rp             peer.ID
+	localConnAddr  ma.Multiaddr
+	remoteConnAddr ma.Multiaddr
+	resp           chan *peerHandler
+}
+
+type rmPeerHandlerReq struct {
+	p peer.ID
+}
+
 // IDService is a structure that implements ProtocolIdentify.
 // It is a trivial service that gives the other peer some
 // useful information about the local peer. A sort of hello.
@@ -88,9 +95,6 @@ type IDService struct {
 
 	addrMu sync.Mutex
 
-	peerrec   *record.Envelope
-	peerrecMu sync.RWMutex
-
 	// our own observed addresses.
 	observedAddrs *ObservedAddrManager
 
@@ -99,6 +103,9 @@ type IDService struct {
 		evtPeerIdentificationCompleted event.Emitter
 		evtPeerIdentificationFailed    event.Emitter
 	}
+
+	addPeerHandlerCh chan addPeerHandlerReq
+	rmPeerHandlerCh  chan rmPeerHandlerReq
 }
 
 // NewIDService constructs a new *IDService and activates it by
@@ -123,13 +130,16 @@ func NewIDService(h host.Host, opts ...Option) *IDService {
 		ctxCancel:     cancel,
 		conns:         make(map[network.Conn]chan struct{}),
 		observedAddrs: NewObservedAddrManager(hostCtx, h),
+
+		addPeerHandlerCh: make(chan addPeerHandlerReq),
+		rmPeerHandlerCh:  make(chan rmPeerHandlerReq),
 	}
 
 	// handle local protocol handler updates, and push deltas to peers.
 	var err error
 
 	s.refCount.Add(1)
-	go s.handleEvents()
+	go s.loop()
 
 	s.emitters.evtPeerProtocolsUpdated, err = h.EventBus().Emitter(&event.EvtPeerProtocolsUpdated{})
 	if err != nil {
@@ -146,20 +156,17 @@ func NewIDService(h host.Host, opts ...Option) *IDService {
 
 	// register protocols that do not depend on peer records.
 	h.SetStreamHandler(IDDelta, s.deltaHandler)
-	h.SetStreamHandler(LegacyID, s.requestHandler)
-	h.SetStreamHandler(LegacyIDPush, s.pushHandler)
-
-	// register protocols that depend on peer records.
-	h.SetStreamHandler(ID, s.requestHandler)
+	h.SetStreamHandler(ID, s.sendIdentifyResp)
 	h.SetStreamHandler(IDPush, s.pushHandler)
 
 	h.Network().Notify((*netNotifiee)(s))
 	return s
 }
 
-func (ids *IDService) handleEvents() {
+func (ids *IDService) loop() {
 	defer ids.refCount.Done()
 
+	phs := make(map[peer.ID]*peerHandler)
 	sub, err := ids.Host.EventBus().Subscribe([]interface{}{&event.EvtLocalProtocolsUpdated{},
 		&event.EvtLocalAddressesUpdated{}}, eventbus.BufSize(256))
 	if err != nil {
@@ -167,19 +174,94 @@ func (ids *IDService) handleEvents() {
 		return
 	}
 
-	defer sub.Close()
+	defer func() {
+		sub.Close()
+		for pid := range phs {
+			phs[pid].close()
+		}
+	}()
+
+	phClosedCh := make(chan peer.ID)
 
 	for {
 		select {
+		case addReq := <-ids.addPeerHandlerCh:
+			rp := addReq.rp
+			ph, ok := phs[rp]
+			if ok {
+				addReq.resp <- ph
+				continue
+			}
+
+			if ids.Host.Network().Connectedness(rp) == network.Connected {
+				mes := &pb.Identify{}
+				ids.populateMessage(mes, rp, addReq.localConnAddr, addReq.remoteConnAddr)
+				ph = newPeerHandler(rp, ids, mes)
+				ph.start()
+				phs[rp] = ph
+				addReq.resp <- ph
+			}
+
+		case rmReq := <-ids.rmPeerHandlerCh:
+			rp := rmReq.p
+			if ids.Host.Network().Connectedness(rp) != network.Connected {
+				// before we remove the peerhandler, we should ensure that it will not send any
+				// more messages. Otherwise, we might create a new handler and the Identify response
+				// synchronized with the new handler might be overwritten by a message sent by this "old" handler.
+				ph, ok := phs[rp]
+				if !ok {
+					// move on, move on, there's nothing to see here.
+					continue
+				}
+				ids.refCount.Add(1)
+				go func(req rmPeerHandlerReq, ph *peerHandler) {
+					defer ids.refCount.Done()
+					ph.close()
+					select {
+					case <-ids.ctx.Done():
+						return
+					case phClosedCh <- req.p:
+					}
+				}(rmReq, ph)
+			}
+
+		case rp := <-phClosedCh:
+			ph := phs[rp]
+
+			// If we are connected to the peer, it means that we got a connection from the peer
+			// before we could finish removing it's handler on the previous disconnection.
+			// If we delete the handler, we wont be able to push updates to it
+			// till we see a new connection. So, we should restart the handler.
+			// The fact that we got the handler on this channel means that it's context and handler
+			// have completed because we write the handler to this chanel only after it closed.
+			if ids.Host.Network().Connectedness(rp) == network.Connected {
+				ph.start()
+			} else {
+				delete(phs, rp)
+			}
+
 		case e, more := <-sub.Out():
 			if !more {
 				return
 			}
-			switch evt := e.(type) {
+			switch e.(type) {
 			case event.EvtLocalAddressesUpdated:
-				ids.handleLocalAddrsUpdated(evt)
+				for pid := range phs {
+					select {
+					case phs[pid].pushCh <- struct{}{}:
+					default:
+						log.Debugf("dropping addr updated message for %s as buffer full", pid.Pretty())
+					}
+				}
+
 			case event.EvtLocalProtocolsUpdated:
-				ids.handleProtosChanged(evt)
+				for pid := range phs {
+					select {
+					case phs[pid].deltaCh <- struct{}{}:
+					default:
+						log.Debugf("dropping protocol updated message for %s as buffer full", pid.Pretty())
+					}
+				}
 			}
 
 		case <-ids.ctx.Done():
@@ -195,20 +277,6 @@ func (ids *IDService) Close() error {
 		ids.refCount.Wait()
 	})
 	return nil
-}
-
-func (ids *IDService) handleProtosChanged(evt event.EvtLocalProtocolsUpdated) {
-	ids.fireProtocolDelta(evt)
-}
-
-func (ids *IDService) handleLocalAddrsUpdated(evt event.EvtLocalAddressesUpdated) {
-	ids.peerrecMu.Lock()
-	rec := evt.SignedPeerRecord
-	ids.peerrec = rec
-	ids.peerrecMu.Unlock()
-
-	log.Debug("triggering push based on updated local PeerRecord")
-	ids.Push()
 }
 
 // OwnObservedAddrs returns the addresses peers have reported we've dialed from
@@ -293,36 +361,51 @@ func (ids *IDService) identifyConn(c network.Conn, signal chan struct{}) {
 		ids.removeConn(c)
 		return
 	}
+	s.SetProtocol(ID)
 
-	protocolIDs := []string{ID, LegacyID}
 	// ok give the response to our handler.
-	var selectedProto string
-	if selectedProto, err = msmux.SelectOneOf(protocolIDs, s); err != nil {
+	if err = msmux.SelectProtoOrFail(ID, s); err != nil {
 		log.Event(context.TODO(), "IdentifyOpenFailed", c.RemotePeer(), logging.Metadata{"error": err})
 		s.Reset()
 		return
 	}
-	s.SetProtocol(protocol.ID(selectedProto))
-	ids.responseHandler(s)
+	ids.handleIdentifyResponse(s)
 }
 
-func protoSupportsPeerRecords(proto protocol.ID) bool {
-	return proto == ID || proto == IDPush
-}
+func (ids *IDService) sendIdentifyResp(s network.Stream) {
+	var ph *peerHandler
 
-func (ids *IDService) requestHandler(s network.Stream) {
-	defer helpers.FullClose(s)
+	defer func() {
+		helpers.FullClose(s)
+		if ph != nil {
+			ph.msgMu.RUnlock()
+		}
+	}()
+
 	c := s.Conn()
 
+	phCh := make(chan *peerHandler, 1)
+	select {
+	case ids.addPeerHandlerCh <- addPeerHandlerReq{c.RemotePeer(), c.LocalMultiaddr(),
+		c.RemoteMultiaddr(), phCh}:
+	case <-ids.ctx.Done():
+		return
+	}
+
+	select {
+	case ph = <-phCh:
+	case <-ids.ctx.Done():
+		return
+	}
+
+	ph.msgMu.RLock()
 	w := ggio.NewDelimitedWriter(s)
-	mes := pb.Identify{}
-	ids.populateMessage(&mes, s.Conn(), protoSupportsPeerRecords(s.Protocol()))
-	w.WriteMsg(&mes)
+	w.WriteMsg(ph.idMsgSnapshot)
 
 	log.Debugf("%s sent message to %s %s", ID, c.RemotePeer(), c.RemoteMultiaddr())
 }
 
-func (ids *IDService) responseHandler(s network.Stream) {
+func (ids *IDService) handleIdentifyResponse(s network.Stream) {
 	c := s.Conn()
 
 	r := ggio.NewDelimitedReader(s, 2048)
@@ -336,69 +419,10 @@ func (ids *IDService) responseHandler(s network.Stream) {
 	defer func() { go helpers.FullClose(s) }()
 
 	log.Debugf("%s received message from %s %s", s.Protocol(), c.RemotePeer(), c.RemoteMultiaddr())
-	ids.consumeMessage(&mes, c, protoSupportsPeerRecords(s.Protocol()))
+	ids.consumeMessage(&mes, c)
 }
 
-func (ids *IDService) broadcast(protos []protocol.ID, payloadWriter func(s network.Stream)) {
-	var wg sync.WaitGroup
-
-	protoStrs := protocol.ConvertToStrings(protos)
-	ctx, cancel := context.WithTimeout(ids.ctx, 30*time.Second)
-	ctx = network.WithNoDial(ctx, protoStrs[0])
-
-	pstore := ids.Host.Peerstore()
-	for _, p := range ids.Host.Network().Peers() {
-		wg.Add(1)
-
-		go func(p peer.ID, conns []network.Conn) {
-			defer wg.Done()
-
-			// Wait till identify completes so we can check the
-			// supported protocols.
-			for _, c := range conns {
-				select {
-				case <-ids.IdentifyWait(c):
-				case <-ctx.Done():
-					return
-				}
-			}
-
-			// avoid the unnecessary stream if the peer does not support the protocol.
-			if sup, err := pstore.SupportsProtocols(p, protoStrs...); err != nil && len(sup) == 0 {
-				// the peer does not support the required protocol.
-				return
-			}
-			// if the peerstore query errors, we go ahead anyway.
-
-			s, err := ids.Host.NewStream(ctx, p, protos...)
-			if err != nil {
-				log.Debugf("error opening push stream to %s: %s", p, err.Error())
-				return
-			}
-
-			rch := make(chan struct{}, 1)
-			go func() {
-				payloadWriter(s)
-				rch <- struct{}{}
-			}()
-
-			select {
-			case <-rch:
-			case <-ctx.Done():
-				// this is taking too long, abort!
-				s.Reset()
-			}
-		}(p, ids.Host.Network().ConnsToPeer(p))
-	}
-
-	// this supervisory goroutine is necessary to cancel the context
-	go func() {
-		wg.Wait()
-		cancel()
-	}()
-}
-
-func (ids *IDService) populateMessage(mes *pb.Identify, c network.Conn, usePeerRecords bool) {
+func (ids *IDService) populateMessage(mes *pb.Identify, rp peer.ID, localAddr, remoteAddr ma.Multiaddr) {
 	// set protocols this node is currently handling
 	protos := ids.Host.Mux().Protocols()
 	mes.Protocols = make([]string, len(protos))
@@ -408,13 +432,26 @@ func (ids *IDService) populateMessage(mes *pb.Identify, c network.Conn, usePeerR
 
 	// observed address so other side is informed of their
 	// "public" address, at least in relation to us.
-	mes.ObservedAddr = c.RemoteMultiaddr().Bytes()
+	mes.ObservedAddr = remoteAddr.Bytes()
 
-	if usePeerRecords {
-		ids.peerrecMu.RLock()
-		rec := ids.peerrec
-		ids.peerrecMu.RUnlock()
+	// populate unsigned addresses.
+	// peers that do not yet support signed addresses will need this.
+	// set listen addrs, get our latest addrs from Host.
+	laddrs := ids.Host.Addrs()
+	// Note: LocalMultiaddr is sometimes 0.0.0.0
+	viaLoopback := manet.IsIPLoopback(localAddr) || manet.IsIPLoopback(remoteAddr)
+	mes.ListenAddrs = make([][]byte, 0, len(laddrs))
+	for _, addr := range laddrs {
+		if !viaLoopback && manet.IsIPLoopback(addr) {
+			continue
+		}
+		mes.ListenAddrs = append(mes.ListenAddrs, addr.Bytes())
+	}
 
+	// populate signed record.
+	cab, ok := peerstore.GetCertifiedAddrBook(ids.Host.Peerstore())
+	if ok {
+		rec := cab.GetPeerRecord(ids.Host.ID())
 		if rec == nil {
 			log.Errorf("latest peer record does not exist. identify message incomplete!")
 		} else {
@@ -423,20 +460,8 @@ func (ids *IDService) populateMessage(mes *pb.Identify, c network.Conn, usePeerR
 				log.Errorf("error marshaling peer record: %v", err)
 			} else {
 				mes.SignedPeerRecord = recBytes
-				log.Debugf("%s sent peer record to %s", c.LocalPeer(), c.RemotePeer())
+				log.Debugf("%s sent peer record to %s", ids.Host.ID(), rp)
 			}
-		}
-	} else {
-		// set listen addrs, get our latest addrs from Host.
-		laddrs := ids.Host.Addrs()
-		// Note: LocalMultiaddr is sometimes 0.0.0.0
-		viaLoopback := manet.IsIPLoopback(c.LocalMultiaddr()) || manet.IsIPLoopback(c.RemoteMultiaddr())
-		mes.ListenAddrs = make([][]byte, 0, len(laddrs))
-		for _, addr := range laddrs {
-			if !viaLoopback && manet.IsIPLoopback(addr) {
-				continue
-			}
-			mes.ListenAddrs = append(mes.ListenAddrs, addr.Bytes())
 		}
 	}
 
@@ -468,7 +493,7 @@ func (ids *IDService) populateMessage(mes *pb.Identify, c network.Conn, usePeerR
 	mes.AgentVersion = &av
 }
 
-func (ids *IDService) consumeMessage(mes *pb.Identify, c network.Conn, usePeerRecords bool) {
+func (ids *IDService) consumeMessage(mes *pb.Identify, c network.Conn) {
 	p := c.RemotePeer()
 
 	// mes.Protocols
@@ -499,13 +524,11 @@ func (ids *IDService) consumeMessage(mes *pb.Identify, c network.Conn, usePeerRe
 	// many undialable addresses for other peers.
 
 	// add certified addresses for the peer, if they sent us a signed peer record
+	// otherwise use the unsigned addresses.
 	var signedPeerRecord *record.Envelope
-	if usePeerRecords {
-		var err error
-		signedPeerRecord, err = signedPeerRecordFromMessage(mes)
-		if err != nil {
-			log.Errorf("error getting peer record from Identify message: %v", err)
-		}
+	signedPeerRecord, err := signedPeerRecordFromMessage(mes)
+	if err != nil {
+		log.Errorf("error getting peer record from Identify message: %v", err)
 	}
 
 	// Extend the TTLs on the known (probably) good addresses.
@@ -701,6 +724,13 @@ func (nn *netNotifiee) Disconnected(n network.Network, v network.Conn) {
 	defer ids.addrMu.Unlock()
 
 	if ids.Host.Network().Connectedness(v.RemotePeer()) != network.Connected {
+		// consider removing the peer handler for this
+		select {
+		case ids.rmPeerHandlerCh <- rmPeerHandlerReq{v.RemotePeer()}:
+		case <-ids.ctx.Done():
+			return
+		}
+
 		// Last disconnect.
 		ps := ids.Host.Peerstore()
 		ps.UpdateAddrs(v.RemotePeer(), peerstore.ConnectedAddrTTL, peerstore.RecentlyConnectedAddrTTL)

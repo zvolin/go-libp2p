@@ -3,6 +3,7 @@ package basichost
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"sync"
@@ -35,6 +36,9 @@ import (
 // The maximum number of address resolution steps we'll perform for a single
 // peer (for all addresses).
 const maxAddressResolution = 32
+
+// addrChangeTickrInterval is the interval between two address change ticks.
+var addrChangeTickrInterval = 5 * time.Second
 
 var log = logging.Logger("basichost")
 
@@ -156,7 +160,7 @@ func NewHost(ctx context.Context, net network.Network, opts *HostOpts) (*BasicHo
 	if h.emitters.evtLocalProtocolsUpdated, err = h.eventbus.Emitter(&event.EvtLocalProtocolsUpdated{}); err != nil {
 		return nil, err
 	}
-	if h.emitters.evtLocalAddrsUpdated, err = h.eventbus.Emitter(&event.EvtLocalAddressesUpdated{}, eventbus.Stateful); err != nil {
+	if h.emitters.evtLocalAddrsUpdated, err = h.eventbus.Emitter(&event.EvtLocalAddressesUpdated{}); err != nil {
 		return nil, err
 	}
 
@@ -206,6 +210,16 @@ func NewHost(ctx context.Context, net network.Network, opts *HostOpts) (*BasicHo
 	}
 
 	net.SetStreamHandler(h.newStreamHandler)
+
+	// persist a signed peer record for self to the peerstore.
+	rec := peer.PeerRecordFromAddrInfo(peer.AddrInfo{h.ID(), h.Addrs()})
+	ev, err := record.Seal(rec, h.signKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create signed record for self: %w", err)
+	}
+	if _, err := cab.ConsumePeerRecord(ev, peerstore.PermanentAddrTTL); err != nil {
+		return nil, fmt.Errorf("failed to persist signed record to peerstore: %w", err)
+	}
 
 	return h, nil
 }
@@ -392,7 +406,7 @@ func (h *BasicHost) background() {
 
 	// periodically schedules an IdentifyPush to update our peers for changes
 	// in our address set (if needed)
-	ticker := time.NewTicker(5 * time.Second)
+	ticker := time.NewTicker(addrChangeTickrInterval)
 	defer ticker.Stop()
 
 	for {
