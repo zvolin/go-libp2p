@@ -112,9 +112,9 @@ func TestSignedPeerRecordWithNoListenAddrs(t *testing.T) {
 		t.Errorf("expected at least 1 listen addr, got %d", len(h.Addrs()))
 	}
 
-	// sadly, we still don't have a signed peer record, since the addr change ticker hasn't ticked yet
-	// uncommenting this causes the test to pass:
-	// time.Sleep(5100 * time.Millisecond)
+	// we need to sleep for a moment, since the signed record with the new addr is
+	// added async
+	time.Sleep(time.Millisecond)
 
 	cab, ok := peerstore.GetCertifiedAddrBook(h.Peerstore())
 	if !ok {

@@ -232,6 +232,16 @@ func NewHost(ctx context.Context, net network.Network, opts *HostOpts) (*BasicHo
 
 	net.SetStreamHandler(h.newStreamHandler)
 
+	// register to be notified when the network's listen addrs change,
+	// so we can update our address set and push events if needed
+	listenHandler := func(network.Network, ma.Multiaddr) {
+		h.SignalAddressChange()
+	}
+	net.Notify(&network.NotifyBundle{
+		ListenF:      listenHandler,
+		ListenCloseF: listenHandler,
+	})
+
 	return h, nil
 }
 
