@@ -94,6 +94,44 @@ func TestMultipleClose(t *testing.T) {
 
 }
 
+func TestSignedPeerRecordWithNoListenAddrs(t *testing.T) {
+	ctx := context.Background()
+
+	h := New(swarmt.GenSwarm(t, ctx, swarmt.OptDialOnly))
+
+	if len(h.Addrs()) != 0 {
+		t.Errorf("expected no listen addrs, got %d", len(h.Addrs()))
+	}
+
+	// now add a listen addr
+	err := h.Network().Listen(ma.StringCast("/ip4/0.0.0.0/tcp/0"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(h.Addrs()) < 1 {
+		t.Errorf("expected at least 1 listen addr, got %d", len(h.Addrs()))
+	}
+
+	// sadly, we still don't have a signed peer record, since the addr change ticker hasn't ticked yet
+	cab, ok := peerstore.GetCertifiedAddrBook(h.Peerstore())
+	if !ok {
+		t.Fatalf("peerstore doesn't support certified addrs")
+	}
+	rec := cab.GetPeerRecord(h.ID())
+	if rec != nil {
+		t.Fatalf("no signed peer record in peerstore for new host %s", h.ID())
+	}
+
+	// after sleeping we should have the record
+	time.Sleep(5100 * time.Millisecond)
+
+	// assert that the hosts' peerstore has a signed record for itself
+	rec = cab.GetPeerRecord(h.ID())
+	if rec == nil {
+		t.Fatalf("no signed peer record in peerstore for new host %s", h.ID())
+	}
+}
+
 func TestProtocolHandlerEvents(t *testing.T) {
 	ctx := context.Background()
 	h := New(swarmt.GenSwarm(t, ctx))
