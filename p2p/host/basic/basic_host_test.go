@@ -113,20 +113,14 @@ func TestSignedPeerRecordWithNoListenAddrs(t *testing.T) {
 	}
 
 	// sadly, we still don't have a signed peer record, since the addr change ticker hasn't ticked yet
+	// uncommenting this causes the test to pass:
+	// time.Sleep(5100 * time.Millisecond)
+
 	cab, ok := peerstore.GetCertifiedAddrBook(h.Peerstore())
 	if !ok {
 		t.Fatalf("peerstore doesn't support certified addrs")
 	}
 	rec := cab.GetPeerRecord(h.ID())
-	if rec != nil {
-		t.Fatalf("no signed peer record in peerstore for new host %s", h.ID())
-	}
-
-	// after sleeping we should have the record
-	time.Sleep(5100 * time.Millisecond)
-
-	// assert that the hosts' peerstore has a signed record for itself
-	rec = cab.GetPeerRecord(h.ID())
 	if rec == nil {
 		t.Fatalf("no signed peer record in peerstore for new host %s", h.ID())
 	}
