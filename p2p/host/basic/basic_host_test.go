@@ -114,7 +114,7 @@ func TestSignedPeerRecordWithNoListenAddrs(t *testing.T) {
 
 	// we need to sleep for a moment, since the signed record with the new addr is
 	// added async
-	time.Sleep(time.Millisecond)
+	time.Sleep(20 * time.Millisecond)
 
 	cab, ok := peerstore.GetCertifiedAddrBook(h.Peerstore())
 	if !ok {
