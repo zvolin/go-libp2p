@@ -190,18 +190,12 @@ func (ids *IDService) loop() {
 		case addReq := <-ids.addPeerHandlerCh:
 			rp := addReq.rp
 			ph, ok := phs[rp]
-			if ok {
-				addReq.resp <- ph
-				continue
-			}
-
-			if ids.Host.Network().Connectedness(rp) == network.Connected {
+			if !ok && ids.Host.Network().Connectedness(rp) == network.Connected {
 				ph = newPeerHandler(rp, ids)
 				ph.start()
 				phs[rp] = ph
-				addReq.resp <- ph
 			}
-
+			addReq.resp <- ph
 		case rmReq := <-ids.rmPeerHandlerCh:
 			rp := rmReq.p
 			if ids.Host.Network().Connectedness(rp) != network.Connected {
@@ -394,6 +388,12 @@ func (ids *IDService) sendIdentifyResp(s network.Stream) {
 	select {
 	case ph = <-phCh:
 	case <-ids.ctx.Done():
+		return
+	}
+
+	if ph == nil {
+		// Peer disconnected, abort.
+		s.Reset()
 		return
 	}
 
