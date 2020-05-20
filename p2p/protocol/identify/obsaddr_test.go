@@ -12,9 +12,10 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	p2putil "github.com/libp2p/go-libp2p-netutil"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
-	ma "github.com/multiformats/go-multiaddr"
-
 	identify "github.com/libp2p/go-libp2p/p2p/protocol/identify"
+
+	ma "github.com/multiformats/go-multiaddr"
+	"github.com/stretchr/testify/require"
 )
 
 type harness struct {
@@ -51,10 +52,11 @@ func (h *harness) conn(observer peer.ID) network.Conn {
 	return c
 }
 
-func (h *harness) observe(observed ma.Multiaddr, observer peer.ID) {
+func (h *harness) observe(observed ma.Multiaddr, observer peer.ID) network.Conn {
 	c := h.conn(observer)
 	h.oas.Record(c, observed)
-	time.Sleep(1 * time.Millisecond) // let the worker run
+	time.Sleep(50 * time.Millisecond) // let the worker run
+	return c
 }
 
 func newHarness(ctx context.Context, t *testing.T) harness {
@@ -244,4 +246,85 @@ func TestAddAddrsProfile(t *testing.T) {
 	}
 
 	wg.Wait()
+}
+
+func TestObservedAddrFiltering(t *testing.T) {
+	addrsMarch := func(a, b []ma.Multiaddr) bool {
+		if len(a) != len(b) {
+			return false
+		}
+
+		for _, aa := range a {
+			found := false
+			for _, bb := range b {
+				if aa.Equal(bb) {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return false
+			}
+		}
+		return true
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	harness := newHarness(ctx, t)
+	if !addrsMarch(harness.oas.Addrs(), nil) {
+		t.Error("addrs should be empty")
+	}
+
+	// IP4/TCP
+	it1 := ma.StringCast("/ip4/1.2.3.4/tcp/1231")
+	it2 := ma.StringCast("/ip4/1.2.3.4/tcp/1232")
+	it3 := ma.StringCast("/ip4/1.2.3.4/tcp/1233")
+	it4 := ma.StringCast("/ip4/1.2.3.4/tcp/1234")
+	it5 := ma.StringCast("/ip4/1.2.3.4/tcp/1235")
+	it6 := ma.StringCast("/ip4/1.2.3.4/tcp/1236")
+	it7 := ma.StringCast("/ip4/1.2.3.4/tcp/1237")
+
+	// observers
+	b1 := ma.StringCast("/ip4/1.2.3.6/tcp/1236")
+	b2 := ma.StringCast("/ip4/1.2.3.7/tcp/1237")
+	b3 := ma.StringCast("/ip4/1.2.3.8/tcp/1237")
+	b4 := ma.StringCast("/ip4/1.2.3.9/tcp/1237")
+	b5 := ma.StringCast("/ip4/1.2.3.10/tcp/1237")
+
+	peers := []peer.ID{harness.add(b1), harness.add(b2), harness.add(b3), harness.add(b4), harness.add(b5)}
+	for i := 0; i < 4; i++ {
+		harness.observe(it1, peers[i])
+		harness.observe(it2, peers[i])
+		harness.observe(it3, peers[i])
+		harness.observe(it4, peers[i])
+		harness.observe(it5, peers[i])
+		harness.observe(it6, peers[i])
+		harness.observe(it7, peers[i])
+	}
+
+	harness.observe(it1, peers[4])
+	harness.observe(it7, peers[4])
+
+	addrs := harness.oas.Addrs()
+	require.Len(t, addrs, 2)
+	require.Contains(t, addrs, it1)
+	require.Contains(t, addrs, it7)
+
+}
+
+func TestObservedAddrGroupKey(t *testing.T) {
+	oa1 := &identify.ObservedAddr{Addr: ma.StringCast("/ip4/1.2.3.4/tcp/1231")}
+	require.Equal(t, "/ip4/tcp", oa1.GroupKey())
+
+	oa2 := &identify.ObservedAddr{Addr: ma.StringCast("/ip4/1.2.3.5/tcp/2222")}
+	require.Equal(t, "/ip4/tcp", oa2.GroupKey())
+
+	oa3 := &identify.ObservedAddr{Addr: ma.StringCast("/ip4/1.2.3.4/udp/1231")}
+	require.Equal(t, "/ip4/udp", oa3.GroupKey())
+	oa4 := &identify.ObservedAddr{Addr: ma.StringCast("/ip4/1.3.3.4/udp/1531")}
+	require.Equal(t, "/ip4/udp", oa4.GroupKey())
+
+	oa5 := &identify.ObservedAddr{Addr: ma.StringCast("/ip4/1.3.3.4/udp/1531/quic")}
+	require.Equal(t, "/ip4/udp/quic", oa5.GroupKey())
 }
