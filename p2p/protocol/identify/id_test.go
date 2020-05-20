@@ -49,6 +49,11 @@ func subtestIDService(t *testing.T) {
 	defer ids1.Close()
 	defer ids2.Close()
 
+	sub, err := ids1.Host.EventBus().Subscribe(new(event.EvtPeerIdentificationCompleted), eventbus.BufSize(16))
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	testKnowsAddrs(t, h1, h2p, []ma.Multiaddr{}) // nothing
 	testKnowsAddrs(t, h2, h1p, []ma.Multiaddr{}) // nothing
 
@@ -68,11 +73,6 @@ func subtestIDService(t *testing.T) {
 	h1t2c := h1.Network().ConnsToPeer(h2p)
 	if len(h1t2c) == 0 {
 		t.Fatal("should have a conn here")
-	}
-
-	sub, err := ids1.Host.EventBus().Subscribe(new(event.EvtPeerIdentificationCompleted), eventbus.BufSize(16))
-	if err != nil {
-		t.Fatal(err)
 	}
 
 	ids1.IdentifyConn(h1t2c[0])
