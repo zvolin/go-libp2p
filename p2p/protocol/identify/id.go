@@ -428,9 +428,6 @@ func (ids *IDService) getSnapshot() *identifySnapshot {
 	if !ids.disableSignedPeerRecord {
 		if cab, ok := peerstore.GetCertifiedAddrBook(ids.Host.Peerstore()); ok {
 			snapshot.record = cab.GetPeerRecord(ids.Host.ID())
-			if snapshot.record == nil {
-				log.Errorf("latest peer record does not exist. identify message incomplete!")
-			}
 		}
 	}
 	snapshot.addrs = ids.Host.Addrs()
@@ -465,7 +462,7 @@ func (ids *IDService) populateMessage(
 		mes.ListenAddrs = append(mes.ListenAddrs, addr.Bytes())
 	}
 
-	if !ids.disableSignedPeerRecord {
+	if !ids.disableSignedPeerRecord && snapshot.record != nil {
 		recBytes, err := snapshot.record.Marshal()
 		if err != nil {
 			log.Errorf("error marshaling peer record: %v", err)
