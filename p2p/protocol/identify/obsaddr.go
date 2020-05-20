@@ -70,15 +70,24 @@ func (oa *ObservedAddr) numInbound() int {
 	return count
 }
 
+// GroupKey returns the group in which this observation belongs. Currently, an
+// observed address's group is just the address with all ports set to 0. This
+// means we can advertise the most commonly observed external ports without
+// advertising _every_ observed port.
 func (oa *ObservedAddr) GroupKey() string {
-	key := ""
-	protos := oa.Addr.Protocols()
+	key := make([]byte, 0, len(oa.Addr.Bytes()))
+	ma.ForEach(oa.Addr, func(c ma.Component) bool {
+		switch proto := c.Protocol(); proto.Code {
+		case ma.P_TCP, ma.P_UDP:
+			key = append(key, proto.VCode...)
+			key = append(key, 0, 0) // zero in two bytes
+		default:
+			key = append(key, c.Bytes()...)
+		}
+		return true
+	})
 
-	for i := range protos {
-		key = key + "/" + protos[i].Name
-	}
-
-	return key
+	return string(key)
 }
 
 type newObservation struct {
