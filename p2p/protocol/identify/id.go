@@ -56,9 +56,6 @@ func init() {
 	}
 }
 
-// transientTTL is a short ttl for invalidated previously connected addrs
-const transientTTL = 10 * time.Second
-
 type addPeerHandlerReq struct {
 	rp   peer.ID
 	resp chan *peerHandler
@@ -546,9 +543,13 @@ func (ids *IDService) consumeMessage(mes *pb.Identify, c network.Conn) {
 		ttl = peerstore.ConnectedAddrTTL
 	}
 
-	// invalidate previous addrs -- we use a transient ttl instead of 0 to ensure there
-	// is no period of having no good addrs whatsoever
-	ids.Host.Peerstore().UpdateAddrs(p, peerstore.ConnectedAddrTTL, transientTTL)
+	// Downgrade connected and recently connected addrs to a temporary TTL.
+	for _, ttl := range []time.Duration{
+		peerstore.RecentlyConnectedAddrTTL,
+		peerstore.ConnectedAddrTTL,
+	} {
+		ids.Host.Peerstore().UpdateAddrs(p, ttl, peerstore.TempAddrTTL)
+	}
 
 	// add signed addrs if we have them and the peerstore supports them
 	cab, ok := peerstore.GetCertifiedAddrBook(ids.Host.Peerstore())
@@ -560,6 +561,9 @@ func (ids *IDService) consumeMessage(mes *pb.Identify, c network.Conn) {
 	} else {
 		ids.Host.Peerstore().AddAddrs(p, lmaddrs, ttl)
 	}
+
+	// Finally, expire all temporary addrs.
+	ids.Host.Peerstore().UpdateAddrs(p, peerstore.TempAddrTTL, 0)
 	ids.addrMu.Unlock()
 
 	log.Debugf("%s received listen addrs for %s: %s", c.LocalPeer(), c.RemotePeer(), lmaddrs)

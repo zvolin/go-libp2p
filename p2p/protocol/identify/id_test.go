@@ -58,8 +58,8 @@ func subtestIDService(t *testing.T) {
 	testKnowsAddrs(t, h2, h1p, []ma.Multiaddr{}) // nothing
 
 	// the forgetMe addr represents an address for h1 that h2 has learned out of band
-	// (not via identify protocol). Shortly after the identify exchange, it will be
-	// forgotten and replaced by the addrs h1 sends during identify
+	// (not via identify protocol). During the identify exchange, it will be
+	// forgotten and replaced by the addrs h1 sends.
 	forgetMe, _ := ma.NewMultiaddr("/ip4/1.2.3.4/tcp/1234")
 
 	h2.Peerstore().AddAddr(h1p, forgetMe, peerstore.RecentlyConnectedAddrTTL)
@@ -80,7 +80,7 @@ func subtestIDService(t *testing.T) {
 	// the IDService should be opened automatically, by the network.
 	// what we should see now is that both peers know about each others listen addresses.
 	t.Log("test peer1 has peer2 addrs correctly")
-	testKnowsAddrs(t, h1, h2p, h2.Peerstore().Addrs(h2p))        // has them
+	testKnowsAddrs(t, h1, h2p, h2.Addrs())                       // has them
 	testHasCertifiedAddrs(t, h1, h2p, h2.Peerstore().Addrs(h2p)) // should have signed addrs also
 	testHasProtocolVersions(t, h1, h2p)
 	testHasPublicKey(t, h1, h2p, h2.Peerstore().PubKey(h2p)) // h1 should have h2's public key
@@ -93,12 +93,9 @@ func subtestIDService(t *testing.T) {
 	}
 	ids2.IdentifyConn(c[0])
 
-	addrs := h1.Peerstore().Addrs(h1p)
-	addrs = append(addrs, forgetMe)
-
 	// and the protocol versions.
 	t.Log("test peer2 has peer1 addrs correctly")
-	testKnowsAddrs(t, h2, h1p, addrs) // has them
+	testKnowsAddrs(t, h2, h1p, h1.Addrs()) // has them
 	testHasCertifiedAddrs(t, h2, h1p, h1.Peerstore().Addrs(h1p))
 	testHasProtocolVersions(t, h2, h1p)
 	testHasPublicKey(t, h2, h1p, h1.Peerstore().PubKey(h1p)) // h1 should have h2's public key
@@ -112,8 +109,8 @@ func subtestIDService(t *testing.T) {
 
 	t.Log("testing addrs just after disconnect")
 	// addresses don't immediately expire on disconnect, so we should still have them
-	testKnowsAddrs(t, h2, h1p, addrs)
-	testKnowsAddrs(t, h1, h2p, h2.Peerstore().Addrs(h2p))
+	testKnowsAddrs(t, h2, h1p, h1.Addrs())
+	testKnowsAddrs(t, h1, h2p, h2.Addrs())
 	testHasCertifiedAddrs(t, h1, h2p, h2.Peerstore().Addrs(h2p))
 	testHasCertifiedAddrs(t, h2, h1p, h1.Peerstore().Addrs(h1p))
 
