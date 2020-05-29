@@ -11,6 +11,7 @@ require (
 	github.com/ipfs/go-log v1.0.4
 	github.com/jbenet/go-cienv v0.1.0
 	github.com/jbenet/goprocess v0.1.4
+	github.com/libp2p/go-addr-util v0.0.2
 	github.com/libp2p/go-conn-security-multistream v0.2.0
 	github.com/libp2p/go-eventbus v0.1.0
 	github.com/libp2p/go-libp2p-autonat v0.2.3
@@ -29,7 +30,8 @@ require (
 	github.com/libp2p/go-libp2p-tls v0.1.3
 	github.com/libp2p/go-libp2p-transport-upgrader v0.3.0
 	github.com/libp2p/go-libp2p-yamux v0.2.7
-	github.com/libp2p/go-sockaddr v0.1.0 // indirect
+	github.com/libp2p/go-netroute v0.1.2
+	github.com/libp2p/go-sockaddr v0.1.0
 	github.com/libp2p/go-stream-muxer-multistream v0.3.0
 	github.com/libp2p/go-tcp-transport v0.2.0
 	github.com/libp2p/go-ws-transport v0.3.1
