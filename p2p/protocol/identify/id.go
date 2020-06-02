@@ -20,6 +20,7 @@ import (
 	pb "github.com/libp2p/go-libp2p/p2p/protocol/identify/pb"
 
 	ggio "github.com/gogo/protobuf/io"
+	"github.com/gogo/protobuf/proto"
 	logging "github.com/ipfs/go-log"
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr-net"
@@ -42,6 +43,9 @@ const LibP2PVersion = "ipfs/0.1.0"
 //
 // Deprecated: Set this with the UserAgent option.
 var ClientVersion = "github.com/libp2p/go-libp2p"
+
+var legacyIDSize = 2 * 1024 // 2k Bytes
+var signedIDSize = 8 * 1024 // 8K
 
 func init() {
 	bi, ok := debug.ReadBuildInfo()
@@ -395,18 +399,14 @@ func (ids *IDService) sendIdentifyResp(s network.Stream) {
 	}
 
 	ph.snapshotMu.RLock()
-	mes := &pb.Identify{}
-	ids.populateMessage(mes, c, ph.snapshot)
-	w := ggio.NewDelimitedWriter(s)
-	w.WriteMsg(mes)
-
+	ids.writeChunkedIdentifyMsg(c, ph.snapshot, s)
 	log.Debugf("%s sent message to %s %s", ID, c.RemotePeer(), c.RemoteMultiaddr())
 }
 
 func (ids *IDService) handleIdentifyResponse(s network.Stream) {
 	c := s.Conn()
 
-	r := ggio.NewDelimitedReader(s, 2048)
+	r := ggio.NewDelimitedReader(s, legacyIDSize)
 	mes := pb.Identify{}
 	if err := r.ReadMsg(&mes); err != nil {
 		log.Warning("error reading identify message: ", err)
@@ -414,9 +414,20 @@ func (ids *IDService) handleIdentifyResponse(s network.Stream) {
 		return
 	}
 
+	if mes.SignedRecordInNextMessage {
+		m := &pb.Identify{}
+		if err := ggio.NewDelimitedReader(s, signedIDSize).ReadMsg(m); err != nil {
+			log.Warning("error reading identify message: ", err)
+			s.Reset()
+			return
+		}
+		mes.SignedPeerRecord = m.SignedPeerRecord
+	}
+
 	defer func() { go helpers.FullClose(s) }()
 
 	log.Debugf("%s received message from %s %s", s.Protocol(), c.RemotePeer(), c.RemoteMultiaddr())
+
 	ids.consumeMessage(&mes, c)
 }
 
@@ -432,11 +443,34 @@ func (ids *IDService) getSnapshot() *identifySnapshot {
 	return snapshot
 }
 
-func (ids *IDService) populateMessage(
-	mes *pb.Identify,
+func (ids *IDService) writeChunkedIdentifyMsg(c network.Conn, snapshot *identifySnapshot, s network.Stream) error {
+	mes := ids.getIdentifyMsgUnsigned(c, snapshot)
+	sr := ids.getSignedRecord(snapshot)
+	mes.SignedPeerRecord = sr
+	writer := ggio.NewDelimitedWriter(s)
+
+	if sr == nil || proto.Size(mes) <= legacyIDSize {
+		return writer.WriteMsg(mes)
+	} else {
+		mes.SignedPeerRecord = nil
+		mes.SignedRecordInNextMessage = true
+		if err := writer.WriteMsg(mes); err != nil {
+			return err
+		}
+
+		// then write just the signed record
+		m := &pb.Identify{SignedPeerRecord: sr}
+		err := writer.WriteMsg(m)
+		return err
+	}
+}
+
+func (ids *IDService) getIdentifyMsgUnsigned(
 	conn network.Conn,
 	snapshot *identifySnapshot,
-) {
+) *pb.Identify {
+	mes := &pb.Identify{}
+
 	remoteAddr := conn.RemoteMultiaddr()
 	localAddr := conn.LocalMultiaddr()
 
@@ -458,17 +492,6 @@ func (ids *IDService) populateMessage(
 		}
 		mes.ListenAddrs = append(mes.ListenAddrs, addr.Bytes())
 	}
-
-	if !ids.disableSignedPeerRecord && snapshot.record != nil {
-		recBytes, err := snapshot.record.Marshal()
-		if err != nil {
-			log.Errorf("error marshaling peer record: %v", err)
-		} else {
-			mes.SignedPeerRecord = recBytes
-			log.Debugf("%s sent peer record to %s", ids.Host.ID(), conn.RemotePeer())
-		}
-	}
-
 	// set our public key
 	ownKey := ids.Host.Peerstore().PubKey(ids.Host.ID())
 
@@ -495,6 +518,22 @@ func (ids *IDService) populateMessage(
 	av := ids.UserAgent
 	mes.ProtocolVersion = &pv
 	mes.AgentVersion = &av
+
+	return mes
+}
+
+func (ids *IDService) getSignedRecord(snapshot *identifySnapshot) []byte {
+	if ids.disableSignedPeerRecord || snapshot.record == nil {
+		return nil
+	}
+
+	recBytes, err := snapshot.record.Marshal()
+	if err != nil {
+		log.Errorw("failed to marshal signed record", "err", err)
+		return nil
+	}
+
+	return recBytes
 }
 
 func (ids *IDService) consumeMessage(mes *pb.Identify, c network.Conn) {
