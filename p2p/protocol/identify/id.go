@@ -406,7 +406,7 @@ func (ids *IDService) sendIdentifyResp(s network.Stream) {
 func (ids *IDService) handleIdentifyResponse(s network.Stream) {
 	c := s.Conn()
 
-	r := ggio.NewDelimitedReader(s, legacyIDSize)
+	r := ggio.NewDelimitedReader(s, signedIDSize)
 	mes := pb.Identify{}
 	if err := r.ReadMsg(&mes); err != nil {
 		log.Warning("error reading identify message: ", err)
@@ -414,9 +414,9 @@ func (ids *IDService) handleIdentifyResponse(s network.Stream) {
 		return
 	}
 
-	if mes.SignedRecordInNextMessage {
+	if mes.More {
 		m := &pb.Identify{}
-		if err := ggio.NewDelimitedReader(s, signedIDSize).ReadMsg(m); err != nil {
+		if err := r.ReadMsg(m); err != nil {
 			log.Warning("error reading identify message: ", err)
 			s.Reset()
 			return
@@ -444,28 +444,28 @@ func (ids *IDService) getSnapshot() *identifySnapshot {
 }
 
 func (ids *IDService) writeChunkedIdentifyMsg(c network.Conn, snapshot *identifySnapshot, s network.Stream) error {
-	mes := ids.getIdentifyMsgUnsigned(c, snapshot)
+	mes := ids.createBaseIdentifyResponse(c, snapshot)
 	sr := ids.getSignedRecord(snapshot)
 	mes.SignedPeerRecord = sr
 	writer := ggio.NewDelimitedWriter(s)
 
 	if sr == nil || proto.Size(mes) <= legacyIDSize {
 		return writer.WriteMsg(mes)
-	} else {
-		mes.SignedPeerRecord = nil
-		mes.SignedRecordInNextMessage = true
-		if err := writer.WriteMsg(mes); err != nil {
-			return err
-		}
-
-		// then write just the signed record
-		m := &pb.Identify{SignedPeerRecord: sr}
-		err := writer.WriteMsg(m)
+	}
+	mes.SignedPeerRecord = nil
+	mes.More = true
+	if err := writer.WriteMsg(mes); err != nil {
 		return err
 	}
+
+	// then write just the signed record
+	m := &pb.Identify{SignedPeerRecord: sr}
+	err := writer.WriteMsg(m)
+	return err
+
 }
 
-func (ids *IDService) getIdentifyMsgUnsigned(
+func (ids *IDService) createBaseIdentifyResponse(
 	conn network.Conn,
 	snapshot *identifySnapshot,
 ) *pb.Identify {

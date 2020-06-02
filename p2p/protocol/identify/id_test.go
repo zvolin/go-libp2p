@@ -767,7 +767,7 @@ func TestSendPushIfDeltaNotSupported(t *testing.T) {
 	}, 5*time.Second, 500*time.Millisecond)
 }
 
-/*func TestLargeIdentifyMessage(t *testing.T) {
+func TestLargeIdentifyMessage(t *testing.T) {
 	oldTTL := peerstore.RecentlyConnectedAddrTTL
 	peerstore.RecentlyConnectedAddrTTL = time.Second
 	defer func() {
@@ -786,7 +786,8 @@ func TestSendPushIfDeltaNotSupported(t *testing.T) {
 	h2 := blhost.NewBlankHost(swarmt.GenSwarm(t, ctx, swarmt.OptPeerPrivateKey(sk2)))
 
 	// add protocol strings to make the message larger
-	for i := 0; i < 100; i++ {
+	// about 2K of protocol strings
+	for i := 0; i < 500; i++ {
 		r := "rand" + string(i)
 		h1.SetStreamHandler(protocol.ID(r), func(network.Stream) {})
 		h2.SetStreamHandler(protocol.ID(r), func(network.Stream) {})
@@ -880,4 +881,4 @@ func TestSendPushIfDeltaNotSupported(t *testing.T) {
 	case <-time.After(10 * time.Second):
 		t.Fatalf("expected EvtPeerIdentificationCompleted event within 10 seconds; none received")
 	}
-}*/
+}

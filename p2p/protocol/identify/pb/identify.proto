@@ -39,10 +39,10 @@ message Identify {
   // a delta update is incompatible with everything else. If this field is included, none of the others can appear.
   optional Delta delta = 7;
 
-  // signedRecordInNextMessage is set to true by a peer to indicate to the receiver that the signed record is absent in the current message
+  // more is set to true by a peer to indicate to the receiver that the signed record is absent in the current message
   // and the peer should read the next message from the stream to fetch it.
   // This is done because messages with signed records can exceed the legacy message size of 2K bytes.
-  optional bool signedRecordInNextMessage = 9 [(gogoproto.nullable) = false];
+  optional bool more = 9 [(gogoproto.nullable) = false];
 
   // signedPeerRecord contains a serialized SignedEnvelope containing a PeerRecord,
   // signed by the sending node. It contains the same addresses as the listenAddrs field, but
