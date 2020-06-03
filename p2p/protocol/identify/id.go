@@ -3,6 +3,7 @@ package identify
 import (
 	"context"
 	"fmt"
+	"io"
 	"runtime/debug"
 	"sync"
 	"time"
@@ -44,8 +45,11 @@ const LibP2PVersion = "ipfs/0.1.0"
 // Deprecated: Set this with the UserAgent option.
 var ClientVersion = "github.com/libp2p/go-libp2p"
 
-var legacyIDSize = 2 * 1024 // 2k Bytes
-var signedIDSize = 8 * 1024 // 8K
+var (
+	legacyIDSize = 2 * 1024 // 2k Bytes
+	signedIDSize = 8 * 1024 // 8K
+	maxMessages  = 10
+)
 
 func init() {
 	bi, ok := debug.ReadBuildInfo()
@@ -407,28 +411,35 @@ func (ids *IDService) handleIdentifyResponse(s network.Stream) {
 	c := s.Conn()
 
 	r := ggio.NewDelimitedReader(s, signedIDSize)
-	mes := pb.Identify{}
-	if err := r.ReadMsg(&mes); err != nil {
+	mes := &pb.Identify{}
+
+	if err := readAllIDMessages(r, mes); err != nil {
 		log.Warning("error reading identify message: ", err)
 		s.Reset()
 		return
-	}
-
-	if mes.More {
-		m := &pb.Identify{}
-		if err := r.ReadMsg(m); err != nil {
-			log.Warning("error reading identify message: ", err)
-			s.Reset()
-			return
-		}
-		mes.SignedPeerRecord = m.SignedPeerRecord
 	}
 
 	defer func() { go helpers.FullClose(s) }()
 
 	log.Debugf("%s received message from %s %s", s.Protocol(), c.RemotePeer(), c.RemoteMultiaddr())
 
-	ids.consumeMessage(&mes, c)
+	ids.consumeMessage(mes, c)
+}
+
+func readAllIDMessages(r ggio.Reader, finalMsg proto.Message) error {
+	mes := &pb.Identify{}
+	for i := 0; i < maxMessages; i++ {
+		switch err := r.ReadMsg(mes); err {
+		case io.EOF:
+			return nil
+		case nil:
+			proto.Merge(finalMsg, mes)
+		default:
+			return err
+		}
+	}
+
+	return fmt.Errorf("too many parts")
 }
 
 func (ids *IDService) getSnapshot() *identifySnapshot {
