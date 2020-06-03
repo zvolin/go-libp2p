@@ -464,7 +464,6 @@ func (ids *IDService) writeChunkedIdentifyMsg(c network.Conn, snapshot *identify
 		return writer.WriteMsg(mes)
 	}
 	mes.SignedPeerRecord = nil
-	mes.More = true
 	if err := writer.WriteMsg(mes); err != nil {
 		return err
 	}
