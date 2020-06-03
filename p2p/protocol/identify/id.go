@@ -3,6 +3,7 @@ package identify
 import (
 	"context"
 	"fmt"
+	"io"
 	"runtime/debug"
 	"sync"
 	"time"
@@ -20,6 +21,7 @@ import (
 	pb "github.com/libp2p/go-libp2p/p2p/protocol/identify/pb"
 
 	ggio "github.com/gogo/protobuf/io"
+	"github.com/gogo/protobuf/proto"
 	logging "github.com/ipfs/go-log"
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr-net"
@@ -42,6 +44,12 @@ const LibP2PVersion = "ipfs/0.1.0"
 //
 // Deprecated: Set this with the UserAgent option.
 var ClientVersion = "github.com/libp2p/go-libp2p"
+
+var (
+	legacyIDSize = 2 * 1024 // 2k Bytes
+	signedIDSize = 8 * 1024 // 8K
+	maxMessages  = 10
+)
 
 func init() {
 	bi, ok := debug.ReadBuildInfo()
@@ -395,20 +403,17 @@ func (ids *IDService) sendIdentifyResp(s network.Stream) {
 	}
 
 	ph.snapshotMu.RLock()
-	mes := &pb.Identify{}
-	ids.populateMessage(mes, c, ph.snapshot)
-	w := ggio.NewDelimitedWriter(s)
-	w.WriteMsg(mes)
-
+	ids.writeChunkedIdentifyMsg(c, ph.snapshot, s)
 	log.Debugf("%s sent message to %s %s", ID, c.RemotePeer(), c.RemoteMultiaddr())
 }
 
 func (ids *IDService) handleIdentifyResponse(s network.Stream) {
 	c := s.Conn()
 
-	r := ggio.NewDelimitedReader(s, 2048)
-	mes := pb.Identify{}
-	if err := r.ReadMsg(&mes); err != nil {
+	r := ggio.NewDelimitedReader(s, signedIDSize)
+	mes := &pb.Identify{}
+
+	if err := readAllIDMessages(r, mes); err != nil {
 		log.Warning("error reading identify message: ", err)
 		s.Reset()
 		return
@@ -417,7 +422,24 @@ func (ids *IDService) handleIdentifyResponse(s network.Stream) {
 	defer func() { go helpers.FullClose(s) }()
 
 	log.Debugf("%s received message from %s %s", s.Protocol(), c.RemotePeer(), c.RemoteMultiaddr())
-	ids.consumeMessage(&mes, c)
+
+	ids.consumeMessage(mes, c)
+}
+
+func readAllIDMessages(r ggio.Reader, finalMsg proto.Message) error {
+	mes := &pb.Identify{}
+	for i := 0; i < maxMessages; i++ {
+		switch err := r.ReadMsg(mes); err {
+		case io.EOF:
+			return nil
+		case nil:
+			proto.Merge(finalMsg, mes)
+		default:
+			return err
+		}
+	}
+
+	return fmt.Errorf("too many parts")
 }
 
 func (ids *IDService) getSnapshot() *identifySnapshot {
@@ -432,11 +454,33 @@ func (ids *IDService) getSnapshot() *identifySnapshot {
 	return snapshot
 }
 
-func (ids *IDService) populateMessage(
-	mes *pb.Identify,
+func (ids *IDService) writeChunkedIdentifyMsg(c network.Conn, snapshot *identifySnapshot, s network.Stream) error {
+	mes := ids.createBaseIdentifyResponse(c, snapshot)
+	sr := ids.getSignedRecord(snapshot)
+	mes.SignedPeerRecord = sr
+	writer := ggio.NewDelimitedWriter(s)
+
+	if sr == nil || proto.Size(mes) <= legacyIDSize {
+		return writer.WriteMsg(mes)
+	}
+	mes.SignedPeerRecord = nil
+	if err := writer.WriteMsg(mes); err != nil {
+		return err
+	}
+
+	// then write just the signed record
+	m := &pb.Identify{SignedPeerRecord: sr}
+	err := writer.WriteMsg(m)
+	return err
+
+}
+
+func (ids *IDService) createBaseIdentifyResponse(
 	conn network.Conn,
 	snapshot *identifySnapshot,
-) {
+) *pb.Identify {
+	mes := &pb.Identify{}
+
 	remoteAddr := conn.RemoteMultiaddr()
 	localAddr := conn.LocalMultiaddr()
 
@@ -458,17 +502,6 @@ func (ids *IDService) populateMessage(
 		}
 		mes.ListenAddrs = append(mes.ListenAddrs, addr.Bytes())
 	}
-
-	if !ids.disableSignedPeerRecord && snapshot.record != nil {
-		recBytes, err := snapshot.record.Marshal()
-		if err != nil {
-			log.Errorf("error marshaling peer record: %v", err)
-		} else {
-			mes.SignedPeerRecord = recBytes
-			log.Debugf("%s sent peer record to %s", ids.Host.ID(), conn.RemotePeer())
-		}
-	}
-
 	// set our public key
 	ownKey := ids.Host.Peerstore().PubKey(ids.Host.ID())
 
@@ -495,6 +528,22 @@ func (ids *IDService) populateMessage(
 	av := ids.UserAgent
 	mes.ProtocolVersion = &pv
 	mes.AgentVersion = &av
+
+	return mes
+}
+
+func (ids *IDService) getSignedRecord(snapshot *identifySnapshot) []byte {
+	if ids.disableSignedPeerRecord || snapshot.record == nil {
+		return nil
+	}
+
+	recBytes, err := snapshot.record.Marshal()
+	if err != nil {
+		log.Errorw("failed to marshal signed record", "err", err)
+		return nil
+	}
+
+	return recBytes
 }
 
 func (ids *IDService) consumeMessage(mes *pb.Identify, c network.Conn) {
