@@ -13,11 +13,12 @@ require (
 	github.com/jbenet/goprocess v0.1.4
 	github.com/libp2p/go-addr-util v0.0.2
 	github.com/libp2p/go-conn-security-multistream v0.2.0
-	github.com/libp2p/go-eventbus v0.1.0
+	github.com/libp2p/go-eventbus v0.2.1
 	github.com/libp2p/go-libp2p-autonat v0.2.3
 	github.com/libp2p/go-libp2p-blankhost v0.1.6
 	github.com/libp2p/go-libp2p-circuit v0.2.2
-	github.com/libp2p/go-libp2p-core v0.5.6
+	github.com/libp2p/go-libp2p-connmgr v0.2.4 // indirect
+	github.com/libp2p/go-libp2p-core v0.5.7
 	github.com/libp2p/go-libp2p-discovery v0.4.0
 	github.com/libp2p/go-libp2p-loggables v0.1.0
 	github.com/libp2p/go-libp2p-mplex v0.2.3
@@ -31,7 +32,7 @@ require (
 	github.com/libp2p/go-libp2p-transport-upgrader v0.3.0
 	github.com/libp2p/go-libp2p-yamux v0.2.7
 	github.com/libp2p/go-netroute v0.1.2
-	github.com/libp2p/go-sockaddr v0.1.0
+	github.com/libp2p/go-sockaddr v0.1.0 // indirect
 	github.com/libp2p/go-stream-muxer-multistream v0.3.0
 	github.com/libp2p/go-tcp-transport v0.2.0
 	github.com/libp2p/go-ws-transport v0.3.1
