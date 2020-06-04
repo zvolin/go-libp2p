@@ -35,9 +35,15 @@ var observedAddrManagerWorkerChannelSize = 16
 // we will return for each (IPx/TCP or UDP) group.
 var maxObservedAddrsPerIPAndTransport = 2
 
+// observation records an address observation from an "observer" (where every IP
+// address is a unique observer).
 type observation struct {
+	// seenTime is the last time this observation was made.
 	seenTime time.Time
-	inbound  bool
+	// inbound indicates whether or not this observation has been made from
+	// an inbound connection. This remains true even if we an observation
+	// from a subsequent outbound connection.
+	inbound bool
 }
 
 // observedAddr is an entry for an address reported by our peers.
