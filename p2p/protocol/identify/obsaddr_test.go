@@ -312,30 +312,3 @@ func TestObservedAddrFiltering(t *testing.T) {
 	require.Contains(t, addrs, it7)
 
 }
-
-func TestObservedAddrGroupKey(t *testing.T) {
-	oa1 := &identify.ObservedAddr{Addr: ma.StringCast("/ip4/1.2.3.4/tcp/2345")}
-	oa2 := &identify.ObservedAddr{Addr: ma.StringCast("/ip4/1.2.3.4/tcp/1231")}
-	oa3 := &identify.ObservedAddr{Addr: ma.StringCast("/ip4/1.2.3.5/tcp/1231")}
-	oa4 := &identify.ObservedAddr{Addr: ma.StringCast("/ip4/1.2.3.4/udp/1231")}
-	oa5 := &identify.ObservedAddr{Addr: ma.StringCast("/ip4/1.2.3.4/udp/1531")}
-	oa6 := &identify.ObservedAddr{Addr: ma.StringCast("/ip4/1.2.3.4/udp/1531/quic")}
-	oa7 := &identify.ObservedAddr{Addr: ma.StringCast("/ip4/1.2.3.4/udp/1111/quic")}
-	oa8 := &identify.ObservedAddr{Addr: ma.StringCast("/ip4/1.2.3.5/udp/1111/quic")}
-
-	// different ports, same IP => same key
-	require.Equal(t, oa1.GroupKey(), oa2.GroupKey())
-	// different IPs => different key
-	require.NotEqual(t, oa2.GroupKey(), oa3.GroupKey())
-	// same port, different protos => different keys
-	require.NotEqual(t, oa3.GroupKey(), oa4.GroupKey())
-	// same port, same address, different protos => different keys
-	require.NotEqual(t, oa2.GroupKey(), oa4.GroupKey())
-	// udp works as well
-	require.Equal(t, oa4.GroupKey(), oa5.GroupKey())
-	// udp and quic are different
-	require.NotEqual(t, oa5.GroupKey(), oa6.GroupKey())
-	// quic works as well
-	require.Equal(t, oa6.GroupKey(), oa7.GroupKey())
-	require.NotEqual(t, oa7.GroupKey(), oa8.GroupKey())
-}
