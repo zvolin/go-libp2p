@@ -36,8 +36,8 @@ var observedAddrManagerWorkerChannelSize = 16
 var maxObservedAddrsPerIPAndTransport = 2
 
 type observation struct {
-	seenTime      time.Time
-	connDirection network.Direction
+	seenTime time.Time
+	inbound  bool
 }
 
 // observedAddr is an entry for an address reported by our peers.
@@ -62,7 +62,7 @@ func (oa *observedAddr) activated() bool {
 func (oa *observedAddr) numInbound() int {
 	count := 0
 	for obs := range oa.seenBy {
-		if oa.seenBy[obs].connDirection == network.DirInbound {
+		if oa.seenBy[obs].inbound {
 			count++
 		}
 	}
@@ -382,16 +382,19 @@ func (oas *ObservedAddrManager) recordObservationUnlocked(conn network.Conn, obs
 	observerString := observerGroup(conn.RemoteMultiaddr())
 	localString := string(conn.LocalMultiaddr().Bytes())
 	ob := observation{
-		seenTime:      now,
-		connDirection: conn.Stat().Direction,
+		seenTime: now,
+		inbound:  conn.Stat().Direction == network.DirInbound,
 	}
 
-	observedAddrs := oas.addrs[localString]
 	// check if observed address seen yet, if so, update it
-	for i, previousObserved := range observedAddrs {
-		if previousObserved.addr.Equal(observed) {
-			observedAddrs[i].seenBy[observerString] = ob
-			observedAddrs[i].lastSeen = now
+	for _, observedAddr := range oas.addrs[localString] {
+		if observedAddr.addr.Equal(observed) {
+			// Don't trump an outbound observation with an inbound
+			// one.
+			ob.inbound = ob.inbound || observedAddr.seenBy[observerString].inbound
+
+			observedAddr.seenBy[observerString] = ob
+			observedAddr.lastSeen = now
 			return
 		}
 	}
