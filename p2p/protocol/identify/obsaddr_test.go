@@ -112,7 +112,7 @@ func TestObsAddrSet(t *testing.T) {
 		return m
 	}
 
-	addrsMarch := func(a, b []ma.Multiaddr) bool {
+	addrsMatch := func(a, b []ma.Multiaddr) bool {
 		if len(a) != len(b) {
 			return false
 		}
@@ -149,7 +149,7 @@ func TestObsAddrSet(t *testing.T) {
 
 	harness := newHarness(ctx, t)
 
-	if !addrsMarch(harness.oas.Addrs(), nil) {
+	if !addrsMatch(harness.oas.Addrs(), nil) {
 		t.Error("addrs should be empty")
 	}
 
@@ -167,7 +167,7 @@ func TestObsAddrSet(t *testing.T) {
 	harness.observe(a3, pa4)
 
 	// these are all different so we should not yet get them.
-	if !addrsMarch(harness.oas.Addrs(), nil) {
+	if !addrsMatch(harness.oas.Addrs(), nil) {
 		t.Error("addrs should _still_ be empty (once)")
 	}
 
@@ -175,7 +175,7 @@ func TestObsAddrSet(t *testing.T) {
 	harness.observe(a1, pa4)
 	harness.observe(a2, pa4)
 	harness.observe(a3, pa4)
-	if !addrsMarch(harness.oas.Addrs(), nil) {
+	if !addrsMatch(harness.oas.Addrs(), nil) {
 		t.Error("addrs should _still_ be empty (same obs)")
 	}
 
@@ -183,14 +183,14 @@ func TestObsAddrSet(t *testing.T) {
 	harness.observe(a1, pa5)
 	harness.observe(a2, pa5)
 	harness.observe(a3, pa5)
-	if !addrsMarch(harness.oas.Addrs(), nil) {
+	if !addrsMatch(harness.oas.Addrs(), nil) {
 		t.Error("addrs should _still_ be empty (same obs group)")
 	}
 
 	harness.observe(a1, pb1)
 	harness.observe(a1, pb2)
 	harness.observe(a1, pb3)
-	if !addrsMarch(harness.oas.Addrs(), []ma.Multiaddr{a1}) {
+	if !addrsMatch(harness.oas.Addrs(), []ma.Multiaddr{a1}) {
 		t.Error("addrs should only have a1")
 	}
 
@@ -205,14 +205,14 @@ func TestObsAddrSet(t *testing.T) {
 	harness.observe(a1, pb2)
 	harness.observe(a2, pb4)
 	harness.observe(a2, pb5)
-	if !addrsMarch(harness.oas.Addrs(), []ma.Multiaddr{a1, a2}) {
+	if !addrsMatch(harness.oas.Addrs(), []ma.Multiaddr{a1, a2}) {
 		t.Error("addrs should only have a1, a2")
 	}
 
 	// force a refresh.
 	harness.oas.SetTTL(time.Millisecond * 200)
 	<-time.After(time.Millisecond * 210)
-	if !addrsMarch(harness.oas.Addrs(), []ma.Multiaddr{a1, a2}) {
+	if !addrsMatch(harness.oas.Addrs(), []ma.Multiaddr{a1, a2}) {
 		t.Error("addrs should only have a1, a2")
 	}
 
@@ -228,7 +228,7 @@ func TestObsAddrSet(t *testing.T) {
 	<-time.After(time.Millisecond * 210)
 
 	// Should still have a2
-	if !addrsMarch(harness.oas.Addrs(), []ma.Multiaddr{a2}) {
+	if !addrsMatch(harness.oas.Addrs(), []ma.Multiaddr{a2}) {
 		t.Error("should only have a2, have: ", harness.oas.Addrs())
 	}
 
@@ -238,7 +238,7 @@ func TestObsAddrSet(t *testing.T) {
 	<-time.After(time.Millisecond * 400)
 
 	// Should still have a2
-	if !addrsMarch(harness.oas.Addrs(), nil) {
+	if !addrsMatch(harness.oas.Addrs(), nil) {
 		t.Error("addrs should have timed out")
 	}
 }
@@ -273,32 +273,10 @@ func TestAddAddrsProfile(t *testing.T) {
 }
 
 func TestObservedAddrFiltering(t *testing.T) {
-	addrsMarch := func(a, b []ma.Multiaddr) bool {
-		if len(a) != len(b) {
-			return false
-		}
-
-		for _, aa := range a {
-			found := false
-			for _, bb := range b {
-				if aa.Equal(bb) {
-					found = true
-					break
-				}
-			}
-			if !found {
-				return false
-			}
-		}
-		return true
-	}
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	harness := newHarness(ctx, t)
-	if !addrsMarch(harness.oas.Addrs(), nil) {
-		t.Error("addrs should be empty")
-	}
+	require.Empty(t, harness.oas.Addrs())
 
 	// IP4/TCP
 	it1 := ma.StringCast("/ip4/1.2.3.4/tcp/1231")
