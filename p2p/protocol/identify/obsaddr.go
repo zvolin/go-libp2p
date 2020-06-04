@@ -46,9 +46,10 @@ type observation struct {
 // - have been observed at least once recently (10 minutes), because our position in the
 //   network, or network port mapppings, may have changed.
 type observedAddr struct {
-	addr     ma.Multiaddr
-	seenBy   map[string]observation // peer(observer) address -> observation info
-	lastSeen time.Time
+	addr       ma.Multiaddr
+	seenBy     map[string]observation // peer(observer) address -> observation info
+	lastSeen   time.Time
+	numInbound int
 }
 
 func (oa *observedAddr) activated() bool {
@@ -57,17 +58,6 @@ func (oa *observedAddr) activated() bool {
 	// of ours at least 4 times. SeenBy peers are removed by GC if
 	// they say the address more than ttl*ActivationThresh
 	return len(oa.seenBy) >= ActivationThresh
-}
-
-func (oa *observedAddr) numInbound() int {
-	count := 0
-	for obs := range oa.seenBy {
-		if oa.seenBy[obs].inbound {
-			count++
-		}
-	}
-
-	return count
 }
 
 // GroupKey returns the group in which this observation belongs. Currently, an
@@ -191,7 +181,7 @@ func (oas *ObservedAddrManager) filter(observedAddrs []*observedAddr) []ma.Multi
 			first := s[i]
 			second := s[j]
 
-			if first.numInbound() > second.numInbound() {
+			if first.numInbound > second.numInbound {
 				return true
 			}
 
@@ -284,6 +274,9 @@ func (oas *ObservedAddrManager) gc() {
 			for k, ob := range a.seenBy {
 				if now.Sub(ob.seenTime) > oas.ttl*time.Duration(ActivationThresh) {
 					delete(a.seenBy, k)
+					if ob.inbound {
+						a.numInbound--
+					}
 				}
 			}
 
@@ -391,21 +384,32 @@ func (oas *ObservedAddrManager) recordObservationUnlocked(conn network.Conn, obs
 		if observedAddr.addr.Equal(observed) {
 			// Don't trump an outbound observation with an inbound
 			// one.
-			ob.inbound = ob.inbound || observedAddr.seenBy[observerString].inbound
+			wasInbound := observedAddr.seenBy[observerString].inbound
+			isInbound := ob.inbound
+			ob.inbound = isInbound || wasInbound
+
+			if !wasInbound && isInbound {
+				observedAddr.numInbound++
+			}
 
 			observedAddr.seenBy[observerString] = ob
 			observedAddr.lastSeen = now
 			return
 		}
 	}
+
 	// observed address not seen yet, append it
-	oas.addrs[localString] = append(oas.addrs[localString], &observedAddr{
+	oa := &observedAddr{
 		addr: observed,
 		seenBy: map[string]observation{
 			observerString: ob,
 		},
 		lastSeen: now,
-	})
+	}
+	if ob.inbound {
+		oa.numInbound++
+	}
+	oas.addrs[localString] = append(oas.addrs[localString], oa)
 }
 
 // observerGroup is a function that determines what part of
