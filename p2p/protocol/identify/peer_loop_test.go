@@ -3,6 +3,7 @@ package identify
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -21,8 +22,8 @@ func TestMakeApplyDelta(t *testing.T) {
 	defer h1.Close()
 	ids1 := NewIDService(h1)
 	ph := newPeerHandler(h1.ID(), ids1)
-	ph.start()
-	defer ph.close()
+	ph.start(ctx, func() {})
+	defer ph.stop()
 
 	m1 := ph.nextDelta()
 	require.NotNil(t, m1)
@@ -66,9 +67,24 @@ func TestHandlerClose(t *testing.T) {
 	defer h1.Close()
 	ids1 := NewIDService(h1)
 	ph := newPeerHandler(h1.ID(), ids1)
-	ph.start()
+	closedCh := make(chan struct{}, 2)
+	ph.start(ctx, func() {
+		closedCh <- struct{}{}
+	})
 
-	require.NoError(t, ph.close())
+	require.NoError(t, ph.stop())
+	select {
+	case <-closedCh:
+	case <-time.After(time.Second):
+		t.Fatal("expected the handler to close")
+	}
+
+	require.NoError(t, ph.stop())
+	select {
+	case <-closedCh:
+		t.Fatal("expected only one close event")
+	case <-time.After(10 * time.Millisecond):
+	}
 }
 
 func TestPeerSupportsProto(t *testing.T) {
@@ -82,10 +98,10 @@ func TestPeerSupportsProto(t *testing.T) {
 	rp := peer.ID("test")
 	ph := newPeerHandler(rp, ids1)
 	require.NoError(t, h1.Peerstore().AddProtocols(rp, "test"))
-	require.True(t, ph.peerSupportsProtos([]string{"test"}))
-	require.False(t, ph.peerSupportsProtos([]string{"random"}))
+	require.True(t, ph.peerSupportsProtos(ctx, []string{"test"}))
+	require.False(t, ph.peerSupportsProtos(ctx, []string{"random"}))
 
 	// remove support for protocol and check
 	require.NoError(t, h1.Peerstore().RemoveProtocols(rp, "test"))
-	require.False(t, ph.peerSupportsProtos([]string{"test"}))
+	require.False(t, ph.peerSupportsProtos(ctx, []string{"test"}))
 }
