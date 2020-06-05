@@ -181,14 +181,22 @@ func (ids *IDService) loop() {
 		return
 	}
 
+	phClosedCh := make(chan peer.ID)
+
 	defer func() {
 		sub.Close()
-		for pid := range phs {
-			phs[pid].close()
+		// The context will cancel the workers. Now, wait for them to
+		// exit.
+		for range phs {
+			<-phClosedCh
 		}
 	}()
 
-	phClosedCh := make(chan peer.ID)
+	// Use a fresh context for the handlers. Otherwise, they'll get canceled
+	// before we're ready to shutdown and they'll have "stopped" without us
+	// _calling_ stop.
+	handlerCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	for {
 		select {
@@ -197,7 +205,7 @@ func (ids *IDService) loop() {
 			ph, ok := phs[rp]
 			if !ok && ids.Host.Network().Connectedness(rp) == network.Connected {
 				ph = newPeerHandler(rp, ids)
-				ph.start()
+				ph.start(handlerCtx, func() { phClosedCh <- rp })
 				phs[rp] = ph
 			}
 			addReq.resp <- ph
@@ -212,16 +220,8 @@ func (ids *IDService) loop() {
 					// move on, move on, there's nothing to see here.
 					continue
 				}
-				ids.refCount.Add(1)
-				go func(req rmPeerHandlerReq, ph *peerHandler) {
-					defer ids.refCount.Done()
-					ph.close()
-					select {
-					case <-ids.ctx.Done():
-						return
-					case phClosedCh <- req.p:
-					}
-				}(rmReq, ph)
+				// This is idempotent if already stopped.
+				ph.stop()
 			}
 
 		case rp := <-phClosedCh:
@@ -234,7 +234,7 @@ func (ids *IDService) loop() {
 			// The fact that we got the handler on this channel means that it's context and handler
 			// have completed because we write the handler to this chanel only after it closed.
 			if ids.Host.Network().Connectedness(rp) == network.Connected {
-				ph.start()
+				ph.start(handlerCtx, func() { phClosedCh <- rp })
 			} else {
 				delete(phs, rp)
 			}
