@@ -752,20 +752,22 @@ func (h *BasicHost) AllAddrs() []ma.Multiaddr {
 	localIPv6Addr := h.localIPv6Addr
 	h.lipMu.RUnlock()
 
-	var finalAddrs []ma.Multiaddr
+	ifaceAddrs := []ma.Multiaddr{manet.IP4Loopback, manet.IP6Loopback}
+	if localIPv4Addr != nil {
+		ifaceAddrs = append(ifaceAddrs, localIPv4Addr)
+	}
+	if localIPv6Addr != nil {
+		ifaceAddrs = append(ifaceAddrs, localIPv6Addr)
+	}
+
+	// Iterate over all _unresolved_ listen addresses, resolving our primary
+	// interface only to avoid advertising too many addresses.
 	listenAddrs := h.Network().ListenAddresses()
+	var finalAddrs []ma.Multiaddr
 	for _, addr := range listenAddrs {
 		if !manet.IsIPUnspecified(addr) {
 			finalAddrs = append(finalAddrs, addr)
 			continue
-		}
-
-		ifaceAddrs := []ma.Multiaddr{manet.IP4Loopback, manet.IP6Loopback}
-		if localIPv4Addr != nil {
-			ifaceAddrs = append(ifaceAddrs, localIPv4Addr)
-		}
-		if localIPv6Addr != nil {
-			ifaceAddrs = append(ifaceAddrs, localIPv6Addr)
 		}
 
 		resolved, err := addrutil.ResolveUnspecifiedAddress(addr, ifaceAddrs)
@@ -848,8 +850,9 @@ func (h *BasicHost) AllAddrs() []ma.Multiaddr {
 				continue
 			}
 
-			if !ip.IsGlobalUnicast() {
-				// We only map global unicast ports.
+			if !ip.IsGlobalUnicast() && !ip.IsUnspecified() {
+				// We only map global unicast & unspecified addresses ports.
+				// Not broadcast, multicast, etc.
 				continue
 			}
 
