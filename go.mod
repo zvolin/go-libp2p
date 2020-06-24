@@ -22,8 +22,8 @@ require (
 	github.com/libp2p/go-libp2p-mplex v0.2.4
 	github.com/libp2p/go-libp2p-nat v0.0.6
 	github.com/libp2p/go-libp2p-netutil v0.1.0
+	github.com/libp2p/go-libp2p-noise v0.1.1
 	github.com/libp2p/go-libp2p-peerstore v0.2.6
-	github.com/libp2p/go-libp2p-secio v0.2.2
 	github.com/libp2p/go-libp2p-swarm v0.2.8
 	github.com/libp2p/go-libp2p-testing v0.1.1
 	github.com/libp2p/go-libp2p-tls v0.1.3
@@ -39,6 +39,8 @@ require (
 	github.com/multiformats/go-multiaddr-dns v0.2.0
 	github.com/multiformats/go-multiaddr-net v0.2.0
 	github.com/multiformats/go-multistream v0.1.2
+	github.com/onsi/ginkgo v1.12.1 // indirect
 	github.com/stretchr/testify v1.6.1
 	github.com/whyrusleeping/mdns v0.0.0-20190826153040-b9b60ed33aa9
+	google.golang.org/protobuf v1.23.0 // indirect
 )
