@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	autonat "github.com/libp2p/go-libp2p-autonat"
 	"github.com/libp2p/go-libp2p-core/connmgr"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/event"
@@ -110,6 +111,8 @@ type BasicHost struct {
 	disableSignedPeerRecord bool
 	signKey                 crypto.PrivKey
 	caBook                  peerstore.CertifiedAddrBook
+
+	AutoNat autonat.AutoNAT
 }
 
 var _ host.Host = (*BasicHost)(nil)
@@ -803,6 +806,22 @@ func (h *BasicHost) AllAddrs() []ma.Multiaddr {
 		log.Debugw("failed to resolve listen addrs", "error", err)
 	} else {
 		finalAddrs = append(finalAddrs, resolved...)
+	}
+
+	// add autonat PublicAddr Consider the following scenario
+	// For example, it is deployed on a cloud server,
+	// it provides an elastic ip accessible to the public network,
+	// but not have an external network card,
+	// so net.InterfaceAddrs() not has the public ip
+	// The host can indeed be dialed ！！！
+	if h.AutoNat != nil {
+		ambientAutoNat, ok := h.AutoNat.(*autonat.AmbientAutoNAT)
+		if ok && ambientAutoNat != nil {
+			publicAddr, _ := ambientAutoNat.PublicAddr()
+			if publicAddr != nil {
+				finalAddrs = append(finalAddrs, publicAddr)
+			}
+		}
 	}
 
 	finalAddrs = dedupAddrs(finalAddrs)
