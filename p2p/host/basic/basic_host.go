@@ -815,12 +815,9 @@ func (h *BasicHost) AllAddrs() []ma.Multiaddr {
 	// so net.InterfaceAddrs() not has the public ip
 	// The host can indeed be dialed ！！！
 	if h.AutoNat != nil {
-		ambientAutoNat, ok := h.AutoNat.(*autonat.AmbientAutoNAT)
-		if ok && ambientAutoNat != nil {
-			publicAddr, _ := ambientAutoNat.PublicAddr()
-			if publicAddr != nil {
-				finalAddrs = append(finalAddrs, publicAddr)
-			}
+		publicAddr, _ := h.AutoNat.PublicAddr()
+		if publicAddr != nil {
+			finalAddrs = append(finalAddrs, publicAddr)
 		}
 	}
 
