@@ -20,6 +20,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/test"
 
 	"github.com/libp2p/go-eventbus"
+	autonat "github.com/libp2p/go-libp2p-autonat"
 	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
 	"github.com/libp2p/go-libp2p/p2p/protocol/identify"
 
@@ -198,6 +199,16 @@ func TestHostAddrsFactory(t *testing.T) {
 	}
 	if !addrs[0].Equal(maddr) {
 		t.Fatalf("expected %s, got %s", maddr.String(), addrs[0].String())
+	}
+
+	var err error
+	h.AutoNat, err = autonat.New(ctx, h, autonat.WithReachability(network.ReachabilityPublic))
+	if err != nil {
+		t.Fatalf("should be able to attach autonat: %v", err)
+	}
+	addrs = h.Addrs()
+	if len(addrs) != 1 {
+		t.Fatalf("didn't expect change in returned addresses.")
 	}
 }
 
