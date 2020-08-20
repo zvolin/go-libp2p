@@ -169,27 +169,22 @@ func (m *mdnsService) handleEntry(e *mdns.ServiceEntry) {
 		return
 	}
 
-	var maddr ma.Multiaddr
+	var addr net.IP
 	if e.AddrV4 != nil {
-		maddr, err = manet.FromNetAddr(&net.TCPAddr{
-			IP:   e.AddrV4,
-			Port: e.Port,
-		})
-		if err != nil {
-			log.Warning("Error parsing multiaddr from mdns entry: ", err)
-			return
-		}
+		addr = e.AddrV4
 	} else if e.AddrV6 != nil {
-		maddr, err = manet.FromNetAddr(&net.TCPAddr{
-			IP:   e.AddrV6,
-			Port: e.Port,
-		})
-		if err != nil {
-			log.Warning("Error parsing multiaddr from mdns entry: ", err)
-			return
-		}
+		addr = e.AddrV6
 	} else {
 		log.Warning("Error parsing multiaddr from mdns entry: no IP address found")
+		return
+	}
+
+	maddr, err := manet.FromNetAddr(&net.TCPAddr{
+		IP:   addr,
+		Port: e.Port,
+	})
+	if err != nil {
+		log.Warning("Error parsing multiaddr from mdns entry: ", err)
 		return
 	}
 
