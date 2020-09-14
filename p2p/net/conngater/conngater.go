@@ -142,7 +142,7 @@ func (cg *BasicConnectionGater) UnblockPeer(p peer.ID) {
 }
 
 // ListBlockedPeers return a list of blocked peers
-func (cg *BasicConnectionGater) ListBLockedPeers() []peer.ID {
+func (cg *BasicConnectionGater) ListBlockedPeers() []peer.ID {
 	cg.Lock()
 	defer cg.Unlock()
 
@@ -185,7 +185,7 @@ func (cg *BasicConnectionGater) UnblockAddr(ip net.IP) {
 }
 
 // ListBlockedAddrs return a list of blocked IP addresses
-func (cg *BasicConnectionGater) ListBLockedAddrs() []net.IP {
+func (cg *BasicConnectionGater) ListBlockedAddrs() []net.IP {
 	cg.Lock()
 	defer cg.Unlock()
 
@@ -229,7 +229,7 @@ func (cg *BasicConnectionGater) UnblockSubnet(ipnet *net.IPNet) {
 }
 
 // ListBlockedSubnets return a list of blocked IP subnets
-func (cg *BasicConnectionGater) ListBLockedSubnets() []*net.IPNet {
+func (cg *BasicConnectionGater) ListBlockedSubnets() []*net.IPNet {
 	cg.Lock()
 	defer cg.Unlock()
 
@@ -253,6 +253,7 @@ func (cg *BasicConnectionGater) InterceptPeerDial(p peer.ID) (allow bool) {
 }
 
 func (cg *BasicConnectionGater) InterceptAddrDial(p peer.ID, a ma.Multiaddr) (allow bool) {
+	// we have already filrted blocked peersin InterceptPeerDial, so we just check the IP
 	cg.Lock()
 	defer cg.Unlock()
 
