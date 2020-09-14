@@ -141,6 +141,19 @@ func (cg *BasicConnectionGater) UnblockPeer(p peer.ID) {
 	}
 }
 
+// ListBlockedPeers return a list of blocked peers
+func (cg *BasicConnectionGater) ListBLockedPeers() []peer.ID {
+	cg.Lock()
+	defer cg.Unlock()
+
+	result := make([]peer.ID, 0, len(cg.blockedPeers))
+	for p := range cg.blockedPeers {
+		result = append(result, p)
+	}
+
+	return result
+}
+
 // BlockAddr adds an IP address to the set of blocked addresses
 func (cg *BasicConnectionGater) BlockAddr(ip net.IP) {
 	cg.Lock()
@@ -171,6 +184,20 @@ func (cg *BasicConnectionGater) UnblockAddr(ip net.IP) {
 	}
 }
 
+// ListBlockedAddrs return a list of blocked IP addresses
+func (cg *BasicConnectionGater) ListBLockedAddrs() []net.IP {
+	cg.Lock()
+	defer cg.Unlock()
+
+	result := make([]net.IP, 0, len(cg.blockedAddrs))
+	for ipStr := range cg.blockedAddrs {
+		ip := net.ParseIP(ipStr)
+		result = append(result, ip)
+	}
+
+	return result
+}
+
 // BlockSubnet adds an IP subnet to the set of blocked addresses
 func (cg *BasicConnectionGater) BlockSubnet(ipnet *net.IPNet) {
 	cg.Lock()
@@ -199,6 +226,19 @@ func (cg *BasicConnectionGater) UnblockSubnet(ipnet *net.IPNet) {
 			log.Errorf("error deleting blocked subnet from datastore: %s", err)
 		}
 	}
+}
+
+// ListBlockedSubnets return a list of blocked IP subnets
+func (cg *BasicConnectionGater) ListBLockedSubnets() []*net.IPNet {
+	cg.Lock()
+	defer cg.Unlock()
+
+	result := make([]*net.IPNet, 0, len(cg.blockedSubnets))
+	for _, ipnet := range cg.blockedSubnets {
+		result = append(result, ipnet)
+	}
+
+	return result
 }
 
 // ConnectionGater interface
