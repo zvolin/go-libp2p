@@ -19,7 +19,7 @@ import (
 )
 
 type BasicConnectionGater struct {
-	sync.Mutex
+	sync.RWMutex
 
 	blockedPeers   map[peer.ID]struct{}
 	blockedAddrs   map[string]struct{}
@@ -143,8 +143,8 @@ func (cg *BasicConnectionGater) UnblockPeer(p peer.ID) {
 
 // ListBlockedPeers return a list of blocked peers
 func (cg *BasicConnectionGater) ListBlockedPeers() []peer.ID {
-	cg.Lock()
-	defer cg.Unlock()
+	cg.RLock()
+	defer cg.RUnlock()
 
 	result := make([]peer.ID, 0, len(cg.blockedPeers))
 	for p := range cg.blockedPeers {
@@ -186,8 +186,8 @@ func (cg *BasicConnectionGater) UnblockAddr(ip net.IP) {
 
 // ListBlockedAddrs return a list of blocked IP addresses
 func (cg *BasicConnectionGater) ListBlockedAddrs() []net.IP {
-	cg.Lock()
-	defer cg.Unlock()
+	cg.RLock()
+	defer cg.RUnlock()
 
 	result := make([]net.IP, 0, len(cg.blockedAddrs))
 	for ipStr := range cg.blockedAddrs {
@@ -230,8 +230,8 @@ func (cg *BasicConnectionGater) UnblockSubnet(ipnet *net.IPNet) {
 
 // ListBlockedSubnets return a list of blocked IP subnets
 func (cg *BasicConnectionGater) ListBlockedSubnets() []*net.IPNet {
-	cg.Lock()
-	defer cg.Unlock()
+	cg.RLock()
+	defer cg.RUnlock()
 
 	result := make([]*net.IPNet, 0, len(cg.blockedSubnets))
 	for _, ipnet := range cg.blockedSubnets {
@@ -245,8 +245,8 @@ func (cg *BasicConnectionGater) ListBlockedSubnets() []*net.IPNet {
 var _ connmgr.ConnectionGater = (*BasicConnectionGater)(nil)
 
 func (cg *BasicConnectionGater) InterceptPeerDial(p peer.ID) (allow bool) {
-	cg.Lock()
-	defer cg.Unlock()
+	cg.RLock()
+	defer cg.RUnlock()
 
 	_, block := cg.blockedPeers[p]
 	return !block
@@ -254,8 +254,8 @@ func (cg *BasicConnectionGater) InterceptPeerDial(p peer.ID) (allow bool) {
 
 func (cg *BasicConnectionGater) InterceptAddrDial(p peer.ID, a ma.Multiaddr) (allow bool) {
 	// we have already filrted blocked peersin InterceptPeerDial, so we just check the IP
-	cg.Lock()
-	defer cg.Unlock()
+	cg.RLock()
+	defer cg.RUnlock()
 
 	ip, err := manet.ToIP(a)
 	if err != nil {
@@ -278,8 +278,8 @@ func (cg *BasicConnectionGater) InterceptAddrDial(p peer.ID, a ma.Multiaddr) (al
 }
 
 func (cg *BasicConnectionGater) InterceptAccept(cma network.ConnMultiaddrs) (allow bool) {
-	cg.Lock()
-	defer cg.Unlock()
+	cg.RLock()
+	defer cg.RUnlock()
 
 	a := cma.RemoteMultiaddr()
 
@@ -310,8 +310,8 @@ func (cg *BasicConnectionGater) InterceptSecured(dir network.Direction, p peer.I
 	}
 
 	// we have already filtered addrs in InterceptAccept, so we just check the peer ID
-	cg.Lock()
-	defer cg.Unlock()
+	cg.RLock()
+	defer cg.RUnlock()
 
 	_, block := cg.blockedPeers[p]
 	return !block
