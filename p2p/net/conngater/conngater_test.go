@@ -23,7 +23,10 @@ func TestConnectionGater(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cg := NewBasicConnectionGater(ds)
+	cg, err := NewBasicConnectionGater(ds)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// test peer blocking
 	allow := cg.InterceptPeerDial(peerA)
@@ -46,7 +49,10 @@ func TestConnectionGater(t *testing.T) {
 		t.Fatal("expected gater to allow peerB")
 	}
 
-	cg.BlockPeer(peerA)
+	err = cg.BlockPeer(peerA)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	allow = cg.InterceptPeerDial(peerA)
 	if allow {
@@ -99,7 +105,10 @@ func TestConnectionGater(t *testing.T) {
 		t.Fatal("expected gater to allow peerB in 2.3.4.5")
 	}
 
-	cg.BlockAddr(ip1)
+	err = cg.BlockAddr(ip1)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	allow = cg.InterceptAddrDial(peerB, ma.StringCast("/ip4/1.2.3.4/tcp/1234"))
 	if allow {
@@ -131,7 +140,10 @@ func TestConnectionGater(t *testing.T) {
 		t.Fatal("expected gater to allow peerB in 2.3.4.5")
 	}
 
-	cg.BlockSubnet(ipNet1)
+	err = cg.BlockSubnet(ipNet1)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	allow = cg.InterceptAddrDial(peerB, ma.StringCast("/ip4/1.2.3.5/tcp/1234"))
 	if allow {
@@ -154,7 +166,10 @@ func TestConnectionGater(t *testing.T) {
 	}
 
 	// make a new gater reusing the datastore to test persistence
-	cg = NewBasicConnectionGater(ds)
+	cg, err = NewBasicConnectionGater(ds)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// test the list methods while at it
 	blockedPeers := cg.ListBlockedPeers()
@@ -223,9 +238,20 @@ func TestConnectionGater(t *testing.T) {
 	}
 
 	// undo the blocks to ensure that we can unblock stuff
-	cg.UnblockPeer(peerA)
-	cg.UnblockAddr(ip1)
-	cg.UnblockSubnet(ipNet1)
+	err = cg.UnblockPeer(peerA)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = cg.UnblockAddr(ip1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = cg.UnblockSubnet(ipNet1)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	allow = cg.InterceptPeerDial(peerA)
 	if !allow {
@@ -278,7 +304,10 @@ func TestConnectionGater(t *testing.T) {
 	}
 
 	// make a new gater reusing the datastore to test persistence of unblocks
-	cg = NewBasicConnectionGater(ds)
+	cg, err = NewBasicConnectionGater(ds)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	allow = cg.InterceptPeerDial(peerA)
 	if !allow {
