@@ -120,7 +120,8 @@ func (cg *BasicConnectionGater) loadRules() error {
 	return nil
 }
 
-// BlockPeer adds a peer to the set of blocked peers
+// BlockPeer adds a peer to the set of blocked peers.
+// Note: active connections to the peer are not automatically closed.
 func (cg *BasicConnectionGater) BlockPeer(p peer.ID) error {
 	if cg.ds != nil {
 		err := cg.ds.Put(datastore.NewKey(keyPeer+p.String()), []byte(p))
@@ -168,7 +169,8 @@ func (cg *BasicConnectionGater) ListBlockedPeers() []peer.ID {
 	return result
 }
 
-// BlockAddr adds an IP address to the set of blocked addresses
+// BlockAddr adds an IP address to the set of blocked addresses.
+// Note: active connections to the IP address are not automatically closed.
 func (cg *BasicConnectionGater) BlockAddr(ip net.IP) error {
 	if cg.ds != nil {
 		err := cg.ds.Put(datastore.NewKey(keyAddr+ip.String()), []byte(ip))
@@ -218,7 +220,8 @@ func (cg *BasicConnectionGater) ListBlockedAddrs() []net.IP {
 	return result
 }
 
-// BlockSubnet adds an IP subnet to the set of blocked addresses
+// BlockSubnet adds an IP subnet to the set of blocked addresses.
+// Note: active connections to the IP subnet are not automatically closed.
 func (cg *BasicConnectionGater) BlockSubnet(ipnet *net.IPNet) error {
 	if cg.ds != nil {
 		err := cg.ds.Put(datastore.NewKey(keySubnet+ipnet.String()), []byte(ipnet.String()))
