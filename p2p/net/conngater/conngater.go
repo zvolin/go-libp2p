@@ -18,6 +18,8 @@ import (
 	logging "github.com/ipfs/go-log"
 )
 
+// BasicConnectionGater implements a connection gater that allows the application to perform
+// access control on incoming and outgoing connections.
 type BasicConnectionGater struct {
 	sync.RWMutex
 
@@ -39,7 +41,7 @@ const (
 
 // NewBasicConnectionGater creates a new connection gater.
 // The ds argument is an (optional, can be nil) datastore to persist the connection gater
-// filters
+// filters.
 func NewBasicConnectionGater(ds datastore.Datastore) (*BasicConnectionGater, error) {
 	cg := &BasicConnectionGater{
 		blockedPeers:   make(map[peer.ID]struct{}),
@@ -277,7 +279,7 @@ func (cg *BasicConnectionGater) InterceptPeerDial(p peer.ID) (allow bool) {
 }
 
 func (cg *BasicConnectionGater) InterceptAddrDial(p peer.ID, a ma.Multiaddr) (allow bool) {
-	// we have already filrted blocked peersin InterceptPeerDial, so we just check the IP
+	// we have already filtered blocked peers in InterceptPeerDial, so we just check the IP
 	cg.RLock()
 	defer cg.RUnlock()
 
