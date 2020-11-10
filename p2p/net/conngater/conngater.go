@@ -30,10 +30,12 @@ type BasicConnectionGater struct {
 
 var log = logging.Logger("net/conngater")
 
-const ns = "/libp2p/net/conngater"
-const keyPeer = "/peer/"
-const keyAddr = "/addr/"
-const keySubnet = "/subnet/"
+const (
+	ns        = "/libp2p/net/conngater"
+	keyPeer   = "/peer/"
+	keyAddr   = "/addr/"
+	keySubnet = "/subnet/"
+)
 
 // NewBasicConnectionGater creates a new connection gater.
 // The ds argument is an (optional, can be nil) datastore to persist the connection gater
