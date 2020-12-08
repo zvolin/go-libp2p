@@ -3,6 +3,7 @@ package basichost
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"reflect"
 	"sync"
@@ -774,6 +775,49 @@ func TestHostAddrChangeDetection(t *testing.T) {
 		require.NotNil(t, ev)
 		rc = peerRecordFromEnvelope(t, ev)
 		require.Equal(t, addrSets[i], rc.Addrs)
+	}
+}
+
+func TestNegotiationCancel(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	h1, h2 := getHostPair(ctx, t)
+	defer h1.Close()
+	defer h2.Close()
+
+	// pre-negotiation so we can make the negotiation hang.
+	h1.Network().SetStreamHandler(func(s network.Stream) {
+		<-ctx.Done() // wait till the test is done.
+		s.Reset()
+	})
+
+	ctx2, cancel2 := context.WithCancel(ctx)
+	defer cancel2()
+
+	errCh := make(chan error, 1)
+	go func() {
+		s, err := h2.NewStream(ctx2, h1.ID(), "/testing")
+		if s != nil {
+			errCh <- fmt.Errorf("expected to fail negotiation")
+			return
+		}
+		errCh <- err
+	}()
+	select {
+	case err := <-errCh:
+		t.Fatal(err)
+	case <-time.After(10 * time.Millisecond):
+		// ok, hung.
+	}
+	cancel2()
+
+	select {
+	case err := <-errCh:
+		require.Equal(t, err, context.Canceled)
+	case <-time.After(500 * time.Millisecond):
+		// failed to cancel
+		t.Fatal("expected negotiation to be canceled")
 	}
 }
 
