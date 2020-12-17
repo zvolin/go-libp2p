@@ -98,7 +98,7 @@ func TestNotifications(t *testing.T) {
 	for _, s := range nets {
 		conns := s.Conns()
 		for _, c := range conns {
-			st1, err := c.NewStream()
+			st1, err := c.NewStream(context.Background())
 			if err != nil {
 				t.Error(err)
 				continue

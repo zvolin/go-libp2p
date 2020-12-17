@@ -339,7 +339,7 @@ func (pn *peernet) NewStream(ctx context.Context, p peer.ID) (network.Stream, er
 	if err != nil {
 		return nil, err
 	}
-	return c.NewStream()
+	return c.NewStream(ctx)
 }
 
 // SetStreamHandler sets the new stream handler on the Network.
