@@ -203,7 +203,7 @@ func TestHostAddrsFactory(t *testing.T) {
 	}
 
 	var err error
-	h.AutoNat, err = autonat.New(ctx, h, autonat.WithReachability(network.ReachabilityPublic))
+	h.autoNat, err = autonat.New(ctx, h, autonat.WithReachability(network.ReachabilityPublic))
 	if err != nil {
 		t.Fatalf("should be able to attach autonat: %v", err)
 	}

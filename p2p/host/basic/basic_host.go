@@ -112,7 +112,7 @@ type BasicHost struct {
 	signKey                 crypto.PrivKey
 	caBook                  peerstore.CertifiedAddrBook
 
-	AutoNat autonat.AutoNAT
+	autoNat autonat.AutoNAT
 }
 
 var _ host.Host = (*BasicHost)(nil)
@@ -811,6 +811,7 @@ func (h *BasicHost) AllAddrs() []ma.Multiaddr {
 	h.addrMu.RLock()
 	filteredIfaceAddrs := h.filteredInterfaceAddrs
 	allIfaceAddrs := h.allInterfaceAddrs
+	autonat := h.autoNat
 	h.addrMu.RUnlock()
 
 	// Iterate over all _unresolved_ listen addresses, resolving our primary
@@ -831,8 +832,8 @@ func (h *BasicHost) AllAddrs() []ma.Multiaddr {
 	// but not have an external network card,
 	// so net.InterfaceAddrs() not has the public ip
 	// The host can indeed be dialed ！！！
-	if h.AutoNat != nil {
-		publicAddr, _ := h.AutoNat.PublicAddr()
+	if autonat != nil {
+		publicAddr, _ := autonat.PublicAddr()
 		if publicAddr != nil {
 			finalAddrs = append(finalAddrs, publicAddr)
 		}
@@ -990,6 +991,15 @@ func (h *BasicHost) AllAddrs() []ma.Multiaddr {
 	}
 
 	return dedupAddrs(finalAddrs)
+}
+
+// SetAutoNat sets the autonat service for the host.
+func (h *BasicHost) SetAutoNat(a autonat.AutoNAT) {
+	h.addrMu.Lock()
+	defer h.addrMu.Unlock()
+	if h.autoNat == nil {
+		h.autoNat = a
+	}
 }
 
 // Close shuts down the Host's services (network, etc).
