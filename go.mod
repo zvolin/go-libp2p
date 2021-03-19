@@ -3,18 +3,20 @@ module github.com/libp2p/go-libp2p
 go 1.12
 
 require (
+	github.com/btcsuite/btcd v0.21.0-beta // indirect
+	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c // indirect
 	github.com/gogo/protobuf v1.3.2
 	github.com/ipfs/go-cid v0.0.7
 	github.com/ipfs/go-datastore v0.4.5
 	github.com/ipfs/go-detect-race v0.0.1
 	github.com/ipfs/go-ipfs-util v0.0.2
-	github.com/ipfs/go-log v1.0.4
+	github.com/ipfs/go-log v1.0.5
 	github.com/jbenet/go-cienv v0.1.0
 	github.com/jbenet/goprocess v0.1.4
 	github.com/libp2p/go-addr-util v0.0.2
 	github.com/libp2p/go-conn-security-multistream v0.2.1
 	github.com/libp2p/go-eventbus v0.2.1
-	github.com/libp2p/go-libp2p-autonat v0.4.1
+	github.com/libp2p/go-libp2p-autonat v0.4.2
 	github.com/libp2p/go-libp2p-blankhost v0.2.0
 	github.com/libp2p/go-libp2p-circuit v0.4.0
 	github.com/libp2p/go-libp2p-core v0.8.5
@@ -31,15 +33,16 @@ require (
 	github.com/libp2p/go-libp2p-transport-upgrader v0.4.2
 	github.com/libp2p/go-libp2p-yamux v0.5.1
 	github.com/libp2p/go-msgio v0.0.6
-	github.com/libp2p/go-netroute v0.1.4
+	github.com/libp2p/go-netroute v0.1.5
 	github.com/libp2p/go-stream-muxer-multistream v0.3.0
 	github.com/libp2p/go-tcp-transport v0.2.1
 	github.com/libp2p/go-ws-transport v0.4.0
-	github.com/miekg/dns v1.1.31 // indirect
+	github.com/miekg/dns v1.1.40 // indirect
 	github.com/multiformats/go-multiaddr v0.3.1
 	github.com/multiformats/go-multiaddr-dns v0.2.0
 	github.com/multiformats/go-multistream v0.2.1
 	github.com/stretchr/testify v1.6.1
 	github.com/whyrusleeping/mdns v0.0.0-20190826153040-b9b60ed33aa9
-	go.uber.org/zap v1.16.0 // indirect
+	go.opencensus.io v0.23.0 // indirect
+	golang.org/x/crypto v0.0.0-20210317152858-513c2a44f670 // indirect
 )
