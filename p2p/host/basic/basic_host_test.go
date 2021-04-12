@@ -557,12 +557,15 @@ func TestAddrResolution(t *testing.T) {
 	p2paddr2 := ma.StringCast("/ip4/192.0.2.1/tcp/123/p2p/" + p1.Pretty())
 	p2paddr3 := ma.StringCast("/ip4/192.0.2.1/tcp/123/p2p/" + p2.Pretty())
 
-	backend := &madns.MockBackend{
+	backend := &madns.MockResolver{
 		TXT: map[string][]string{"_dnsaddr.example.com": []string{
 			"dnsaddr=" + p2paddr2.String(), "dnsaddr=" + p2paddr3.String(),
 		}},
 	}
-	resolver := &madns.Resolver{Backend: backend}
+	resolver, err := madns.NewResolver(madns.WithDefaultResolver(backend))
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	h := New(swarmt.GenSwarm(t, ctx), resolver)
 	defer h.Close()
@@ -602,7 +605,7 @@ func TestAddrResolutionRecursive(t *testing.T) {
 	p2paddr2i := ma.StringCast("/dnsaddr/bar.example.com/p2p/" + p2.Pretty())
 	p2paddr1f := ma.StringCast("/ip4/192.0.2.1/tcp/123/p2p/" + p1.Pretty())
 
-	backend := &madns.MockBackend{
+	backend := &madns.MockResolver{
 		TXT: map[string][]string{
 			"_dnsaddr.example.com": []string{
 				"dnsaddr=" + p2paddr1i.String(),
@@ -616,7 +619,10 @@ func TestAddrResolutionRecursive(t *testing.T) {
 			},
 		},
 	}
-	resolver := &madns.Resolver{Backend: backend}
+	resolver, err := madns.NewResolver(madns.WithDefaultResolver(backend))
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	h := New(swarmt.GenSwarm(t, ctx), resolver)
 	defer h.Close()
