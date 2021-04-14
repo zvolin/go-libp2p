@@ -193,7 +193,10 @@ func NewHost(ctx context.Context, n network.Network, opts *HostOpts) (*BasicHost
 		}
 
 		// persist a signed peer record for self to the peerstore.
-		rec := peer.PeerRecordFromAddrInfo(peer.AddrInfo{h.ID(), h.Addrs()})
+		rec := peer.PeerRecordFromAddrInfo(peer.AddrInfo{
+			ID:    h.ID(),
+			Addrs: h.Addrs(),
+		})
 		ev, err := record.Seal(rec, h.signKey)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create signed record for self: %w", err)
@@ -464,7 +467,10 @@ func (h *BasicHost) makeSignedPeerRecord(evt *event.EvtLocalAddressesUpdated) (*
 		current = append(current, a.Address)
 	}
 
-	rec := peer.PeerRecordFromAddrInfo(peer.AddrInfo{h.ID(), current})
+	rec := peer.PeerRecordFromAddrInfo(peer.AddrInfo{
+		ID:    h.ID(),
+		Addrs: current,
+	})
 	return record.Seal(rec, h.signKey)
 }
 
