@@ -31,6 +31,7 @@ import (
 
 	logging "github.com/ipfs/go-log"
 	ma "github.com/multiformats/go-multiaddr"
+	madns "github.com/multiformats/go-multiaddr-dns"
 )
 
 var log = logging.Logger("p2p-config")
@@ -84,6 +85,8 @@ type Config struct {
 	NATManager  NATManagerC
 	Peerstore   peerstore.Peerstore
 	Reporter    metrics.Reporter
+
+	MultiaddrResolver *madns.Resolver
 
 	DisablePing bool
 
@@ -186,11 +189,12 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 	}
 
 	h, err := bhost.NewHost(ctx, swrm, &bhost.HostOpts{
-		ConnManager:  cfg.ConnManager,
-		AddrsFactory: cfg.AddrsFactory,
-		NATManager:   cfg.NATManager,
-		EnablePing:   !cfg.DisablePing,
-		UserAgent:    cfg.UserAgent,
+		ConnManager:       cfg.ConnManager,
+		AddrsFactory:      cfg.AddrsFactory,
+		NATManager:        cfg.NATManager,
+		EnablePing:        !cfg.DisablePing,
+		UserAgent:         cfg.UserAgent,
+		MultiaddrResolver: cfg.MultiaddrResolver,
 	})
 
 	if err != nil {

@@ -39,7 +39,7 @@ require (
 	github.com/libp2p/go-ws-transport v0.4.0
 	github.com/miekg/dns v1.1.40 // indirect
 	github.com/multiformats/go-multiaddr v0.3.1
-	github.com/multiformats/go-multiaddr-dns v0.2.0
+	github.com/multiformats/go-multiaddr-dns v0.3.0
 	github.com/multiformats/go-multistream v0.2.1
 	github.com/stretchr/testify v1.6.1
 	github.com/whyrusleeping/mdns v0.0.0-20190826153040-b9b60ed33aa9
