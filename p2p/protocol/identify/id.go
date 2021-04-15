@@ -373,7 +373,7 @@ func (ids *IDService) identifyConn(c network.Conn, signal chan struct{}) {
 
 	// ok give the response to our handler.
 	if err = msmux.SelectProtoOrFail(ID, s); err != nil {
-		log.Event(context.TODO(), "IdentifyOpenFailed", c.RemotePeer(), logging.Metadata{"error": err})
+		// log.Event(context.TODO(), "IdentifyOpenFailed", c.RemotePeer(), logging.Metadata{"error": err})
 		s.Reset()
 		return
 	}
@@ -426,7 +426,7 @@ func (ids *IDService) handleIdentifyResponse(s network.Stream) error {
 	mes := &pb.Identify{}
 
 	if err := readAllIDMessages(r, mes); err != nil {
-		log.Warning("error reading identify message: ", err)
+		log.Warn("error reading identify message: ", err)
 		s.Reset()
 		return err
 	}
@@ -653,7 +653,7 @@ func (ids *IDService) consumeReceivedPubKey(c network.Conn, kb []byte) {
 
 	newKey, err := ic.UnmarshalPublicKey(kb)
 	if err != nil {
-		log.Warningf("%s cannot unmarshal key from remote peer: %s, %s", lp, rp, err)
+		log.Warnf("%s cannot unmarshal key from remote peer: %s, %s", lp, rp, err)
 		return
 	}
 

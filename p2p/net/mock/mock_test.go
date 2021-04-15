@@ -15,18 +15,19 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
-	"github.com/libp2p/go-libp2p-core/test"
 	"github.com/libp2p/go-libp2p-testing/ci"
 	tnet "github.com/libp2p/go-libp2p-testing/net"
 )
 
-func randPeer(t *testing.T) peer.ID {
-	p, err := test.RandPeerID()
-	if err != nil {
-		t.Fatal(err)
-	}
-	return p
-}
+// Unused code:
+//
+// func randPeer(t *testing.T) peer.ID {
+// 	p, err := test.RandPeerID()
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	return p
+// }
 
 func TestNetworkSetup(t *testing.T) {
 	ctx := context.Background()

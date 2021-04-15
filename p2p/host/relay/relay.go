@@ -4,7 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/libp2p/go-libp2p-discovery"
+	"github.com/libp2p/go-libp2p-core/discovery"
+	disc "github.com/libp2p/go-libp2p-discovery"
 
 	ma "github.com/multiformats/go-multiaddr"
 )
@@ -20,7 +21,7 @@ func Advertise(ctx context.Context, advertise discovery.Advertiser) {
 	go func() {
 		select {
 		case <-time.After(AdvertiseBootDelay):
-			discovery.Advertise(ctx, advertise, RelayRendezvous, discovery.TTL(AdvertiseTTL))
+			disc.Advertise(ctx, advertise, RelayRendezvous, discovery.TTL(AdvertiseTTL))
 		case <-ctx.Done():
 		}
 	}()

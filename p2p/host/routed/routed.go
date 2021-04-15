@@ -14,7 +14,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/protocol"
 
 	logging "github.com/ipfs/go-log"
-	circuit "github.com/libp2p/go-libp2p-circuit"
 	lgbl "github.com/libp2p/go-libp2p-loggables"
 
 	ma "github.com/multiformats/go-multiaddr"
@@ -73,7 +72,7 @@ func (rh *RoutedHost) Connect(ctx context.Context, pi peer.AddrInfo) error {
 	// we need to make sure the relay's addr itself is in the peerstore or else
 	// we wont be able to dial it.
 	for _, addr := range addrs {
-		_, err := addr.ValueForProtocol(circuit.P_CIRCUIT)
+		_, err := addr.ValueForProtocol(ma.P_CIRCUIT)
 		if err != nil {
 			// not a relay address
 			continue
@@ -131,7 +130,7 @@ func logRoutingErrDifferentPeers(ctx context.Context, wanted, got peer.ID, err e
 	lm["error"] = err
 	lm["wantedPeer"] = func() interface{} { return wanted.Pretty() }
 	lm["gotPeer"] = func() interface{} { return got.Pretty() }
-	log.Event(ctx, "routingError", lm)
+	// log.Event(ctx, "routingError", lm)
 }
 
 func (rh *RoutedHost) ID() peer.ID {
