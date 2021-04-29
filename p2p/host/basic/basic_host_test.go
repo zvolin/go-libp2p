@@ -558,7 +558,7 @@ func TestAddrResolution(t *testing.T) {
 	p2paddr3 := ma.StringCast("/ip4/192.0.2.1/tcp/123/p2p/" + p2.Pretty())
 
 	backend := &madns.MockResolver{
-		TXT: map[string][]string{"_dnsaddr.example.com": []string{
+		TXT: map[string][]string{"_dnsaddr.example.com": {
 			"dnsaddr=" + p2paddr2.String(), "dnsaddr=" + p2paddr3.String(),
 		}},
 	}
@@ -607,14 +607,14 @@ func TestAddrResolutionRecursive(t *testing.T) {
 
 	backend := &madns.MockResolver{
 		TXT: map[string][]string{
-			"_dnsaddr.example.com": []string{
+			"_dnsaddr.example.com": {
 				"dnsaddr=" + p2paddr1i.String(),
 				"dnsaddr=" + p2paddr2i.String(),
 			},
-			"_dnsaddr.foo.example.com": []string{
+			"_dnsaddr.foo.example.com": {
 				"dnsaddr=" + p2paddr1f.String(),
 			},
-			"_dnsaddr.bar.example.com": []string{
+			"_dnsaddr.bar.example.com": {
 				"dnsaddr=" + p2paddr2i.String(),
 			},
 		},
