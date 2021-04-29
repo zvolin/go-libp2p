@@ -373,7 +373,10 @@ func (ids *IDService) identifyConn(c network.Conn, signal chan struct{}) {
 
 	// ok give the response to our handler.
 	if err = msmux.SelectProtoOrFail(ID, s); err != nil {
-		// log.Event(context.TODO(), "IdentifyOpenFailed", c.RemotePeer(), logging.Metadata{"error": err})
+		log.Infow("failed negotiate identify protocol with peer",
+			"peer", c.RemotePeer(),
+			"error", err,
+		)
 		s.Reset()
 		return
 	}

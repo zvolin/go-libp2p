@@ -19,16 +19,6 @@ import (
 	tnet "github.com/libp2p/go-libp2p-testing/net"
 )
 
-// Unused code:
-//
-// func randPeer(t *testing.T) peer.ID {
-// 	p, err := test.RandPeerID()
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-// 	return p
-// }
-
 func TestNetworkSetup(t *testing.T) {
 	ctx := context.Background()
 	id1 := tnet.RandIdentityOrFatal(t)

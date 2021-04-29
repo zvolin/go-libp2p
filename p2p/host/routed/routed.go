@@ -14,7 +14,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/protocol"
 
 	logging "github.com/ipfs/go-log"
-	lgbl "github.com/libp2p/go-libp2p-loggables"
 
 	ma "github.com/multiformats/go-multiaddr"
 )
@@ -118,19 +117,15 @@ func (rh *RoutedHost) findPeerAddrs(ctx context.Context, id peer.ID) ([]ma.Multi
 
 	if pi.ID != id {
 		err = fmt.Errorf("routing failure: provided addrs for different peer")
-		logRoutingErrDifferentPeers(ctx, id, pi.ID, err)
+		log.Errorw("got wrong peer",
+			"error", err,
+			"wantedPeer", id,
+			"gotPeer", pi.ID,
+		)
 		return nil, err
 	}
 
 	return pi.Addrs, nil
-}
-
-func logRoutingErrDifferentPeers(ctx context.Context, wanted, got peer.ID, err error) {
-	lm := make(lgbl.DeferredMap)
-	lm["error"] = err
-	lm["wantedPeer"] = func() interface{} { return wanted.Pretty() }
-	lm["gotPeer"] = func() interface{} { return got.Pretty() }
-	// log.Event(ctx, "routingError", lm)
 }
 
 func (rh *RoutedHost) ID() peer.ID {
