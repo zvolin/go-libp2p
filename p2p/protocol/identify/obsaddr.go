@@ -161,8 +161,7 @@ func (oas *ObservedAddrManager) AddrsFor(addr ma.Multiaddr) (addrs []ma.Multiadd
 		return nil
 	}
 
-	key := string(addr.Bytes())
-	observedAddrs, ok := oas.addrs[key]
+	observedAddrs, ok := oas.addrs[string(addr.Bytes())]
 	if !ok {
 		return
 	}

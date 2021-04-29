@@ -29,7 +29,7 @@ import (
 	swarm "github.com/libp2p/go-libp2p-swarm"
 	tptu "github.com/libp2p/go-libp2p-transport-upgrader"
 
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
 )

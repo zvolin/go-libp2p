@@ -15,7 +15,7 @@ import (
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/namespace"
 	"github.com/ipfs/go-datastore/query"
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 )
 
 // BasicConnectionGater implements a connection gater that allows the application to perform

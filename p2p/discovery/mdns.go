@@ -11,7 +11,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 	"github.com/whyrusleeping/mdns"
@@ -76,7 +76,7 @@ func NewMdnsService(ctx context.Context, peerhost host.Host, interval time.Durat
 
 	addrs, err := getDialableListenAddrs(peerhost)
 	if err != nil {
-		log.Warning(err)
+		log.Warn(err)
 	} else {
 		port = addrs[0].Port
 		for _, a := range addrs {
@@ -158,9 +158,9 @@ func (m *mdnsService) pollForEntries(ctx context.Context) {
 
 func (m *mdnsService) handleEntry(e *mdns.ServiceEntry) {
 	log.Debugf("Handling MDNS entry: [IPv4 %s][IPv6 %s]:%d %s", e.AddrV4, e.AddrV6, e.Port, e.Info)
-	mpeer, err := peer.IDB58Decode(e.Info)
+	mpeer, err := peer.Decode(e.Info)
 	if err != nil {
-		log.Warning("Error parsing peer ID from mdns entry: ", err)
+		log.Warn("Error parsing peer ID from mdns entry: ", err)
 		return
 	}
 
@@ -175,7 +175,7 @@ func (m *mdnsService) handleEntry(e *mdns.ServiceEntry) {
 	} else if e.AddrV6 != nil {
 		addr = e.AddrV6
 	} else {
-		log.Warning("Error parsing multiaddr from mdns entry: no IP address found")
+		log.Warn("Error parsing multiaddr from mdns entry: no IP address found")
 		return
 	}
 
@@ -184,7 +184,7 @@ func (m *mdnsService) handleEntry(e *mdns.ServiceEntry) {
 		Port: e.Port,
 	})
 	if err != nil {
-		log.Warning("Error parsing multiaddr from mdns entry: ", err)
+		log.Warn("Error parsing multiaddr from mdns entry: ", err)
 		return
 	}
 

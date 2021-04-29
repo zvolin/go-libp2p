@@ -27,9 +27,8 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/protocol/ping"
 	"github.com/libp2p/go-netroute"
 
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 
-	"github.com/multiformats/go-multiaddr"
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
 	manet "github.com/multiformats/go-multiaddr/net"
@@ -393,7 +392,7 @@ func (h *BasicHost) newStreamHandler(s network.Stream) {
 		if err == io.EOF {
 			logf := log.Debugf
 			if took > time.Second*10 {
-				logf = log.Warningf
+				logf = log.Warnf
 			}
 			logf("protocol EOF: %s (took %s)", s.Conn().RemotePeer(), took)
 		} else {
@@ -465,7 +464,7 @@ func makeUpdatedAddrEvent(prev, current []ma.Multiaddr) *event.EvtLocalAddresses
 }
 
 func (h *BasicHost) makeSignedPeerRecord(evt *event.EvtLocalAddressesUpdated) (*record.Envelope, error) {
-	current := make([]multiaddr.Multiaddr, 0, len(evt.Current))
+	current := make([]ma.Multiaddr, 0, len(evt.Current))
 	for _, a := range evt.Current {
 		current = append(current, a.Address)
 	}
@@ -734,7 +733,7 @@ func (h *BasicHost) resolveAddrs(ctx context.Context, pi peer.AddrInfo) ([]ma.Mu
 		// We've resolved too many addresses. We can keep all the fully
 		// resolved addresses but we'll need to skip the rest.
 		if resolveSteps >= maxAddressResolution {
-			log.Warningf(
+			log.Warnf(
 				"peer %s asked us to resolve too many addresses: %s/%s",
 				pi.ID,
 				resolveSteps,

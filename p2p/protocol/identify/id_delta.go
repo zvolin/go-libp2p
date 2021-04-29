@@ -23,7 +23,7 @@ func (ids *IDService) deltaHandler(s network.Stream) {
 	r := protoio.NewDelimitedReader(s, 2048)
 	mes := pb.Identify{}
 	if err := r.ReadMsg(&mes); err != nil {
-		log.Warning("error reading identify message: ", err)
+		log.Warn("error reading identify message: ", err)
 		_ = s.Reset()
 		return
 	}
@@ -40,7 +40,7 @@ func (ids *IDService) deltaHandler(s network.Stream) {
 	p := s.Conn().RemotePeer()
 	if err := ids.consumeDelta(p, delta); err != nil {
 		_ = s.Reset()
-		log.Warningf("delta update from peer %s failed: %s", p, err)
+		log.Warnf("delta update from peer %s failed: %s", p, err)
 	}
 }
 
