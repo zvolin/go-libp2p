@@ -202,11 +202,11 @@ func TestHostAddrsFactory(t *testing.T) {
 		t.Fatalf("expected %s, got %s", maddr.String(), addrs[0].String())
 	}
 
-	var err error
-	h.autoNat, err = autonat.New(ctx, h, autonat.WithReachability(network.ReachabilityPublic))
+	autoNat, err := autonat.New(ctx, h, autonat.WithReachability(network.ReachabilityPublic))
 	if err != nil {
 		t.Fatalf("should be able to attach autonat: %v", err)
 	}
+	h.SetAutoNat(autoNat)
 	addrs = h.Addrs()
 	if len(addrs) != 1 {
 		t.Fatalf("didn't expect change in returned addresses.")
@@ -283,7 +283,7 @@ func assertWait(t *testing.T, c chan protocol.ID, exp protocol.ID) {
 	select {
 	case proto := <-c:
 		if proto != exp {
-			t.Fatal("should have connected on ", exp)
+			t.Fatalf("should have connected on %s, got %s", exp, proto)
 		}
 	case <-time.After(time.Second * 5):
 		t.Fatal("timeout waiting for stream")
@@ -308,6 +308,10 @@ func TestHostProtoPreference(t *testing.T) {
 		connectedOn <- s.Protocol()
 		s.Close()
 	}
+
+	// Prevent pushing identify information so this test works.
+	h2.RemoveStreamHandler(identify.IDPush)
+	h2.RemoveStreamHandler(identify.IDDelta)
 
 	h1.SetStreamHandler(protoOld, handler)
 
@@ -344,8 +348,6 @@ func TestHostProtoPreference(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// XXX: This is racy now that we push protocol updates. If this tests
-	// fails, try allowing both protoOld and protoMinor.
 	assertWait(t, connectedOn, protoOld)
 
 	s2.Close()
@@ -398,6 +400,10 @@ func TestHostProtoPreknowledge(t *testing.T) {
 	}
 
 	h1.SetStreamHandler("/super", handler)
+
+	// Prevent pushing identify information so this test actually _uses_ the super protocol.
+	h2.RemoveStreamHandler(identify.IDPush)
+	h2.RemoveStreamHandler(identify.IDDelta)
 
 	h2pi := h2.Peerstore().PeerInfo(h2.ID())
 	if err := h1.Connect(ctx, h2pi); err != nil {
@@ -507,7 +513,7 @@ func TestProtoDowngrade(t *testing.T) {
 	}
 	s.Close()
 
-	h1.Network().ConnsToPeer(h2.ID())[0].Close()
+	h1.Network().ClosePeer(h2.ID())
 
 	time.Sleep(time.Millisecond * 50) // allow notifications to propagate
 	h1.RemoveStreamHandler("/testing/1.0.0")
@@ -526,16 +532,16 @@ func TestProtoDowngrade(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	if s2.Protocol() != "/testing" {
+		t.Fatal("shoould have gotten /testing")
+	}
+
 	_, err = s2.Write(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	assertWait(t, connectedOn, "/testing")
-
-	if s2.Protocol() != "/testing" {
-		t.Fatal("shoould have gotten /testing")
-	}
 	s2.Close()
 
 }
@@ -657,18 +663,19 @@ func TestAddrChangeImmediatelyIfAddressNonEmpty(t *testing.T) {
 	ctx := context.Background()
 	taddrs := []ma.Multiaddr{ma.StringCast("/ip4/1.2.3.4/tcp/1234")}
 
+	starting := make(chan struct{})
 	h := New(swarmt.GenSwarm(t, ctx), AddrsFactory(func(addrs []ma.Multiaddr) []ma.Multiaddr {
+		<-starting
 		return taddrs
 	}))
 	defer h.Close()
 
 	sub, err := h.EventBus().Subscribe(&event.EvtLocalAddressesUpdated{})
+	close(starting)
 	if err != nil {
 		t.Error(err)
 	}
 	defer sub.Close()
-	// wait for the host background thread to start
-	time.Sleep(1 * time.Second)
 
 	expected := event.EvtLocalAddressesUpdated{
 		Diffs: true,
@@ -837,7 +844,7 @@ func waitForAddrChangeEvent(ctx context.Context, sub event.Subscription, t *test
 			return evt.(event.EvtLocalAddressesUpdated)
 		case <-ctx.Done():
 			t.Fatal("context should not have cancelled")
-		case <-time.After(2 * time.Second):
+		case <-time.After(5 * time.Second):
 			t.Fatal("timed out waiting for address change event")
 		}
 	}

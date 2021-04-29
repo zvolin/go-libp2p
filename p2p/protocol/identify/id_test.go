@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	detectrace "github.com/ipfs/go-detect-race"
 	ic "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/event"
 	"github.com/libp2p/go-libp2p-core/host"
@@ -266,6 +267,10 @@ func emitAddrChangeEvt(t *testing.T, h host.Host) {
 // this is because it used to be concurrent. Now, Dial wait till the
 // id service is done.
 func TestIDService(t *testing.T) {
+	// This test is highly timing dependent, waiting on timeouts/expiration.
+	if detectrace.WithRace() {
+		t.Skip("skipping highly timing dependent test when race detector is enabled")
+	}
 	oldTTL := peerstore.RecentlyConnectedAddrTTL
 	peerstore.RecentlyConnectedAddrTTL = time.Second
 	defer func() {
@@ -605,12 +610,12 @@ func TestIdentifyPushOnAddrChange(t *testing.T) {
 	h2pi := h2.Peerstore().PeerInfo(h2p)
 	require.NoError(t, h1.Connect(ctx, h2pi))
 	// h1 should immediately see a connection from h2
-	require.Len(t, h1.Network().ConnsToPeer(h2p), 1)
+	require.NotEmpty(t, h1.Network().ConnsToPeer(h2p))
 	// wait for h2 to Identify itself so we are sure h2 has seen the connection.
 	ids1.IdentifyConn(h1.Network().ConnsToPeer(h2p)[0])
 
 	// h2 should now see the connection and we should wait for h1 to Identify itself to h2.
-	require.Len(t, h2.Network().ConnsToPeer(h1p), 1)
+	require.NotEmpty(t, h2.Network().ConnsToPeer(h1p))
 	ids2.IdentifyConn(h2.Network().ConnsToPeer(h1p)[0])
 
 	testKnowsAddrs(t, h1, h2p, h2.Peerstore().Addrs(h2p))
@@ -949,12 +954,12 @@ func TestLargePushMessage(t *testing.T) {
 	h2pi := h2.Peerstore().PeerInfo(h2p)
 	require.NoError(t, h1.Connect(ctx, h2pi))
 	// h1 should immediately see a connection from h2
-	require.Len(t, h1.Network().ConnsToPeer(h2p), 1)
+	require.NotEmpty(t, h1.Network().ConnsToPeer(h2p))
 	// wait for h2 to Identify itself so we are sure h2 has seen the connection.
 	ids1.IdentifyConn(h1.Network().ConnsToPeer(h2p)[0])
 
 	// h2 should now see the connection and we should wait for h1 to Identify itself to h2.
-	require.Len(t, h2.Network().ConnsToPeer(h1p), 1)
+	require.NotEmpty(t, h2.Network().ConnsToPeer(h1p))
 	ids2.IdentifyConn(h2.Network().ConnsToPeer(h1p)[0])
 
 	testKnowsAddrs(t, h1, h2p, h2.Peerstore().Addrs(h2p))
@@ -1050,7 +1055,7 @@ func TestIdentifyResponseReadTimeout(t *testing.T) {
 	select {
 	case ev := <-sub.Out():
 		fev := ev.(event.EvtPeerIdentificationFailed)
-		require.EqualError(t, fev.Reason, "i/o deadline reached")
+		require.Contains(t, fev.Reason.Error(), "deadline")
 	case <-time.After(5 * time.Second):
 		t.Fatal("did not receive identify failure event")
 	}
@@ -1092,8 +1097,12 @@ func TestIncomingIDStreamsTimeout(t *testing.T) {
 
 		// remote peer should eventually reset stream
 		require.Eventually(t, func() bool {
-			c := h2.Network().ConnsToPeer(h1.ID())[0]
-			return len(c.GetStreams()) == 0
+			for _, c := range h2.Network().ConnsToPeer(h1.ID()) {
+				if len(c.GetStreams()) > 0 {
+					return false
+				}
+			}
+			return true
 		}, 1*time.Second, 200*time.Millisecond)
 	}
 }
