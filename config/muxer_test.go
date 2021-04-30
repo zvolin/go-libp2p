@@ -73,14 +73,14 @@ func TestCatchDuplicateTransportsMuxer(t *testing.T) {
 	}{
 		"no duplicate transports": {
 			h:             h,
-			transports:    []MsMuxC{MsMuxC{yamuxMuxer, "yamux"}},
+			transports:    []MsMuxC{{yamuxMuxer, "yamux"}},
 			expectedError: "",
 		},
 		"duplicate transports": {
 			h: h,
 			transports: []MsMuxC{
-				MsMuxC{yamuxMuxer, "yamux"},
-				MsMuxC{yamuxMuxer, "yamux"},
+				{yamuxMuxer, "yamux"},
+				{yamuxMuxer, "yamux"},
 			},
 			expectedError: "duplicate muxer transport: yamux",
 		},
