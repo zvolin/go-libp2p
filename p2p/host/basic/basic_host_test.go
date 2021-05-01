@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"reflect"
 	"sync"
 	"testing"
@@ -476,7 +477,7 @@ func TestNewDialOld(t *testing.T) {
 	assertWait(t, connectedOn, "/testing")
 
 	if s.Protocol() != "/testing" {
-		t.Fatal("shoould have gotten /testing")
+		t.Fatal("should have gotten /testing")
 	}
 
 	s.Close()
@@ -492,8 +493,14 @@ func TestProtoDowngrade(t *testing.T) {
 
 	connectedOn := make(chan protocol.ID)
 	h1.SetStreamHandler("/testing/1.0.0", func(s network.Stream) {
+		defer s.Close()
+		result, err := ioutil.ReadAll(s)
+		if err != nil {
+			t.Error(err)
+		} else if string(result) != "bar" {
+			t.Error("wrong result")
+		}
 		connectedOn <- s.Protocol()
-		s.Close()
 	})
 
 	s, err := h2.NewStream(ctx, h1.ID(), "/testing/1.0.0", "/testing")
@@ -501,26 +508,41 @@ func TestProtoDowngrade(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = s.Write(nil)
+	if s.Protocol() != "/testing/1.0.0" {
+		t.Fatalf("should have gotten /testing/1.0.0, got %s", s.Protocol())
+	}
+
+	_, err = s.Write([]byte("bar"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = s.CloseWrite()
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	assertWait(t, connectedOn, "/testing/1.0.0")
-
-	if s.Protocol() != "/testing/1.0.0" {
-		t.Fatal("shoould have gotten /testing")
+	if err := s.Close(); err != nil {
+		t.Error(err)
 	}
-	s.Close()
 
-	h1.Network().ClosePeer(h2.ID())
+	h2.Network().ClosePeer(h1.ID())
 
-	time.Sleep(time.Millisecond * 50) // allow notifications to propagate
 	h1.RemoveStreamHandler("/testing/1.0.0")
 	h1.SetStreamHandler("/testing", func(s network.Stream) {
+		defer s.Close()
+		result, err := ioutil.ReadAll(s)
+		if err != nil {
+			t.Error(err)
+		} else if string(result) != "foo" {
+			t.Error("wrong result")
+		}
 		connectedOn <- s.Protocol()
-		s.Close()
 	})
+
+	// Give us a second to update our protocol list. This happens async through the event bus.
+	// This is _almost_ instantaneous, but this test fails once every ~1k runs without this.
+	time.Sleep(time.Millisecond)
 
 	h2pi := h2.Peerstore().PeerInfo(h2.ID())
 	if err := h1.Connect(ctx, h2pi); err != nil {
@@ -533,17 +555,22 @@ func TestProtoDowngrade(t *testing.T) {
 	}
 
 	if s2.Protocol() != "/testing" {
-		t.Fatal("shoould have gotten /testing")
+		t.Errorf("should have gotten /testing, got %s, %s", s.Protocol(), s.Conn())
 	}
 
-	_, err = s2.Write(nil)
+	_, err = s2.Write([]byte("foo"))
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
+	}
+	err = s2.CloseWrite()
+	if err != nil {
+		t.Error(err)
 	}
 
 	assertWait(t, connectedOn, "/testing")
-	s2.Close()
-
+	if err := s.Close(); err != nil {
+		t.Error(err)
+	}
 }
 
 func TestAddrResolution(t *testing.T) {
