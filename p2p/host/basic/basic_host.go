@@ -1007,6 +1007,13 @@ func (h *BasicHost) SetAutoNat(a autonat.AutoNAT) {
 	}
 }
 
+// Return the host's AutoNAT service, if AutoNAT is enabled.
+func (h *BasicHost) GetAutoNat() autonat.AutoNAT {
+	h.addrMu.Lock()
+	defer h.addrMu.Unlock()
+	return h.autoNat
+}
+
 // Close shuts down the Host's services (network, etc).
 func (h *BasicHost) Close() error {
 	h.closeSync.Do(func() {
