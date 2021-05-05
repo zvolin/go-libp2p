@@ -24,7 +24,7 @@ require (
 	github.com/libp2p/go-libp2p-mplex v0.4.1
 	github.com/libp2p/go-libp2p-nat v0.0.6
 	github.com/libp2p/go-libp2p-netutil v0.1.0
-	github.com/libp2p/go-libp2p-noise v0.1.3
+	github.com/libp2p/go-libp2p-noise v0.2.0
 	github.com/libp2p/go-libp2p-peerstore v0.2.7
 	github.com/libp2p/go-libp2p-swarm v0.5.0
 	github.com/libp2p/go-libp2p-testing v0.4.0
@@ -38,7 +38,7 @@ require (
 	github.com/libp2p/go-ws-transport v0.4.0
 	github.com/multiformats/go-multiaddr v0.3.1
 	github.com/multiformats/go-multiaddr-dns v0.3.1
-	github.com/multiformats/go-multistream v0.2.1
+	github.com/multiformats/go-multistream v0.2.2
 	github.com/stretchr/testify v1.7.0
 	github.com/whyrusleeping/mdns v0.0.0-20190826153040-b9b60ed33aa9
 	go.opencensus.io v0.23.0 // indirect
