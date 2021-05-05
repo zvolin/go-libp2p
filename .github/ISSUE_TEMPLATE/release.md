@@ -23,13 +23,9 @@ about: 'Start a new libp2p release.'
     - [ ] Fork a new `release-vX.Y.Z` branch from `master`, freezing master.
     - [ ] Make sure local tests are passing.
 - [ ] **Stage 1 - Upstream Testing**
-  - Create testing branches in upstream repos with the new go-libp2p release and run CI/tests.
+  - Create testing branches in lotus & go-ipfs with the new go-libp2p release and run CI/tests. Many upstream projects are tested in CI, but lotus & go-ipfs are not.
     - [ ] [filecoin-project/lotus](https://github.com/filecoin-project/lotus)
-    - [ ] [ipfs/go-bitswap](https://github.com/ipfs/go-bitswap)
     - [ ] [ipfs/go-ipfs](https://github.com/ipfs/go-ipfs)
-    - [ ] [libp2p/go-libp2p-kad-dht](https://github.com/libp2p/go-libp2p-kad-dht)
-    - [ ] [libp2p/go-libp2p-pubsub](https://github.com/libp2p/go-libp2p-pubsub)
-    - [ ] [libp2p/go-libp2p-daemon](https://github.com/libp2p/go-libp2p-daemon)
   - _(someday)_ Run upstream testground tests. Unfortunately, this is too time consuming at the moment.
     - _(someday)_ Run bitswap testground tests.
     - _(someday)_ Run DHT testground tests.
