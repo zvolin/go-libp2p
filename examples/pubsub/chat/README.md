@@ -10,11 +10,11 @@ the details of configuration.
 
 ## Running
 
-Clone this repo, then `cd` into the `pubsub/chat` directory:
+Clone this repo, then `cd` into the `examples/pubsub/chat` directory:
 
 ```shell
-git clone https://github.com/libp2p/go-libp2p-examples
-cd go-libp2p-examples/pubsub/chat
+git clone https://github.com/libp2p/go-libp2p
+cd go-libp2p/examples/pubsub/chat
 ```
 
 Now you can either run with `go run`, or build and run the binary:

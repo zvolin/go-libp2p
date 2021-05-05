@@ -8,11 +8,11 @@ We'll also enable NAT port mapping to illustrate the setup, although it isn't gu
 
 ## Build
 
-From `go-libp2p-examples` base folder:
+From `go-libp2p/examples` base folder:
 
 ```
-> make deps
-> go build ./routed-echo
+> cd routed-echo/
+> go build
 ```
 
 ## Usage

@@ -10,11 +10,10 @@ Usage: Run `./chat -sp <SOURCE_PORT>` on host 'B' where <SOURCE_PORT> can be any
 
 ## Build
 
-From the `go-libp2p-examples` directory run the following:
+From the `go-libp2p/examples` directory run the following:
 
 ```
-> make deps
-> cd chat
+> cd chat/
 > go build
 ```
 

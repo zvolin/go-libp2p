@@ -5,10 +5,9 @@ This example expects that you are already familiar with the [echo example](https
 
 ## Build
 
-From the `go-libp2p-examples` directory run the following:
+From the `go-libp2p/examples` directory run the following:
 
 ```sh
-> make deps
 > cd multipro/
 > go build
 ```

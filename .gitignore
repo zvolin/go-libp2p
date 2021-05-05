@@ -1,4 +1,13 @@
 *.swp
+examples/chat/chat
+examples/chat-with-mdns/chat-with-mdns
+examples/chat-with-rendezvous/chat-with-rendezvous
+examples/chat-with-rendezvous/chat
 examples/echo/echo
-examples/multicodecs/multicodecs
+examples/http-proxy/http-proxy
+examples/libp2p-host/libp2p-host
+examples/multipro/multipro
+examples/pubsub/chat
+examples/relay/relay
+examples/routed-echo/routed-echo
 .idea
