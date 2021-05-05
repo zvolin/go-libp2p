@@ -78,7 +78,7 @@ As new releases of go-libp2p are made available, you can upgrade your applicatio
 
 ### Examples
 
-Examples can be found in the [examples repo](https://github.com/libp2p/go-libp2p-examples).
+Examples can be found on the [examples folder](examples).
 
 ## Development
 
@@ -180,7 +180,6 @@ List of packages currently in existence for libp2p:
 | [`go-libp2p-http`](//github.com/libp2p/go-libp2p-http) | [![Travis CI](https://travis-ci.com/libp2p/go-libp2p-http.svg?branch=master)](https://travis-ci.com/libp2p/go-libp2p-http) | [![codecov](https://codecov.io/gh/libp2p/go-libp2p-http/branch/master/graph/badge.svg)](https://codecov.io/gh/libp2p/go-libp2p-http) | HTTP on top of libp2p streams |
 | **Testing and examples** |
 | [`go-libp2p-testing`](//github.com/libp2p/go-libp2p-testing) | [![Travis CI](https://travis-ci.com/libp2p/go-libp2p-testing.svg?branch=master)](https://travis-ci.com/libp2p/go-libp2p-testing) | [![codecov](https://codecov.io/gh/libp2p/go-libp2p-testing/branch/master/graph/badge.svg)](https://codecov.io/gh/libp2p/go-libp2p-testing) | a collection of testing utilities for libp2p |
-| [`go-libp2p-examples`](//github.com/libp2p/go-libp2p-examples) | [![Travis CI](https://travis-ci.com/libp2p/go-libp2p-examples.svg?branch=master)](https://travis-ci.com/libp2p/go-libp2p-examples) | [![codecov](https://codecov.io/gh/libp2p/go-libp2p-examples/branch/master/graph/badge.svg)](https://codecov.io/gh/libp2p/go-libp2p-examples) | go-libp2p examples and tutorials |
 
 # Contribute
 
