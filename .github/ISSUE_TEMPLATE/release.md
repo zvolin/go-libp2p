@@ -17,7 +17,9 @@ about: 'Start a new libp2p release.'
 
 ## ✅ Release Checklist
 
-- [ ] **Stage 0 - Automated Testing**
+- [ ] **Stage 0 - Finishing Touches**
+    - [ ] Go through relevant libp2p repos looking for unreleased changes that should make it into the release. If you find any, cut releases.
+    - [ ] Run `go get -u ./...` to see if there are any out-of-date deps that look important. If there are, bubble them. Try to avoid _directly_ updating indirect deps in go-libp2p's go.mod when possible.
     - [ ] Fork a new `release-vX.Y.Z` branch from `master`, freezing master.
     - [ ] Make sure local tests are passing.
 - [ ] **Stage 1 - Upstream Testing**
