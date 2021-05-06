@@ -40,6 +40,7 @@ import (
 
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
@@ -58,6 +59,7 @@ func handleStream(s network.Stream) {
 
 	// stream 's' will stay open until you close it (or the other side closes it).
 }
+
 func readData(rw *bufio.ReadWriter) {
 	for {
 		str, _ := rw.ReadString('\n')
@@ -80,18 +82,20 @@ func writeData(rw *bufio.ReadWriter) {
 	for {
 		fmt.Print("> ")
 		sendData, err := stdReader.ReadString('\n')
-
 		if err != nil {
-			panic(err)
+			log.Println(err)
+			return
 		}
 
 		rw.WriteString(fmt.Sprintf("%s\n", sendData))
 		rw.Flush()
 	}
-
 }
 
 func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	sourcePort := flag.Int("sp", 0, "Source port number")
 	dest := flag.String("d", "", "Destination multiaddr string")
 	help := flag.Bool("help", false, "Display help")
@@ -119,90 +123,115 @@ func main() {
 		r = rand.Reader
 	}
 
-	// Creates a new RSA key pair for this host.
-	prvKey, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
+	h, err := makeHost(ctx, *sourcePort, r)
 	if err != nil {
-		panic(err)
-	}
-
-	// 0.0.0.0 will listen on any interface device.
-	sourceMultiAddr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", *sourcePort))
-
-	// libp2p.New constructs a new libp2p Host.
-	// Other options can be added here.
-	host, err := libp2p.New(
-		context.Background(),
-		libp2p.ListenAddrs(sourceMultiAddr),
-		libp2p.Identity(prvKey),
-	)
-
-	if err != nil {
-		panic(err)
+		log.Println(err)
+		return
 	}
 
 	if *dest == "" {
-		// Set a function as stream handler.
-		// This function is called when a peer connects, and starts a stream with this protocol.
-		// Only applies on the receiving side.
-		host.SetStreamHandler("/chat/1.0.0", handleStream)
-
-		// Let's get the actual TCP port from our listen multiaddr, in case we're using 0 (default; random available port).
-		var port string
-		for _, la := range host.Network().ListenAddresses() {
-			if p, err := la.ValueForProtocol(multiaddr.P_TCP); err == nil {
-				port = p
-				break
-			}
-		}
-
-		if port == "" {
-			panic("was not able to find actual local port")
-		}
-
-		fmt.Printf("Run './chat -d /ip4/127.0.0.1/tcp/%v/p2p/%s' on another console.\n", port, host.ID().Pretty())
-		fmt.Println("You can replace 127.0.0.1 with public IP as well.")
-		fmt.Printf("\nWaiting for incoming connection\n\n")
-
-		// Hang forever
-		<-make(chan struct{})
+		startPeer(ctx, h, handleStream)
 	} else {
-		fmt.Println("This node's multiaddresses:")
-		for _, la := range host.Addrs() {
-			fmt.Printf(" - %v\n", la)
-		}
-		fmt.Println()
-
-		// Turn the destination into a multiaddr.
-		maddr, err := multiaddr.NewMultiaddr(*dest)
+		rw, err := startPeerAndConnect(ctx, h, *dest)
 		if err != nil {
-			log.Fatalln(err)
+			log.Println(err)
+			return
 		}
-
-		// Extract the peer ID from the multiaddr.
-		info, err := peer.AddrInfoFromP2pAddr(maddr)
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		// Add the destination's peer multiaddress in the peerstore.
-		// This will be used during connection and stream creation by libp2p.
-		host.Peerstore().AddAddrs(info.ID, info.Addrs, peerstore.PermanentAddrTTL)
-
-		// Start a stream with the destination.
-		// Multiaddress of the destination peer is fetched from the peerstore using 'peerId'.
-		s, err := host.NewStream(context.Background(), info.ID, "/chat/1.0.0")
-		if err != nil {
-			panic(err)
-		}
-
-		// Create a buffered stream so that read and writes are non blocking.
-		rw := bufio.NewReadWriter(bufio.NewReader(s), bufio.NewWriter(s))
 
 		// Create a thread to read and write data.
 		go writeData(rw)
 		go readData(rw)
 
-		// Hang forever.
-		select {}
 	}
+
+	// Wait until canceled
+	select {
+	case <-ctx.Done():
+	}
+}
+
+func makeHost(ctx context.Context, port int, randomness io.Reader) (host.Host, error) {
+	// Creates a new RSA key pair for this host.
+	prvKey, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, randomness)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	// 0.0.0.0 will listen on any interface device.
+	sourceMultiAddr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port))
+
+	// libp2p.New constructs a new libp2p Host.
+	// Other options can be added here.
+	return libp2p.New(
+		ctx,
+		libp2p.ListenAddrs(sourceMultiAddr),
+		libp2p.Identity(prvKey),
+	)
+}
+
+func startPeer(ctx context.Context, h host.Host, streamHandler network.StreamHandler) {
+	// Set a function as stream handler.
+	// This function is called when a peer connects, and starts a stream with this protocol.
+	// Only applies on the receiving side.
+	h.SetStreamHandler("/chat/1.0.0", streamHandler)
+
+	// Let's get the actual TCP port from our listen multiaddr, in case we're using 0 (default; random available port).
+	var port string
+	for _, la := range h.Network().ListenAddresses() {
+		if p, err := la.ValueForProtocol(multiaddr.P_TCP); err == nil {
+			port = p
+			break
+		}
+	}
+
+	if port == "" {
+		log.Println("was not able to find actual local port")
+		return
+	}
+
+	log.Printf("Run './chat -d /ip4/127.0.0.1/tcp/%v/p2p/%s' on another console.\n", port, h.ID().Pretty())
+	log.Println("You can replace 127.0.0.1 with public IP as well.")
+	log.Println("Waiting for incoming connection")
+	log.Println()
+}
+
+func startPeerAndConnect(ctx context.Context, h host.Host, destination string) (*bufio.ReadWriter, error) {
+	log.Println("This node's multiaddresses:")
+	for _, la := range h.Addrs() {
+		log.Printf(" - %v\n", la)
+	}
+	log.Println()
+
+	// Turn the destination into a multiaddr.
+	maddr, err := multiaddr.NewMultiaddr(destination)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	// Extract the peer ID from the multiaddr.
+	info, err := peer.AddrInfoFromP2pAddr(maddr)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	// Add the destination's peer multiaddress in the peerstore.
+	// This will be used during connection and stream creation by libp2p.
+	h.Peerstore().AddAddrs(info.ID, info.Addrs, peerstore.PermanentAddrTTL)
+
+	// Start a stream with the destination.
+	// Multiaddress of the destination peer is fetched from the peerstore using 'peerId'.
+	s, err := h.NewStream(context.Background(), info.ID, "/chat/1.0.0")
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	log.Println("Established connection to destination")
+
+	// Create a buffered stream so that read and writes are non blocking.
+	rw := bufio.NewReadWriter(bufio.NewReader(s), bufio.NewWriter(s))
+
+	return rw, nil
 }

@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"log"
 
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -14,27 +14,34 @@ import (
 )
 
 func main() {
+	run()
+}
+
+func run() {
 	// Create three libp2p hosts, enable relay client capabilities on all
 	// of them.
 
-	// Tell the host to monitor for relays.
-	h1, err := libp2p.New(context.Background(), libp2p.EnableRelay(circuit.OptDiscovery))
+	// Tell the host use relays
+	h1, err := libp2p.New(context.Background(), libp2p.EnableRelay())
 	if err != nil {
-		panic(err)
+		log.Printf("Failed to create h1: %v", err)
+		return
 	}
 
 	// Tell the host to relay connections for other peers (The ability to *use*
 	// a relay vs the ability to *be* a relay)
 	h2, err := libp2p.New(context.Background(), libp2p.EnableRelay(circuit.OptHop))
 	if err != nil {
-		panic(err)
+		log.Printf("Failed to create h2: %v", err)
+		return
 	}
 
 	// Zero out the listen addresses for the host, so it can only communicate
 	// via p2p-circuit for our example
 	h3, err := libp2p.New(context.Background(), libp2p.ListenAddrs(), libp2p.EnableRelay())
 	if err != nil {
-		panic(err)
+		log.Printf("Failed to create h3: %v", err)
+		return
 	}
 
 	h2info := peer.AddrInfo{
@@ -44,30 +51,33 @@ func main() {
 
 	// Connect both h1 and h3 to h2, but not to each other
 	if err := h1.Connect(context.Background(), h2info); err != nil {
-		panic(err)
+		log.Printf("Failed to connect h1 and h2: %v", err)
+		return
 	}
 	if err := h3.Connect(context.Background(), h2info); err != nil {
-		panic(err)
+		log.Printf("Failed to connect h3 and h2: %v", err)
+		return
 	}
 
 	// Now, to test things, let's set up a protocol handler on h3
 	h3.SetStreamHandler("/cats", func(s network.Stream) {
-		fmt.Println("Meow! It worked!")
+		log.Println("Meow! It worked!")
 		s.Close()
 	})
 
 	_, err = h1.NewStream(context.Background(), h3.ID(), "/cats")
 	if err == nil {
-		fmt.Println("Didnt actually expect to get a stream here. What happened?")
+		log.Println("Didnt actually expect to get a stream here. What happened?")
 		return
 	}
-	fmt.Println("Okay, no connection from h1 to h3: ", err)
-	fmt.Println("Just as we suspected")
+	log.Printf("Okay, no connection from h1 to h3: %v", err)
+	log.Println("Just as we suspected")
 
-	// Creates a relay address
-	relayaddr, err := ma.NewMultiaddr("/p2p-circuit/ipfs/" + h3.ID().Pretty())
+	// Creates a relay address to h3 using h2 as the relay
+	relayaddr, err := ma.NewMultiaddr("/p2p/" + h2.ID().Pretty() + "/p2p-circuit/ipfs/" + h3.ID().Pretty())
 	if err != nil {
-		panic(err)
+		log.Println(err)
+		return
 	}
 
 	// Since we just tried and failed to dial, the dialer system will, by default
@@ -81,13 +91,14 @@ func main() {
 		Addrs: []ma.Multiaddr{relayaddr},
 	}
 	if err := h1.Connect(context.Background(), h3relayInfo); err != nil {
-		panic(err)
+		log.Printf("Failed to connect h1 and h3: %v", err)
+		return
 	}
 
 	// Woohoo! we're connected!
 	s, err := h1.NewStream(context.Background(), h3.ID(), "/cats")
 	if err != nil {
-		fmt.Println("huh, this should have worked: ", err)
+		log.Println("huh, this should have worked: ", err)
 		return
 	}
 

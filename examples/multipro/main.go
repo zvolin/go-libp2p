@@ -13,6 +13,23 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
+func main() {
+	// Choose random ports between 10000-10100
+	rand.Seed(666)
+	port1 := rand.Intn(100) + 10000
+	port2 := port1 + 1
+
+	done := make(chan bool, 1)
+
+	// Make 2 hosts
+	h1 := makeRandomNode(port1, done)
+	h2 := makeRandomNode(port2, done)
+
+	log.Printf("This is a conversation between %s and %s\n", h1.ID(), h2.ID())
+
+	run(h1, h2, done)
+}
+
 // helper method - create a lib-p2p host to listen on a port
 func makeRandomNode(port int, done chan bool) *Node {
 	// Ignoring most errors for brevity
@@ -28,21 +45,10 @@ func makeRandomNode(port int, done chan bool) *Node {
 	return NewNode(host, done)
 }
 
-func main() {
-	// Choose random ports between 10000-10100
-	rand.Seed(666)
-	port1 := rand.Intn(100) + 10000
-	port2 := port1 + 1
-
-	done := make(chan bool, 1)
-
-	// Make 2 hosts
-	h1 := makeRandomNode(port1, done)
-	h2 := makeRandomNode(port2, done)
+func run(h1, h2 *Node, done <-chan bool) {
+	// connect peers
 	h1.Peerstore().AddAddrs(h2.ID(), h2.Addrs(), peerstore.PermanentAddrTTL)
 	h2.Peerstore().AddAddrs(h1.ID(), h1.Addrs(), peerstore.PermanentAddrTTL)
-
-	log.Printf("This is a conversation between %s and %s\n", h1.ID(), h2.ID())
 
 	// send messages using the protocols
 	h1.Ping(h2.Host)

@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"log"
 	"time"
 
 	"github.com/libp2p/go-libp2p"
@@ -17,6 +17,10 @@ import (
 )
 
 func main() {
+	run()
+}
+
+func run() {
 	// The context governs the lifetime of the libp2p node.
 	// Cancelling it will stop the the host.
 	ctx, cancel := context.WithCancel(context.Background())
@@ -28,7 +32,7 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Printf("Hello World, my hosts ID is %s\n", h.ID())
+	log.Printf("Hello World, my hosts ID is %s\n", h.ID())
 
 	// Now, normally you do not just want a simple host, you want
 	// that is fully configured to best support your p2p application.
@@ -105,5 +109,5 @@ func main() {
 			h2.Connect(ctx, *pi)
 		}
 	*/
-	fmt.Printf("Hello World, my second hosts ID is %s\n", h2.ID())
+	log.Printf("Hello World, my second hosts ID is %s\n", h2.ID())
 }
