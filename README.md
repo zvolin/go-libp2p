@@ -78,7 +78,7 @@ As new releases of go-libp2p are made available, you can upgrade your applicatio
 
 ### Examples
 
-Examples can be found on the [examples folder](examples).
+Examples can be found in the [examples folder](examples).
 
 ## Development
 
