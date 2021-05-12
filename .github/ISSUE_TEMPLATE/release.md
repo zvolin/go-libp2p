@@ -20,7 +20,6 @@ about: 'Start a new libp2p release.'
 - [ ] **Stage 0 - Finishing Touches**
     - [ ] Go through relevant libp2p repos looking for unreleased changes that should make it into the release. If you find any, cut releases.
     - [ ] Run `go get -u ./...` to see if there are any out-of-date deps that look important. If there are, bubble them. Try to avoid _directly_ updating indirect deps in go-libp2p's go.mod when possible.
-    - [ ] Fork a new `release-vX.Y.Z` branch from `master`, freezing master.
     - [ ] Make sure local tests are passing.
 - [ ] **Stage 1 - Upstream Testing**
   - Create testing branches in lotus & go-ipfs with the new go-libp2p release and run CI/tests. Many upstream projects are tested in CI, but lotus & go-ipfs are not.
@@ -33,14 +32,16 @@ about: 'Start a new libp2p release.'
   - How: Using the testing branches created above, work with the infrastructure team to deploy the new libp2p versions to our infrastructure.
   - Where:
     - [ ] A go-ipfs gateway.
+      - [ ] Deploy
+      - [ ] Analyze
+        - [ ] Look at pprof profile dumps, especially CPU profiles and heap allocation profiles, noting any significant changes.
     - [ ] A go-ipfs bootstrapper.
-    - [ ] A go-ipfs preload node.
-    - [ ] A hydra booster.
-    - [ ] A Filecoin bootstrap node.
-    - [ ] Calibration net
-  - What: Look at pprof profile dumps, especially CPU profiles and heap allocation profiles, noting any significant changes. Make sure nothing crashes.
+      - [ ] Deploy
+      - [ ] Analyze
+        - [ ] Look at pprof profile dumps, especially CPU profiles and heap allocation profiles, noting any significant changes.
+        - [ ] Check peers (e.g., `ipfs swarm peers`) to make sure we're connecting to peers on all transports.
+        - [ ] Check advertised addresses and protocols (e.g., `ipfs id`) to make sure they're sane.
 - [ ] **Stage 3 - Release**
-  - [ ] Merge the release PR.
   - [ ] Tag the release on master.
   - [ ] Publish the release through the GitHub UI, adding the release notes. Some users rely on this to receive notifications of new releases.
   - [ ] Announce the release on the [discuss.libp2p.io](https://discuss.libp2p.io).
@@ -52,3 +53,4 @@ about: 'Start a new libp2p release.'
     - [ ] [libp2p/go-libp2p-kad-dht](https://github.com/libp2p/go-libp2p-kad-dht)
     - [ ] [libp2p/go-libp2p-pubsub](https://github.com/libp2p/go-libp2p-pubsub)
     - [ ] [libp2p/go-libp2p-daemon](https://github.com/libp2p/go-libp2p-daemon)
+- [ ] Make required changes to the release process.
