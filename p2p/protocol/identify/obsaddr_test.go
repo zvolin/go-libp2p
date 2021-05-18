@@ -2,11 +2,9 @@ package identify_test
 
 import (
 	"context"
-	"sync"
 	"testing"
 	"time"
 
-	detectrace "github.com/ipfs/go-detect-race"
 	"github.com/libp2p/go-eventbus"
 	"github.com/libp2p/go-libp2p-core/event"
 	"github.com/libp2p/go-libp2p-core/host"
@@ -246,35 +244,6 @@ func TestObsAddrSet(t *testing.T) {
 	if !addrsMatch(harness.oas.Addrs(), nil) {
 		t.Error("addrs should have timed out")
 	}
-}
-
-func TestAddAddrsProfile(t *testing.T) {
-	if detectrace.WithRace() {
-		t.Skip("test too slow when the race detector is running")
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	harness := newHarness(ctx, t)
-
-	addr := ma.StringCast("/ip4/1.2.3.4/tcp/1231")
-	p := harness.add(ma.StringCast("/ip4/1.2.3.6/tcp/1236"))
-
-	c := harness.conn(p)
-	var wg sync.WaitGroup
-	for i := 0; i < 1000; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for j := 0; j < 10000; j++ {
-				harness.oas.Record(c, addr)
-				time.Sleep(1 * time.Millisecond)
-			}
-		}()
-	}
-
-	wg.Wait()
 }
 
 func TestObservedAddrFiltering(t *testing.T) {
