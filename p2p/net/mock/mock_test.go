@@ -593,7 +593,7 @@ func TestLimitedStreams(t *testing.T) {
 	}
 }
 func TestFuzzManyPeers(t *testing.T) {
-	peerCount := 50000
+	peerCount := 500
 	if detectrace.WithRace() {
 		peerCount = 100
 	}
