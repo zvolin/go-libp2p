@@ -520,8 +520,11 @@ func (h *BasicHost) background() {
 	defer ticker.Stop()
 
 	for {
-		h.updateLocalIpAddr()
-		curr := h.Addrs()
+		var curr []ma.Multiaddr
+		if len(h.network.ListenAddresses()) > 0 {
+			h.updateLocalIpAddr()
+			curr = h.Addrs()
+		}
 		emitAddrChange(curr, lastAddrs)
 		lastAddrs = curr
 
