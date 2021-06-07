@@ -160,9 +160,39 @@ func (pn *peernet) connect(p peer.ID) (*conn, error) {
 func (pn *peernet) openConn(r peer.ID, l *link) *conn {
 	lc, rc := l.newConnPair(pn)
 	log.Debugf("%s opening connection to %s", pn.LocalPeer(), lc.RemotePeer())
+	addConnPair(pn, rc.net, lc, rc)
+
 	go rc.net.remoteOpenedConn(rc)
 	pn.addConn(lc)
 	return lc
+}
+
+// addConnPair adds connection to both peernets at the same time
+// must be followerd by pn1.addConn(c1) and pn2.addConn(c2)
+func addConnPair(pn1, pn2 *peernet, c1, c2 *conn) {
+	pn1.Lock()
+	pn2.Lock()
+
+	add := func(pn *peernet, c *conn) {
+		_, found := pn.connsByPeer[c.RemotePeer()]
+		if !found {
+			pn.connsByPeer[c.RemotePeer()] = map[*conn]struct{}{}
+		}
+		pn.connsByPeer[c.RemotePeer()][c] = struct{}{}
+
+		_, found = pn.connsByLink[c.link]
+		if !found {
+			pn.connsByLink[c.link] = map[*conn]struct{}{}
+		}
+		pn.connsByLink[c.link][c] = struct{}{}
+	}
+	add(pn1, c1)
+	add(pn2, c2)
+
+	c1.notifLk.Lock()
+	c2.notifLk.Lock()
+	pn2.Unlock()
+	pn1.Unlock()
 }
 
 func (pn *peernet) remoteOpenedConn(c *conn) {
@@ -174,24 +204,7 @@ func (pn *peernet) remoteOpenedConn(c *conn) {
 // addConn constructs and adds a connection
 // to given remote peer over given link
 func (pn *peernet) addConn(c *conn) {
-	pn.Lock()
-
-	_, found := pn.connsByPeer[c.RemotePeer()]
-	if !found {
-		pn.connsByPeer[c.RemotePeer()] = map[*conn]struct{}{}
-	}
-	pn.connsByPeer[c.RemotePeer()][c] = struct{}{}
-
-	_, found = pn.connsByLink[c.link]
-	if !found {
-		pn.connsByLink[c.link] = map[*conn]struct{}{}
-	}
-	pn.connsByLink[c.link][c] = struct{}{}
-
-	c.notifLk.Lock()
 	defer c.notifLk.Unlock()
-	pn.Unlock()
-
 	// Call this after unlocking as it might cause us to immediately close
 	// the connection and remove it from the swarm.
 	c.setup()
