@@ -1,6 +1,7 @@
 package mocknet
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"math/rand"
@@ -170,8 +171,14 @@ func (pn *peernet) openConn(r peer.ID, l *link) *conn {
 // addConnPair adds connection to both peernets at the same time
 // must be followerd by pn1.addConn(c1) and pn2.addConn(c2)
 func addConnPair(pn1, pn2 *peernet, c1, c2 *conn) {
-	pn1.Lock()
-	pn2.Lock()
+	var l1, l2 = pn1, pn2 // peernets in lock order
+	// bytes compare as string compare is lexicographical
+	if bytes.Compare([]byte(l1.LocalPeer()), []byte(l2.LocalPeer())) > 0 {
+		l1, l2 = l2, l1
+	}
+
+	l1.Lock()
+	l2.Lock()
 
 	add := func(pn *peernet, c *conn) {
 		_, found := pn.connsByPeer[c.RemotePeer()]
@@ -191,8 +198,8 @@ func addConnPair(pn1, pn2 *peernet, c1, c2 *conn) {
 
 	c1.notifLk.Lock()
 	c2.notifLk.Lock()
-	pn2.Unlock()
-	pn1.Unlock()
+	l2.Unlock()
+	l1.Unlock()
 }
 
 func (pn *peernet) remoteOpenedConn(c *conn) {
