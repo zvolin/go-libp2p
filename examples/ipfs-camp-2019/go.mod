@@ -12,9 +12,9 @@ require (
 	github.com/libp2p/go-libp2p-pubsub v0.4.1
 	github.com/libp2p/go-libp2p-secio v0.2.2
 	github.com/libp2p/go-libp2p-yamux v0.5.4
-	github.com/libp2p/go-tcp-transport v0.2.1
+	github.com/libp2p/go-tcp-transport v0.2.3
 	github.com/libp2p/go-ws-transport v0.4.0
-	github.com/multiformats/go-multiaddr v0.3.1
+	github.com/multiformats/go-multiaddr v0.3.3
 )
 
 // Ensure that examples always use the go-libp2p version in the same git checkout.
