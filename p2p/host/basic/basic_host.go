@@ -520,11 +520,12 @@ func (h *BasicHost) background() {
 	defer ticker.Stop()
 
 	for {
-		var curr []ma.Multiaddr
 		if len(h.network.ListenAddresses()) > 0 {
 			h.updateLocalIpAddr()
-			curr = h.Addrs()
 		}
+		// Request addresses anyways because, technically, address filters still apply.
+		// The underlying AllAddrs call is effectivley a no-op.
+		curr := h.Addrs()
 		emitAddrChange(curr, lastAddrs)
 		lastAddrs = curr
 
@@ -816,6 +817,11 @@ func dedupAddrs(addrs []ma.Multiaddr) (uniqueAddrs []ma.Multiaddr) {
 // AllAddrs returns all the addresses of BasicHost at this moment in time.
 // It's ok to not include addresses if they're not available to be used now.
 func (h *BasicHost) AllAddrs() []ma.Multiaddr {
+	listenAddrs := h.Network().ListenAddresses()
+	if len(listenAddrs) == 0 {
+		return nil
+	}
+
 	h.addrMu.RLock()
 	filteredIfaceAddrs := h.filteredInterfaceAddrs
 	allIfaceAddrs := h.allInterfaceAddrs
@@ -824,7 +830,6 @@ func (h *BasicHost) AllAddrs() []ma.Multiaddr {
 
 	// Iterate over all _unresolved_ listen addresses, resolving our primary
 	// interface only to avoid advertising too many addresses.
-	listenAddrs := h.Network().ListenAddresses()
 	var finalAddrs []ma.Multiaddr
 	if resolved, err := addrutil.ResolveUnspecifiedAddresses(listenAddrs, filteredIfaceAddrs); err != nil {
 		// This can happen if we're listening on no addrs, or listening
