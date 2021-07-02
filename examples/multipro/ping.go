@@ -45,7 +45,7 @@ func (p *PingProtocol) onPingRequest(s network.Stream) {
 	s.Close()
 
 	// unmarshal it
-	proto.Unmarshal(buf, data)
+	err = proto.Unmarshal(buf, data)
 	if err != nil {
 		log.Println(err)
 		return
@@ -96,7 +96,7 @@ func (p *PingProtocol) onPingResponse(s network.Stream) {
 	s.Close()
 
 	// unmarshal it
-	proto.Unmarshal(buf, data)
+	err = proto.Unmarshal(buf, data)
 	if err != nil {
 		log.Println(err)
 		return
