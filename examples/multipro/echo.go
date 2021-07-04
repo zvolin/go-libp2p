@@ -48,7 +48,7 @@ func (e *EchoProtocol) onEchoRequest(s network.Stream) {
 	s.Close()
 
 	// unmarshal it
-	proto.Unmarshal(buf, data)
+	err = proto.Unmarshal(buf, data)
 	if err != nil {
 		log.Println(err)
 		return
@@ -101,7 +101,7 @@ func (e *EchoProtocol) onEchoResponse(s network.Stream) {
 	s.Close()
 
 	// unmarshal it
-	proto.Unmarshal(buf, data)
+	err = proto.Unmarshal(buf, data)
 	if err != nil {
 		log.Println(err)
 		return
