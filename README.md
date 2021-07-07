@@ -52,9 +52,7 @@ libp2p is the product of a long, and arduous quest of understanding -- a deep di
 
 ## Usage
 
-This repository (`go-libp2p`) serves as the entrypoint to the universe of modules that compose the Go implementation of the libp2p stack. Libp2p requires go 1.12+.
-
-We mainly use [Go modules](https://github.com/golang/go/wiki/Modules) for our dependency and release management (and thus require go >= 1.12+). In order to get the best developer experience, we recommend you do too. Otherwise, you may ocassionally encounter a breaking build as you'll be running off master (which, by definition, is not guaranteed to be stable).
+This repository (`go-libp2p`) serves as the entrypoint to the universe of modules that compose the Go implementation of the libp2p stack.
 
 You can start using go-libp2p in your Go application simply by adding imports from our repos, e.g.:
 
