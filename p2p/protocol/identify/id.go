@@ -41,18 +41,14 @@ const ID = "/ipfs/id/1.0.0"
 // 0.4.17 which asserted an exact version match.
 const LibP2PVersion = "ipfs/0.1.0"
 
-// ClientVersion is the default user agent.
-//
-// Deprecated: Set this with the UserAgent option.
-var ClientVersion = "github.com/libp2p/go-libp2p"
-
 // StreamReadTimeout is the read timeout on all incoming Identify family streams.
 var StreamReadTimeout = 60 * time.Second
 
 var (
-	legacyIDSize = 2 * 1024 // 2k Bytes
-	signedIDSize = 8 * 1024 // 8K
-	maxMessages  = 10
+	legacyIDSize     = 2 * 1024 // 2k Bytes
+	signedIDSize     = 8 * 1024 // 8K
+	maxMessages      = 10
+	defaultUserAgent = "github.com/libp2p/go-libp2p"
 )
 
 func init() {
@@ -62,9 +58,9 @@ func init() {
 	}
 	version := bi.Main.Version
 	if version == "(devel)" {
-		ClientVersion = bi.Main.Path
+		defaultUserAgent = bi.Main.Path
 	} else {
-		ClientVersion = fmt.Sprintf("%s@%s", bi.Main.Path, bi.Main.Version)
+		defaultUserAgent = fmt.Sprintf("%s@%s", bi.Main.Path, bi.Main.Version)
 	}
 }
 
@@ -125,7 +121,7 @@ func NewIDService(h host.Host, opts ...Option) (*IDService, error) {
 		opt(&cfg)
 	}
 
-	userAgent := ClientVersion
+	userAgent := defaultUserAgent
 	if cfg.userAgent != "" {
 		userAgent = cfg.userAgent
 	}
