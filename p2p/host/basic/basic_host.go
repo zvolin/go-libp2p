@@ -145,7 +145,7 @@ type HostOpts struct {
 	// EnablePing indicates whether to instantiate the ping service
 	EnablePing bool
 
-	// UserAgent sets the user-agent for the host. Defaults to ClientVersion.
+	// UserAgent sets the user-agent for the host.
 	UserAgent string
 
 	// DisableSignedPeerRecord disables the generation of Signed Peer Records on this host.

@@ -21,7 +21,7 @@ import (
 	coretest "github.com/libp2p/go-libp2p-core/test"
 
 	"github.com/libp2p/go-eventbus"
-	libp2p "github.com/libp2p/go-libp2p"
+	"github.com/libp2p/go-libp2p"
 	blhost "github.com/libp2p/go-libp2p-blankhost"
 	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
 	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
@@ -196,7 +196,7 @@ func testHasProtocolVersions(t *testing.T, h host.Host, p peer.ID) {
 		t.Error("protocol mismatch", err)
 	}
 	v, err = h.Peerstore().Get(p, "AgentVersion")
-	if v.(string) != identify.ClientVersion {
+	if v.(string) != "github.com/libp2p/go-libp2p" { // this is the default user agent
 		t.Error("agent version mismatch", err)
 	}
 }
