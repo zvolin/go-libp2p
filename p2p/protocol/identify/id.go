@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	ic "github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/event"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -533,7 +533,7 @@ func (ids *IDService) createBaseIdentifyResponse(
 		// if neither of the key is present it is safe to assume that we are using an insecure transport.
 	} else {
 		// public key is present. Safe to proceed.
-		if kb, err := ownKey.Bytes(); err != nil {
+		if kb, err := crypto.MarshalPublicKey(ownKey); err != nil {
 			log.Errorf("failed to convert key to bytes")
 		} else {
 			mes.PublicKey = kb
@@ -654,7 +654,7 @@ func (ids *IDService) consumeReceivedPubKey(c network.Conn, kb []byte) {
 		return
 	}
 
-	newKey, err := ic.UnmarshalPublicKey(kb)
+	newKey, err := crypto.UnmarshalPublicKey(kb)
 	if err != nil {
 		log.Warnf("%s cannot unmarshal key from remote peer: %s, %s", lp, rp, err)
 		return
