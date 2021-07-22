@@ -49,7 +49,9 @@ func main() {
 	}
 
 	if *targetF == "" {
-		runListener(ctx, ha, *listenF, *insecureF)
+		startListener(ctx, ha, *listenF, *insecureF)
+		// Run until canceled.
+		<-ctx.Done()
 	} else {
 		runSender(ctx, ha, *targetF)
 	}
@@ -95,7 +97,7 @@ func getHostAddress(ha host.Host) string {
 	return addr.Encapsulate(hostAddr).String()
 }
 
-func runListener(ctx context.Context, ha host.Host, listenPort int, insecure bool) {
+func startListener(ctx context.Context, ha host.Host, listenPort int, insecure bool) {
 	fullAddr := getHostAddress(ha)
 	log.Printf("I am %s\n", fullAddr)
 
@@ -118,9 +120,6 @@ func runListener(ctx context.Context, ha host.Host, listenPort int, insecure boo
 	} else {
 		log.Printf("Now run \"./echo -l %d -d %s\" on a different terminal\n", listenPort+1, fullAddr)
 	}
-
-	// Wait until canceled
-	<-ctx.Done()
 }
 
 func runSender(ctx context.Context, ha host.Host, targetPeer string) {

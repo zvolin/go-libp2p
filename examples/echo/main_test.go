@@ -43,7 +43,7 @@ func TestMain(t *testing.T) {
 			return
 		}
 
-		go runListener(ctx, lh, lport, true)
+		startListener(ctx, lh, lport, true)
 
 		// Make sender
 		listenAddr := getHostAddress(lh)
