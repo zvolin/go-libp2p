@@ -27,10 +27,8 @@ import (
 )
 
 // makeRoutedHost creates a LibP2P host with a random peer ID listening on the
-// given multiaddress. It will use secio if secio is true. It will bootstrap using the
-// provided PeerInfo
+// given multiaddress. It will bootstrap using the provided PeerInfo.
 func makeRoutedHost(listenPort int, randseed int64, bootstrapPeers []peer.AddrInfo, globalFlag string) (host.Host, error) {
-
 	// If the seed is zero, use real cryptographic randomness. Otherwise, use a
 	// deterministic randomness source to make generated keys stay the same
 	// across multiple runs

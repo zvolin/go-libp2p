@@ -56,8 +56,8 @@ h2, err := libp2p.New(ctx,
 	),
 	// support TLS connections
 	libp2p.Security(libp2ptls.ID, libp2ptls.New),
-	// support secio connections
-	libp2p.Security(secio.ID, secio.New),
+	// support Noise connections
+	libp2p.Security(noise.ID, noise.New),
 	// support QUIC
 	libp2p.Transport(libp2pquic.NewTransport),
 	// support any other default transports (TCP)
