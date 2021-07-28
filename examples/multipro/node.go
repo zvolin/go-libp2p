@@ -9,10 +9,10 @@ import (
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
+	p2p "github.com/libp2p/go-libp2p/examples/multipro/pb"
 
 	ggio "github.com/gogo/protobuf/io"
-	proto "github.com/gogo/protobuf/proto"
-	p2p "github.com/libp2p/go-libp2p/examples/multipro/pb"
+	"github.com/gogo/protobuf/proto"
 )
 
 // node client version
@@ -121,7 +121,7 @@ func (n *Node) verifyData(data []byte, signature []byte, peerId peer.ID, pubKeyD
 func (n *Node) NewMessageData(messageId string, gossip bool) *p2p.MessageData {
 	// Add protobufs bin data for message author public key
 	// this is useful for authenticating  messages forwarded by a node authored by another node
-	nodePubKey, err := n.Peerstore().PubKey(n.ID()).Bytes()
+	nodePubKey, err := crypto.MarshalPublicKey(n.Peerstore().PubKey(n.ID()))
 
 	if err != nil {
 		panic("Failed to get public key for sender from local peer store.")
