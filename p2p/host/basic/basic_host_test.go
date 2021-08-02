@@ -28,6 +28,7 @@ import (
 
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -726,6 +727,26 @@ func TestAddrChangeImmediatelyIfAddressNonEmpty(t *testing.T) {
 	require.NotNil(t, ev)
 	rc = peerRecordFromEnvelope(t, ev)
 	require.Equal(t, taddrs, rc.Addrs)
+}
+
+func TestStatefulAddrEvents(t *testing.T) {
+	ctx := context.Background()
+	h := New(swarmt.GenSwarm(t, ctx))
+	defer h.Close()
+
+	sub, err := h.EventBus().Subscribe(&event.EvtLocalAddressesUpdated{}, eventbus.BufSize(10))
+	if err != nil {
+		t.Error(err)
+	}
+	defer sub.Close()
+
+	select {
+	case v := <-sub.Out():
+		assert.NotNil(t, v)
+
+	case <-time.After(time.Second * 5):
+		t.Error("timed out waiting for event")
+	}
 }
 
 func TestHostAddrChangeDetection(t *testing.T) {
