@@ -57,7 +57,7 @@ func run(h1, h2 *Node, done <-chan bool) {
 	h2.Echo(h1.Host)
 
 	// block until all responses have been processed
-	for i := 0; i < 4; i++ {
+	for i := 0; i < 8; i++ {
 		<-done
 	}
 }
