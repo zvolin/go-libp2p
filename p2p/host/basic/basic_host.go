@@ -623,6 +623,7 @@ func (h *BasicHost) NewStream(ctx context.Context, p peer.ID, pids ...protocol.I
 	select {
 	case <-h.ids.IdentifyWait(s.Conn()):
 	case <-ctx.Done():
+		_ = s.Reset()
 		return nil, ctx.Err()
 	}
 
