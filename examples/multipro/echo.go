@@ -86,6 +86,7 @@ func (e *EchoProtocol) onEchoRequest(s network.Stream) {
 	if ok {
 		log.Printf("%s: Echo response to %s sent.", s.Conn().LocalPeer().String(), s.Conn().RemotePeer().String())
 	}
+	e.done <- true
 }
 
 // remote echo response handler

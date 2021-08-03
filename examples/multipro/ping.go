@@ -82,6 +82,7 @@ func (p *PingProtocol) onPingRequest(s network.Stream) {
 	if ok {
 		log.Printf("%s: Ping response to %s sent.", s.Conn().LocalPeer().String(), s.Conn().RemotePeer().String())
 	}
+	p.done <- true
 }
 
 // remote ping response handler
