@@ -5,27 +5,27 @@ import (
 	"testing"
 	"time"
 
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/stretchr/testify/require"
 
+	"github.com/libp2p/go-libp2p-core/peer"
 	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
 	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
-	ping "github.com/libp2p/go-libp2p/p2p/protocol/ping"
+	"github.com/libp2p/go-libp2p/p2p/protocol/ping"
 )
 
 func TestPing(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	h1 := bhost.New(swarmt.GenSwarm(t, ctx))
-	h2 := bhost.New(swarmt.GenSwarm(t, ctx))
+	h1, err := bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx), nil)
+	require.NoError(t, err)
+	h2, err := bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx), nil)
+	require.NoError(t, err)
 
-	err := h1.Connect(ctx, peer.AddrInfo{
+	err = h1.Connect(ctx, peer.AddrInfo{
 		ID:    h2.ID(),
 		Addrs: h2.Addrs(),
 	})
-
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	ps1 := ping.NewPingService(h1)
 	ps2 := ping.NewPingService(h2)
@@ -42,9 +42,7 @@ func testPing(t *testing.T, ps *ping.PingService, p peer.ID) {
 	for i := 0; i < 5; i++ {
 		select {
 		case res := <-ts:
-			if res.Error != nil {
-				t.Fatal(res.Error)
-			}
+			require.NoError(t, res.Error)
 			t.Log("ping took: ", res.RTT)
 		case <-time.After(time.Second * 4):
 			t.Fatal("failed to receive ping")

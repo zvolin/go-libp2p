@@ -8,14 +8,15 @@ import (
 	"testing"
 	"time"
 
-	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
+	"github.com/stretchr/testify/require"
 
 	u "github.com/ipfs/go-ipfs-util"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
-	protocol "github.com/libp2p/go-libp2p-core/protocol"
+	"github.com/libp2p/go-libp2p-core/protocol"
 	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
+	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
 )
 
 var log = logging.Logger("reconnect")
@@ -102,8 +103,10 @@ func newSender() (chan sendChans, func(s network.Stream)) {
 // TestReconnect tests whether hosts are able to disconnect and reconnect.
 func TestReconnect2(t *testing.T) {
 	ctx := context.Background()
-	h1 := bhost.New(swarmt.GenSwarm(t, ctx))
-	h2 := bhost.New(swarmt.GenSwarm(t, ctx))
+	h1, err := bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx), nil)
+	require.NoError(t, err)
+	h2, err := bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx), nil)
+	require.NoError(t, err)
 	hosts := []host.Host{h1, h2}
 
 	h1.SetStreamHandler(protocol.TestingID, EchoStreamHandler)
@@ -121,19 +124,15 @@ func TestReconnect2(t *testing.T) {
 
 // TestReconnect tests whether hosts are able to disconnect and reconnect.
 func TestReconnect5(t *testing.T) {
+	const num = 5
 	ctx := context.Background()
-	h1 := bhost.New(swarmt.GenSwarm(t, ctx))
-	h2 := bhost.New(swarmt.GenSwarm(t, ctx))
-	h3 := bhost.New(swarmt.GenSwarm(t, ctx))
-	h4 := bhost.New(swarmt.GenSwarm(t, ctx))
-	h5 := bhost.New(swarmt.GenSwarm(t, ctx))
-	hosts := []host.Host{h1, h2, h3, h4, h5}
-
-	h1.SetStreamHandler(protocol.TestingID, EchoStreamHandler)
-	h2.SetStreamHandler(protocol.TestingID, EchoStreamHandler)
-	h3.SetStreamHandler(protocol.TestingID, EchoStreamHandler)
-	h4.SetStreamHandler(protocol.TestingID, EchoStreamHandler)
-	h5.SetStreamHandler(protocol.TestingID, EchoStreamHandler)
+	hosts := make([]host.Host, 0, num)
+	for i := 0; i < num; i++ {
+		h, err := bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx), nil)
+		require.NoError(t, err)
+		h.SetStreamHandler(protocol.TestingID, EchoStreamHandler)
+		hosts = append(hosts, h)
+	}
 
 	rounds := 4
 	if testing.Short() {
