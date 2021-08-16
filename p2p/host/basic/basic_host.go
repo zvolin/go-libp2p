@@ -56,20 +56,6 @@ var (
 // addresses returned by Addrs.
 type AddrsFactory func([]ma.Multiaddr) []ma.Multiaddr
 
-// Option is a type used to pass in options to the host.
-//
-// Deprecated in favor of HostOpts and NewHost.
-type Option int
-
-// NATPortMap makes the host attempt to open port-mapping in NAT devices
-// for all its listeners. Pass in this option in the constructor to
-// asynchronously a) find a gateway, b) open port mappings, c) republish
-// port mappings periodically. The NATed addresses are included in the
-// Host's Addrs() list.
-//
-// This option is deprecated in favor of HostOpts and NewHost.
-const NATPortMap Option = iota
-
 // BasicHost is the basic implementation of the host.Host interface. This
 // particular host implementation:
 //  * uses a protocol muxer to mux per-protocol streams
@@ -155,6 +141,9 @@ type HostOpts struct {
 // NewHost constructs a new *BasicHost and activates it by attaching its stream and connection handlers to the given inet.Network.
 func NewHost(ctx context.Context, n network.Network, opts *HostOpts) (*BasicHost, error) {
 	hostCtx, cancel := context.WithCancel(ctx)
+	if opts == nil {
+		opts = &HostOpts{}
+	}
 
 	h := &BasicHost{
 		network:                 n,
@@ -327,44 +316,6 @@ func (h *BasicHost) updateLocalIpAddr() {
 			}
 		}
 	}
-}
-
-// New constructs and sets up a new *BasicHost with given Network and options.
-// The following options can be passed:
-// * NATPortMap
-// * AddrsFactory
-// * connmgr.ConnManager
-// * madns.Resolver
-//
-// This function is deprecated in favor of NewHost and HostOpts.
-func New(net network.Network, opts ...interface{}) *BasicHost {
-	hostopts := &HostOpts{}
-
-	for _, o := range opts {
-		switch o := o.(type) {
-		case Option:
-			switch o {
-			case NATPortMap:
-				hostopts.NATManager = NewNATManager
-			}
-		case AddrsFactory:
-			hostopts.AddrsFactory = o
-		case connmgr.ConnManager:
-			hostopts.ConnManager = o
-		case *madns.Resolver:
-			hostopts.MultiaddrResolver = o
-		}
-	}
-
-	h, err := NewHost(context.Background(), net, hostopts)
-	if err != nil {
-		// this cannot happen with legacy options
-		// plus we want to keep the (deprecated) legacy interface unchanged
-		panic(err)
-	}
-	h.Start()
-
-	return h
 }
 
 // Start starts background tasks in the host

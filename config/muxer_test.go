@@ -9,7 +9,7 @@ import (
 	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
 	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
 
-	mux "github.com/libp2p/go-libp2p-core/mux"
+	"github.com/libp2p/go-libp2p-core/mux"
 	yamux "github.com/libp2p/go-libp2p-yamux"
 )
 
@@ -60,7 +60,10 @@ func TestMuxerBadTypes(t *testing.T) {
 
 func TestCatchDuplicateTransportsMuxer(t *testing.T) {
 	ctx := context.Background()
-	h := bhost.New(swarmt.GenSwarm(t, ctx))
+	h, err := bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	yamuxMuxer, err := MuxerConstructor(yamux.DefaultTransport)
 	if err != nil {
 		t.Fatal(err)

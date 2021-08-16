@@ -5,9 +5,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
-
 	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
 	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
 )
@@ -27,19 +28,16 @@ func TestMdnsDiscovery(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	a := bhost.New(swarmt.GenSwarm(t, ctx))
-	b := bhost.New(swarmt.GenSwarm(t, ctx))
+	a, err := bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx), nil)
+	require.NoError(t, err)
+	b, err := bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx), nil)
+	require.NoError(t, err)
 
 	sa, err := NewMdnsService(ctx, a, time.Second, "someTag")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	sb, err := NewMdnsService(ctx, b, time.Second, "someTag")
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	require.NoError(t, err)
 	_ = sb
 
 	n := &DiscoveryNotifee{a}
@@ -48,8 +46,7 @@ func TestMdnsDiscovery(t *testing.T) {
 
 	time.Sleep(time.Second * 2)
 
-	err = a.Connect(ctx, peer.AddrInfo{ID: b.ID()})
-	if err != nil {
+	if err := a.Connect(ctx, peer.AddrInfo{ID: b.ID()}); err != nil {
 		t.Fatal(err)
 	}
 }
