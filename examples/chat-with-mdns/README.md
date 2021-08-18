@@ -60,7 +60,7 @@ func handleStream(stream net.Stream) {
 Start [mdns discovery](https://godoc.org/github.com/libp2p/go-libp2p/p2p/discovery#NewMdnsService) service in host.
 
 ```go
-ser, err := discovery.NewMdnsService(ctx, peerhost, time.Hour, rendezvous)
+ser, err := discovery.NewMdnsService(peerhost, rendezvous)
 ```
 register [Notifee interface](https://godoc.org/github.com/libp2p/go-libp2p/p2p/discovery#Notifee) with service so that we get notified about peer discovery
 

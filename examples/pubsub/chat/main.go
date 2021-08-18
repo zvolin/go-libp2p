@@ -8,12 +8,10 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p/p2p/discovery"
-
 	"github.com/libp2p/go-libp2p-core/host"
-
+	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 )
 
 // DiscoveryInterval is how often we re-publish our mDNS records.
@@ -107,10 +105,7 @@ func (n *discoveryNotifee) HandlePeerFound(pi peer.AddrInfo) {
 // This lets us automatically discover peers on the same LAN and connect to them.
 func setupDiscovery(ctx context.Context, h host.Host) error {
 	// setup mDNS discovery to find local peers
-	disc, err := discovery.NewMdnsService(ctx, h, DiscoveryInterval, DiscoveryServiceTag)
-	if err != nil {
-		return err
-	}
+	disc := mdns.NewMdnsService(h, DiscoveryServiceTag)
 
 	n := discoveryNotifee{h: h}
 	disc.RegisterNotifee(&n)

@@ -1,4 +1,4 @@
-package discovery
+package mdns_legacy
 
 import (
 	"context"
