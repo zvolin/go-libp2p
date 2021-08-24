@@ -381,14 +381,7 @@ func (ids *IDService) identifyConn(c network.Conn, signal chan struct{}) {
 }
 
 func (ids *IDService) sendIdentifyResp(s network.Stream) {
-	var ph *peerHandler
-
-	defer func() {
-		_ = s.Close()
-		if ph != nil {
-			ph.snapshotMu.RUnlock()
-		}
-	}()
+	defer s.Close()
 
 	c := s.Conn()
 
@@ -399,6 +392,7 @@ func (ids *IDService) sendIdentifyResp(s network.Stream) {
 		return
 	}
 
+	var ph *peerHandler
 	select {
 	case ph = <-phCh:
 	case <-ids.ctx.Done():
@@ -412,7 +406,9 @@ func (ids *IDService) sendIdentifyResp(s network.Stream) {
 	}
 
 	ph.snapshotMu.RLock()
-	ids.writeChunkedIdentifyMsg(c, ph.snapshot, s)
+	snapshot := ph.snapshot
+	ph.snapshotMu.RUnlock()
+	ids.writeChunkedIdentifyMsg(c, snapshot, s)
 	log.Debugf("%s sent message to %s %s", ID, c.RemotePeer(), c.RemoteMultiaddr())
 }
 
