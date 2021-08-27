@@ -12,7 +12,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	p2putil "github.com/libp2p/go-libp2p-netutil"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
-	identify "github.com/libp2p/go-libp2p/p2p/protocol/identify"
+	"github.com/libp2p/go-libp2p/p2p/protocol/identify"
 
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/require"
@@ -107,21 +107,12 @@ func newHarness(ctx context.Context, t *testing.T) harness {
 
 // TestObsAddrSet
 func TestObsAddrSet(t *testing.T) {
-	m := func(s string) ma.Multiaddr {
-		m, err := ma.NewMultiaddr(s)
-		if err != nil {
-			t.Error(err)
-		}
-		return m
-	}
-
 	addrsMatch := func(a, b []ma.Multiaddr) bool {
 		if len(a) != len(b) {
 			return false
 		}
-
 		for _, aa := range a {
-			found := false
+			var found bool
 			for _, bb := range b {
 				if aa.Equal(bb) {
 					found = true
@@ -135,17 +126,17 @@ func TestObsAddrSet(t *testing.T) {
 		return true
 	}
 
-	a1 := m("/ip4/1.2.3.4/tcp/1231")
-	a2 := m("/ip4/1.2.3.4/tcp/1232")
-	a3 := m("/ip4/1.2.3.4/tcp/1233")
-	a4 := m("/ip4/1.2.3.4/tcp/1234")
-	a5 := m("/ip4/1.2.3.4/tcp/1235")
+	a1 := ma.StringCast("/ip4/1.2.3.4/tcp/1231")
+	a2 := ma.StringCast("/ip4/1.2.3.4/tcp/1232")
+	a3 := ma.StringCast("/ip4/1.2.3.4/tcp/1233")
+	a4 := ma.StringCast("/ip4/1.2.3.4/tcp/1234")
+	a5 := ma.StringCast("/ip4/1.2.3.4/tcp/1235")
 
-	b1 := m("/ip4/1.2.3.6/tcp/1236")
-	b2 := m("/ip4/1.2.3.7/tcp/1237")
-	b3 := m("/ip4/1.2.3.8/tcp/1237")
-	b4 := m("/ip4/1.2.3.9/tcp/1237")
-	b5 := m("/ip4/1.2.3.10/tcp/1237")
+	b1 := ma.StringCast("/ip4/1.2.3.6/tcp/1236")
+	b2 := ma.StringCast("/ip4/1.2.3.7/tcp/1237")
+	b3 := ma.StringCast("/ip4/1.2.3.8/tcp/1237")
+	b4 := ma.StringCast("/ip4/1.2.3.9/tcp/1237")
+	b5 := ma.StringCast("/ip4/1.2.3.10/tcp/1237")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -214,10 +205,12 @@ func TestObsAddrSet(t *testing.T) {
 
 	// force a refresh.
 	harness.oas.SetTTL(time.Millisecond * 200)
-	time.Sleep(time.Millisecond * 300)
-	if !addrsMatch(harness.oas.Addrs(), []ma.Multiaddr{a1, a2}) {
-		t.Errorf("addrs should only have %s, %s; have %s", a1, a2, harness.oas.Addrs())
-	}
+	require.Eventuallyf(t,
+		func() bool { return addrsMatch(harness.oas.Addrs(), []ma.Multiaddr{a1, a2}) },
+		time.Second,
+		50*time.Millisecond,
+		"addrs should only have %s, %s; have %s", a1, a2, harness.oas.Addrs(),
+	)
 
 	// disconnect from all but b5.
 	for _, p := range harness.host.Network().Peers() {
@@ -227,23 +220,23 @@ func TestObsAddrSet(t *testing.T) {
 		harness.host.Network().ClosePeer(p)
 	}
 
-	// wait for all other addresses to time out.
-	time.Sleep(time.Millisecond * 300)
-
-	// Should still have a2
-	if !addrsMatch(harness.oas.Addrs(), []ma.Multiaddr{a2}) {
-		t.Error("should only have a2, have: ", harness.oas.Addrs())
-	}
-
+	// Wait for all other addresses to time out.
+	// After that, we hould still have a2.
+	require.Eventuallyf(t,
+		func() bool { return addrsMatch(harness.oas.Addrs(), []ma.Multiaddr{a2}) },
+		time.Second,
+		50*time.Millisecond,
+		"should only have a2 (%s), have: %v", a2, harness.oas.Addrs(),
+	)
 	harness.host.Network().ClosePeer(pb5)
 
 	// wait for all addresses to timeout
-	time.Sleep(time.Millisecond * 400)
-
-	// Should still have a2
-	if !addrsMatch(harness.oas.Addrs(), nil) {
-		t.Error("addrs should have timed out")
-	}
+	require.Eventually(t,
+		func() bool { return len(harness.oas.Addrs()) == 0 },
+		400*time.Millisecond,
+		20*time.Millisecond,
+		"addrs should have timed out",
+	)
 }
 
 func TestObservedAddrFiltering(t *testing.T) {
