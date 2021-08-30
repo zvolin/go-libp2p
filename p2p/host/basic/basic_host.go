@@ -987,6 +987,9 @@ func (h *BasicHost) Close() error {
 		if h.ids != nil {
 			h.ids.Close()
 		}
+		if h.autoNat != nil {
+			h.autoNat.Close()
+		}
 
 		_ = h.emitters.evtLocalProtocolsUpdated.Close()
 		_ = h.emitters.evtLocalAddrsUpdated.Close()

@@ -339,7 +339,7 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 		autonatOpts = append(autonatOpts, autonat.WithReachability(*cfg.AutoNATConfig.ForceReachability))
 	}
 
-	autonat, err := autonat.New(ctx, h, autonatOpts...)
+	autonat, err := autonat.New(h, autonatOpts...)
 	if err != nil {
 		h.Close()
 		return nil, fmt.Errorf("cannot enable autorelay; autonat failed to start: %v", err)

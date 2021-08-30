@@ -20,7 +20,7 @@ require (
 	github.com/libp2p/go-addr-util v0.1.0
 	github.com/libp2p/go-conn-security-multistream v0.2.1
 	github.com/libp2p/go-eventbus v0.2.1
-	github.com/libp2p/go-libp2p-autonat v0.4.2
+	github.com/libp2p/go-libp2p-autonat v0.5.0
 	github.com/libp2p/go-libp2p-blankhost v0.2.0
 	github.com/libp2p/go-libp2p-circuit v0.4.0
 	github.com/libp2p/go-libp2p-core v0.9.0
