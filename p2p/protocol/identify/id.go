@@ -124,25 +124,23 @@ func NewIDService(h host.Host, opts ...Option) (*IDService, error) {
 		userAgent = cfg.userAgent
 	}
 
-	hostCtx, cancel := context.WithCancel(context.Background())
 	s := &IDService{
 		Host:      h,
 		UserAgent: userAgent,
 
-		ctx:       hostCtx,
-		ctxCancel: cancel,
-		conns:     make(map[network.Conn]chan struct{}),
+		conns: make(map[network.Conn]chan struct{}),
 
 		disableSignedPeerRecord: cfg.disableSignedPeerRecord,
 
 		addPeerHandlerCh: make(chan addPeerHandlerReq),
 		rmPeerHandlerCh:  make(chan rmPeerHandlerReq),
 	}
+	s.ctx, s.ctxCancel = context.WithCancel(context.Background())
 
 	// handle local protocol handler updates, and push deltas to peers.
 	var err error
 
-	observedAddrs, err := NewObservedAddrManager(hostCtx, h)
+	observedAddrs, err := NewObservedAddrManager(h)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create observed address manager: %s", err)
 	}

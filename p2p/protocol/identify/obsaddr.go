@@ -98,6 +98,11 @@ type newObservation struct {
 type ObservedAddrManager struct {
 	host host.Host
 
+	closeOnce sync.Once
+	refCount  sync.WaitGroup
+	ctx       context.Context // the context is canceled when Close is called
+	ctxCancel context.CancelFunc
+
 	// latest observation from active connections
 	// we'll "re-observe" these when we gc
 	activeConnsMu sync.Mutex
@@ -123,7 +128,7 @@ type ObservedAddrManager struct {
 
 // NewObservedAddrManager returns a new address manager using
 // peerstore.OwnObservedAddressTTL as the TTL.
-func NewObservedAddrManager(ctx context.Context, host host.Host) (*ObservedAddrManager, error) {
+func NewObservedAddrManager(host host.Host) (*ObservedAddrManager, error) {
 	oas := &ObservedAddrManager{
 		addrs:       make(map[string][]*observedAddr),
 		ttl:         peerstore.OwnObservedAddrTTL,
@@ -133,6 +138,7 @@ func NewObservedAddrManager(ctx context.Context, host host.Host) (*ObservedAddrM
 		// refresh every ttl/2 so we don't forget observations from connected peers
 		refreshTimer: time.NewTimer(peerstore.OwnObservedAddrTTL / 2),
 	}
+	oas.ctx, oas.ctxCancel = context.WithCancel(context.Background())
 
 	reachabilitySub, err := host.EventBus().Subscribe(new(event.EvtLocalReachabilityChanged))
 	if err != nil {
@@ -147,7 +153,8 @@ func NewObservedAddrManager(ctx context.Context, host host.Host) (*ObservedAddrM
 	oas.emitNATDeviceTypeChanged = emitter
 
 	oas.host.Network().Notify((*obsAddrNotifiee)(oas))
-	go oas.worker(ctx)
+	oas.refCount.Add(1)
+	go oas.worker()
 	return oas, nil
 }
 
@@ -239,22 +246,12 @@ func (oas *ObservedAddrManager) Record(conn network.Conn, observed ma.Multiaddr)
 	}
 }
 
-func (oas *ObservedAddrManager) teardown() {
-	oas.host.Network().StopNotify((*obsAddrNotifiee)(oas))
-	oas.reachabilitySub.Close()
-
-	oas.mu.Lock()
-	oas.refreshTimer.Stop()
-	oas.mu.Unlock()
-}
-
-func (oas *ObservedAddrManager) worker(ctx context.Context) {
-	defer oas.teardown()
+func (oas *ObservedAddrManager) worker() {
+	defer oas.refCount.Done()
 
 	ticker := time.NewTicker(GCInterval)
 	defer ticker.Stop()
 
-	hostClosing := oas.host.Network().Process().Closing()
 	subChan := oas.reachabilitySub.Out()
 	for {
 		select {
@@ -265,17 +262,13 @@ func (oas *ObservedAddrManager) worker(ctx context.Context) {
 			}
 			ev := evt.(event.EvtLocalReachabilityChanged)
 			oas.reachability = ev.Reachability
-
 		case obs := <-oas.wch:
 			oas.maybeRecordObservation(obs.conn, obs.observed)
-
 		case <-ticker.C:
 			oas.gc()
 		case <-oas.refreshTimer.C:
 			oas.refresh()
-		case <-hostClosing:
-			return
-		case <-ctx.Done():
+		case <-oas.ctx.Done():
 			return
 		}
 	}
@@ -532,6 +525,17 @@ func (oas *ObservedAddrManager) emitSpecificNATType(addrs []*observedAddr, proto
 	}
 
 	return false, 0
+}
+
+func (oas *ObservedAddrManager) Close() error {
+	oas.closeOnce.Do(func() {
+		oas.ctxCancel()
+		oas.refCount.Wait()
+		oas.reachabilitySub.Close()
+		oas.refreshTimer.Stop()
+		oas.host.Network().StopNotify((*obsAddrNotifiee)(oas))
+	})
+	return nil
 }
 
 // observerGroup is a function that determines what part of
