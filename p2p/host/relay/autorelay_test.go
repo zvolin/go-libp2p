@@ -8,17 +8,17 @@ import (
 	"testing"
 	"time"
 
-	cienv "github.com/jbenet/go-cienv"
-	libp2p "github.com/libp2p/go-libp2p"
-	relay "github.com/libp2p/go-libp2p/p2p/host/relay"
+	"github.com/libp2p/go-libp2p"
+	"github.com/libp2p/go-libp2p/p2p/host/relay"
 
-	cid "github.com/ipfs/go-cid"
 	circuit "github.com/libp2p/go-libp2p-circuit"
 	"github.com/libp2p/go-libp2p-core/event"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/routing"
+
+	"github.com/ipfs/go-cid"
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 )
@@ -114,10 +114,6 @@ func connect(t *testing.T, a, b host.Host) {
 
 // and the actual test!
 func TestAutoRelay(t *testing.T) {
-	if cienv.IsRunning() {
-		t.Skip("disabled on CI: fails 99% of the time")
-	}
-
 	manet.Private4 = []*net.IPNet{}
 
 	ctx, cancel := context.WithCancel(context.Background())
