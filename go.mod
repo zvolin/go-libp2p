@@ -13,7 +13,6 @@ require (
 	github.com/ipfs/go-detect-race v0.0.1
 	github.com/ipfs/go-ipfs-util v0.0.2
 	github.com/ipfs/go-log/v2 v2.3.0
-	github.com/jbenet/go-cienv v0.1.0
 	github.com/jbenet/goprocess v0.1.4
 	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
 	github.com/koron/go-ssdp v0.0.2 // indirect
