@@ -87,8 +87,6 @@ type IDService struct {
 
 	ctx       context.Context
 	ctxCancel context.CancelFunc
-	// ensure we shutdown ONLY once
-	closeSync sync.Once
 	// track resources that need to be shut down before we shut down
 	refCount sync.WaitGroup
 
@@ -276,10 +274,8 @@ func (ids *IDService) loop() {
 
 // Close shuts down the IDService
 func (ids *IDService) Close() error {
-	ids.closeSync.Do(func() {
-		ids.ctxCancel()
-		ids.refCount.Wait()
-	})
+	ids.ctxCancel()
+	ids.refCount.Wait()
 	return nil
 }
 
