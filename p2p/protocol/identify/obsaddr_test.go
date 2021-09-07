@@ -85,18 +85,11 @@ func (h *harness) observeInbound(observed ma.Multiaddr, observer peer.ID) networ
 func newHarness(ctx context.Context, t *testing.T) harness {
 	mn := mocknet.New(ctx)
 	sk, err := p2putil.RandTestBogusPrivateKey()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	h, err := mn.AddPeer(sk, ma.StringCast("/ip4/127.0.0.1/tcp/10086"))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	oas, err := identify.NewObservedAddrManager(ctx, h)
 	require.NoError(t, err)
-
+	h, err := mn.AddPeer(sk, ma.StringCast("/ip4/127.0.0.1/tcp/10086"))
+	require.NoError(t, err)
+	oas, err := identify.NewObservedAddrManager(h)
+	require.NoError(t, err)
 	return harness{
 		oas:     oas,
 		mocknet: mn,
@@ -142,6 +135,7 @@ func TestObsAddrSet(t *testing.T) {
 	defer cancel()
 
 	harness := newHarness(ctx, t)
+	defer harness.oas.Close()
 
 	if !addrsMatch(harness.oas.Addrs(), nil) {
 		t.Error("addrs should be empty")
@@ -243,6 +237,7 @@ func TestObservedAddrFiltering(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	harness := newHarness(ctx, t)
+	defer harness.oas.Close()
 	require.Empty(t, harness.oas.Addrs())
 
 	// IP4/TCP
@@ -344,6 +339,7 @@ func TestEmitNATDeviceTypeSymmetric(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	harness := newHarness(ctx, t)
+	defer harness.oas.Close()
 	require.Empty(t, harness.oas.Addrs())
 	emitter, err := harness.host.EventBus().Emitter(new(event.EvtLocalReachabilityChanged), eventbus.Stateful)
 	require.NoError(t, err)
@@ -390,6 +386,7 @@ func TestEmitNATDeviceTypeCone(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	harness := newHarness(ctx, t)
+	defer harness.oas.Close()
 	require.Empty(t, harness.oas.Addrs())
 	emitter, err := harness.host.EventBus().Emitter(new(event.EvtLocalReachabilityChanged), eventbus.Stateful)
 	require.NoError(t, err)
