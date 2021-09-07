@@ -109,7 +109,8 @@ type ObservedAddrManager struct {
 	// active connection -> most recent observation
 	activeConns map[network.Conn]ma.Multiaddr
 
-	mu sync.RWMutex
+	mu     sync.RWMutex
+	closed bool
 	// local(internal) address -> list of observed(external) addresses
 	addrs        map[string][]*observedAddr
 	ttl          time.Duration
@@ -530,9 +531,14 @@ func (oas *ObservedAddrManager) emitSpecificNATType(addrs []*observedAddr, proto
 func (oas *ObservedAddrManager) Close() error {
 	oas.closeOnce.Do(func() {
 		oas.ctxCancel()
+
+		oas.mu.Lock()
+		oas.closed = true
+		oas.refreshTimer.Stop()
+		oas.mu.Unlock()
+
 		oas.refCount.Wait()
 		oas.reachabilitySub.Close()
-		oas.refreshTimer.Stop()
 		oas.host.Network().StopNotify((*obsAddrNotifiee)(oas))
 	})
 	return nil
@@ -558,6 +564,9 @@ func observerGroup(m ma.Multiaddr) string {
 func (oas *ObservedAddrManager) SetTTL(ttl time.Duration) {
 	oas.mu.Lock()
 	defer oas.mu.Unlock()
+	if oas.closed {
+		return
+	}
 	oas.ttl = ttl
 	// refresh every ttl/2 so we don't forget observations from connected peers
 	oas.refreshTimer.Reset(ttl / 2)
