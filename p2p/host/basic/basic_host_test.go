@@ -209,7 +209,7 @@ func TestHostAddrsFactory(t *testing.T) {
 		t.Fatalf("expected %s, got %s", maddr.String(), addrs[0].String())
 	}
 
-	autoNat, err := autonat.New(ctx, h, autonat.WithReachability(network.ReachabilityPublic))
+	autoNat, err := autonat.New(h, autonat.WithReachability(network.ReachabilityPublic))
 	if err != nil {
 		t.Fatalf("should be able to attach autonat: %v", err)
 	}

@@ -21,6 +21,7 @@ import (
 	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
 	"github.com/libp2p/go-libp2p/p2p/host/relay"
 	routed "github.com/libp2p/go-libp2p/p2p/host/routed"
+	holepunch "github.com/libp2p/go-libp2p/p2p/protocol/holepunch"
 
 	autonat "github.com/libp2p/go-libp2p-autonat"
 	blankhost "github.com/libp2p/go-libp2p-blankhost"
@@ -95,6 +96,9 @@ type Config struct {
 	EnableAutoRelay bool
 	AutoNATConfig
 	StaticRelays []peer.AddrInfo
+
+	EnableHolePunching  bool
+	HolePunchingOptions []holepunch.Option
 }
 
 func (cfg *Config) makeSwarm(ctx context.Context) (*swarm.Swarm, error) {
@@ -189,12 +193,14 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 	}
 
 	h, err := bhost.NewHost(ctx, swrm, &bhost.HostOpts{
-		ConnManager:       cfg.ConnManager,
-		AddrsFactory:      cfg.AddrsFactory,
-		NATManager:        cfg.NATManager,
-		EnablePing:        !cfg.DisablePing,
-		UserAgent:         cfg.UserAgent,
-		MultiaddrResolver: cfg.MultiaddrResolver,
+		ConnManager:         cfg.ConnManager,
+		AddrsFactory:        cfg.AddrsFactory,
+		NATManager:          cfg.NATManager,
+		EnablePing:          !cfg.DisablePing,
+		UserAgent:           cfg.UserAgent,
+		MultiaddrResolver:   cfg.MultiaddrResolver,
+		EnableHolePunching:  cfg.EnableHolePunching,
+		HolePunchingOptions: cfg.HolePunchingOptions,
 	})
 
 	if err != nil {
@@ -339,7 +345,7 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 		autonatOpts = append(autonatOpts, autonat.WithReachability(*cfg.AutoNATConfig.ForceReachability))
 	}
 
-	autonat, err := autonat.New(ctx, h, autonatOpts...)
+	autonat, err := autonat.New(h, autonatOpts...)
 	if err != nil {
 		h.Close()
 		return nil, fmt.Errorf("cannot enable autorelay; autonat failed to start: %v", err)
