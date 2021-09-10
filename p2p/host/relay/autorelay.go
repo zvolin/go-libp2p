@@ -49,6 +49,9 @@ type AutoRelay struct {
 
 	static []peer.AddrInfo
 
+	refCount  sync.WaitGroup
+	ctxCancel context.CancelFunc
+
 	disconnect chan struct{}
 
 	mx     sync.Mutex
@@ -59,8 +62,10 @@ type AutoRelay struct {
 	cachedAddrsExpiry time.Time
 }
 
-func NewAutoRelay(ctx context.Context, bhost *basic.BasicHost, discover discovery.Discoverer, router routing.PeerRouting, static []peer.AddrInfo) *AutoRelay {
+func NewAutoRelay(bhost *basic.BasicHost, discover discovery.Discoverer, router routing.PeerRouting, static []peer.AddrInfo) *AutoRelay {
+	ctx, cancel := context.WithCancel(context.Background())
 	ar := &AutoRelay{
+		ctxCancel:  cancel,
 		host:       bhost,
 		discover:   discover,
 		router:     router,
@@ -72,6 +77,7 @@ func NewAutoRelay(ctx context.Context, bhost *basic.BasicHost, discover discover
 	}
 	bhost.AddrsFactory = ar.hostAddrs
 	bhost.Network().Notify(ar)
+	ar.refCount.Add(1)
 	go ar.background(ctx)
 	return ar
 }
@@ -81,6 +87,8 @@ func (ar *AutoRelay) hostAddrs(addrs []ma.Multiaddr) []ma.Multiaddr {
 }
 
 func (ar *AutoRelay) background(ctx context.Context) {
+	defer ar.refCount.Done()
+
 	subReachability, _ := ar.host.EventBus().Subscribe(new(event.EvtLocalReachabilityChanged))
 	defer subReachability.Close()
 
@@ -316,6 +324,12 @@ func (ar *AutoRelay) relayAddrs(addrs []ma.Multiaddr) []ma.Multiaddr {
 	ar.cachedAddrsExpiry = time.Now().Add(30 * time.Second)
 
 	return raddrs
+}
+
+func (ar *AutoRelay) Close() error {
+	ar.ctxCancel()
+	ar.refCount.Wait()
+	return nil
 }
 
 func shuffleRelays(pis []peer.AddrInfo) {
