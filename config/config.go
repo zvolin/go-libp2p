@@ -137,7 +137,7 @@ func (cfg *Config) makeSwarm(ctx context.Context) (*swarm.Swarm, error) {
 	return swrm, nil
 }
 
-func (cfg *Config) addTransports(ctx context.Context, h host.Host) (err error) {
+func (cfg *Config) addTransports(h host.Host) (err error) {
 	swrm, ok := h.Network().(transport.TransportNetwork)
 	if !ok {
 		// Should probably skip this if no transports.
@@ -165,15 +165,13 @@ func (cfg *Config) addTransports(ctx context.Context, h host.Host) (err error) {
 		return err
 	}
 	for _, t := range tpts {
-		err = swrm.AddTransport(t)
-		if err != nil {
+		if err := swrm.AddTransport(t); err != nil {
 			return err
 		}
 	}
 
 	if cfg.Relay {
-		err := circuitv2.AddTransport(ctx, h, upgrader)
-		if err != nil {
+		if err := circuitv2.AddTransport(h, upgrader); err != nil {
 			h.Close()
 			return err
 		}
@@ -225,8 +223,7 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 		}
 	}
 
-	err = cfg.addTransports(ctx, h)
-	if err != nil {
+	if err := cfg.addTransports(h); err != nil {
 		h.Close()
 		return nil, err
 	}
@@ -314,8 +311,7 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 			return nil, err
 		}
 		dialerHost := blankhost.NewBlankHost(dialer)
-		err = autoNatCfg.addTransports(ctx, dialerHost)
-		if err != nil {
+		if err := autoNatCfg.addTransports(dialerHost); err != nil {
 			dialerHost.Close()
 			h.Close()
 			return nil, err

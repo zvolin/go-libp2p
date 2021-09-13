@@ -1,6 +1,7 @@
 package client
 
 import (
+	"errors"
 	"net"
 
 	ma "github.com/multiformats/go-multiaddr"
@@ -32,7 +33,7 @@ func (l *Listener) Accept() (manet.Conn, error) {
 			return evt.conn, nil
 
 		case <-l.ctx.Done():
-			return nil, l.ctx.Err()
+			return nil, errors.New("circuit v2 client closed")
 		}
 	}
 }
@@ -49,6 +50,5 @@ func (l *Listener) Multiaddr() ma.Multiaddr {
 }
 
 func (l *Listener) Close() error {
-	// noop for now
-	return nil
+	return (*Client)(l).Close()
 }

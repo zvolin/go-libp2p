@@ -30,7 +30,7 @@ func TestRelayCompatV2DialV1(t *testing.T) {
 
 	hosts, upgraders := getNetHosts(t, ctx, 3)
 	addTransportV1(t, ctx, hosts[0], upgraders[0])
-	addTransport(t, ctx, hosts[2], upgraders[2])
+	addTransport(t, hosts[2], upgraders[2])
 
 	rch := make(chan []byte, 1)
 	hosts[0].SetStreamHandler("test", func(s network.Stream) {
@@ -105,7 +105,7 @@ func TestRelayCompatV1DialV2(t *testing.T) {
 	defer cancel()
 
 	hosts, upgraders := getNetHosts(t, ctx, 3)
-	addTransport(t, ctx, hosts[0], upgraders[0])
+	addTransport(t, hosts[0], upgraders[0])
 	addTransportV1(t, ctx, hosts[2], upgraders[2])
 
 	rch := make(chan []byte, 1)
