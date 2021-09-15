@@ -18,7 +18,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 	bhost "github.com/libp2p/go-libp2p-blankhost"
 	metrics "github.com/libp2p/go-libp2p-core/metrics"
 	pstoremem "github.com/libp2p/go-libp2p-peerstore/pstoremem"
