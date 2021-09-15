@@ -29,6 +29,9 @@ const (
 	ConnectTimeout   = 30 * time.Second
 	HandshakeTimeout = time.Minute
 
+	RelayHopTag    = "relay-hop"
+	MaxRelayHopTag = 5
+
 	maxMessageSize = 4096
 )
 
@@ -158,15 +161,15 @@ func (r *Relay) handleHopStream(s network.Stream, msg *pb.CircuitRelay) {
 	}
 
 	r.active++
-	r.conns[src.ID]++
-	r.conns[dest.ID]++
+	r.addConn(src.ID)
+	r.addConn(src.ID)
 	r.mx.Unlock()
 
 	cleanup := func() {
 		r.mx.Lock()
 		r.active--
-		r.conns[src.ID]--
-		r.conns[dest.ID]--
+		r.rmConn(src.ID)
+		r.rmConn(dest.ID)
 		r.mx.Unlock()
 	}
 
@@ -260,6 +263,29 @@ func (r *Relay) handleHopStream(s network.Stream, msg *pb.CircuitRelay) {
 
 	go r.relayConn(s, bs, src.ID, dest.ID, done)
 	go r.relayConn(bs, s, dest.ID, src.ID, done)
+}
+
+func (r *Relay) addConn(p peer.ID) {
+	conns := r.conns[p]
+	conns++
+	r.conns[p] = conns
+	if conns < MaxRelayHopTag {
+		r.host.ConnManager().UpsertTag(p, RelayHopTag, func(v int) int { return v + 1 })
+	}
+}
+
+func (r *Relay) rmConn(p peer.ID) {
+	conns := r.conns[p]
+	conns--
+	if conns > 0 {
+		r.conns[p] = conns
+	} else {
+		delete(r.conns, p)
+	}
+	if conns < MaxRelayHopTag {
+		r.host.ConnManager().UpsertTag(p, RelayHopTag, func(v int) int { return v - 1 })
+	}
+
 }
 
 func (r *Relay) relayConn(src, dest network.Stream, srcID, destID peer.ID, done func()) {
