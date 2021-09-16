@@ -346,7 +346,7 @@ func (r *Relay) addConn(p peer.ID) {
 	conns := r.conns[p]
 	conns++
 	r.conns[p] = conns
-	if conns < MaxRelayHopTag {
+	if conns <= MaxRelayHopTag {
 		r.host.ConnManager().UpsertTag(p, RelayHopTag, func(v int) int { return v + 1 })
 	}
 }
