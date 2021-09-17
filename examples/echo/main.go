@@ -84,7 +84,7 @@ func makeBasicHost(listenPort int, insecure bool, randseed int64) (host.Host, er
 		opts = append(opts, libp2p.NoSecurity)
 	}
 
-	return libp2p.New(context.Background(), opts...)
+	return libp2p.New(opts...)
 }
 
 func getHostAddress(ha host.Host) string {

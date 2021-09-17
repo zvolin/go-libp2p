@@ -57,7 +57,7 @@ func makeRoutedHost(listenPort int, randseed int64, bootstrapPeers []peer.AddrIn
 
 	ctx := context.Background()
 
-	basicHost, err := libp2p.New(ctx, opts...)
+	basicHost, err := libp2p.New(opts...)
 	if err != nil {
 		return nil, err
 	}

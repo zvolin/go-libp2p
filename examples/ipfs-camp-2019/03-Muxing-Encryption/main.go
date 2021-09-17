@@ -3,18 +3,16 @@ package main
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/peer"
-	tcp "github.com/libp2p/go-tcp-transport"
+	"github.com/libp2p/go-tcp-transport"
 	ws "github.com/libp2p/go-ws-transport"
 	"github.com/multiformats/go-multiaddr"
 )
 
 func main() {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	transports := libp2p.ChainOptions(
 		libp2p.Transport(tcp.NewTCPTransport),
 		libp2p.Transport(ws.New),
@@ -27,10 +25,11 @@ func main() {
 		"/ip4/0.0.0.0/tcp/0/ws",
 	)
 
-	host, err := libp2p.New(ctx, transports, listenAddrs)
+	host, err := libp2p.New(transports, listenAddrs)
 	if err != nil {
 		panic(err)
 	}
+	defer host.Close()
 
 	for _, addr := range host.Addrs() {
 		fmt.Println("Listening on", addr)
@@ -46,12 +45,12 @@ func main() {
 		panic(err)
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
 	err = host.Connect(ctx, *targetInfo)
 	if err != nil {
 		panic(err)
 	}
 
 	fmt.Println("Connected to", targetInfo.ID)
-
-	host.Close()
 }

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"math/rand"
@@ -37,7 +36,6 @@ func makeRandomNode(port int, done chan bool) *Node {
 	priv, _, _ := crypto.GenerateKeyPair(crypto.Secp256k1, 256)
 	listen, _ := ma.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", port))
 	host, _ := libp2p.New(
-		context.Background(),
 		libp2p.ListenAddrs(listen),
 		libp2p.Identity(priv),
 	)

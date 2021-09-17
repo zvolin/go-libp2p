@@ -35,7 +35,7 @@ func TestMain(t *testing.T) {
 			return
 		}
 
-		h1, err := makeHost(ctx, port1, rand.Reader)
+		h1, err := makeHost(port1, rand.Reader)
 		if err != nil {
 			log.Println(err)
 			return
@@ -48,7 +48,7 @@ func TestMain(t *testing.T) {
 
 		dest := fmt.Sprintf("/ip4/127.0.0.1/tcp/%v/p2p/%s", port1, h1.ID().Pretty())
 
-		h2, err := makeHost(ctx, port2, rand.Reader)
+		h2, err := makeHost(port2, rand.Reader)
 		if err != nil {
 			log.Println(err)
 			return

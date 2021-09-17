@@ -26,10 +26,11 @@ func run() {
 	defer cancel()
 
 	// To construct a simple host with all the default settings, just use `New`
-	h, err := libp2p.New(ctx)
+	h, err := libp2p.New()
 	if err != nil {
 		panic(err)
 	}
+	defer h.Close()
 
 	log.Printf("Hello World, my hosts ID is %s\n", h.ID())
 
@@ -48,7 +49,7 @@ func run() {
 
 	var idht *dht.IpfsDHT
 
-	h2, err := libp2p.New(ctx,
+	h2, err := libp2p.New(
 		// Use the keypair we generated
 		libp2p.Identity(priv),
 		// Multiple listen addresses
@@ -91,6 +92,7 @@ func run() {
 	if err != nil {
 		panic(err)
 	}
+	defer h2.Close()
 
 	// The last step to get fully up and running would be to connect to
 	// bootstrap peers (or any other peers). We leave this commented as

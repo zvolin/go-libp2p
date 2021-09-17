@@ -123,7 +123,7 @@ func main() {
 		r = rand.Reader
 	}
 
-	h, err := makeHost(ctx, *sourcePort, r)
+	h, err := makeHost(*sourcePort, r)
 	if err != nil {
 		log.Println(err)
 		return
@@ -148,7 +148,7 @@ func main() {
 	select {}
 }
 
-func makeHost(ctx context.Context, port int, randomness io.Reader) (host.Host, error) {
+func makeHost(port int, randomness io.Reader) (host.Host, error) {
 	// Creates a new RSA key pair for this host.
 	prvKey, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, randomness)
 	if err != nil {
@@ -162,7 +162,6 @@ func makeHost(ctx context.Context, port int, randomness io.Reader) (host.Host, e
 	// libp2p.New constructs a new libp2p Host.
 	// Other options can be added here.
 	return libp2p.New(
-		ctx,
 		libp2p.ListenAddrs(sourceMultiAddr),
 		libp2p.Identity(prvKey),
 	)

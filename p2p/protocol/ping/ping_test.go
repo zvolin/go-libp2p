@@ -16,9 +16,9 @@ import (
 func TestPing(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	h1, err := bhost.NewHost(ctx, swarmt.GenSwarm(t), nil)
+	h1, err := bhost.NewHost(swarmt.GenSwarm(t), nil)
 	require.NoError(t, err)
-	h2, err := bhost.NewHost(ctx, swarmt.GenSwarm(t), nil)
+	h2, err := bhost.NewHost(swarmt.GenSwarm(t), nil)
 	require.NoError(t, err)
 
 	err = h1.Connect(ctx, peer.AddrInfo{

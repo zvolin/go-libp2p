@@ -65,7 +65,6 @@ func main() {
 	routing := libp2p.Routing(newDHT)
 
 	host, err := libp2p.New(
-		ctx,
 		transports,
 		listenAddrs,
 		muxers,

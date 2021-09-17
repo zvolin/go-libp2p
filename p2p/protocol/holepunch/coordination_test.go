@@ -297,13 +297,7 @@ func mkHostWithStaticAutoRelay(t *testing.T, ctx context.Context, relay host.Hos
 	manet.Private4 = []*net.IPNet{}
 	defer func() { manet.Private4 = cpy }()
 
-	h, err := libp2p.New(ctx,
-		libp2p.ListenAddrs(ma.StringCast("/ip4/127.0.0.1/tcp/0"), ma.StringCast("/ip6/::1/tcp/0")),
-		libp2p.EnableRelay(),
-		libp2p.EnableAutoRelay(),
-		libp2p.ForceReachabilityPrivate(),
-		libp2p.StaticRelays([]peer.AddrInfo{pi}),
-	)
+	h, err := libp2p.New(libp2p.ListenAddrs(ma.StringCast("/ip4/127.0.0.1/tcp/0"), ma.StringCast("/ip6/::1/tcp/0")), libp2p.EnableRelay(), libp2p.EnableAutoRelay(), libp2p.ForceReachabilityPrivate(), libp2p.StaticRelays([]peer.AddrInfo{pi}))
 	require.NoError(t, err)
 
 	// wait till we have a relay addr
@@ -322,10 +316,7 @@ func makeRelayedHosts(t *testing.T, h1Opt holepunch.Option, addHolePuncher bool)
 	t.Helper()
 	h1, _ = mkHostWithHolePunchSvc(t, h1Opt)
 	var err error
-	relay, err = libp2p.New(context.Background(),
-		libp2p.ListenAddrs(ma.StringCast("/ip4/127.0.0.1/tcp/0"), ma.StringCast("/ip6/::1/tcp/0")),
-		libp2p.DisableRelay(),
-	)
+	relay, err = libp2p.New(libp2p.ListenAddrs(ma.StringCast("/ip4/127.0.0.1/tcp/0"), ma.StringCast("/ip6/::1/tcp/0")), libp2p.DisableRelay())
 	require.NoError(t, err)
 
 	_, err = circuit.NewRelay(context.Background(), relay, nil, circuit.OptHop)
@@ -364,10 +355,7 @@ func addHolePunchService(t *testing.T, h host.Host) *holepunch.Service {
 
 func mkHostWithHolePunchSvc(t *testing.T, opts ...holepunch.Option) (host.Host, *holepunch.Service) {
 	t.Helper()
-	h, err := libp2p.New(
-		context.Background(),
-		libp2p.ListenAddrs(ma.StringCast("/ip4/127.0.0.1/tcp/0"), ma.StringCast("/ip6/::1/tcp/0")),
-	)
+	h, err := libp2p.New(libp2p.ListenAddrs(ma.StringCast("/ip4/127.0.0.1/tcp/0"), ma.StringCast("/ip6/::1/tcp/0")))
 	require.NoError(t, err)
 	ids, err := identify.NewIDService(h)
 	require.NoError(t, err)

@@ -1,7 +1,6 @@
 package config
 
 import (
-	"context"
 	"crypto/rand"
 	"fmt"
 	"time"
@@ -100,7 +99,7 @@ type Config struct {
 	HolePunchingOptions []holepunch.Option
 }
 
-func (cfg *Config) makeSwarm(ctx context.Context) (*swarm.Swarm, error) {
+func (cfg *Config) makeSwarm() (*swarm.Swarm, error) {
 	if cfg.Peerstore == nil {
 		return nil, fmt.Errorf("no peerstore specified")
 	}
@@ -182,13 +181,13 @@ func (cfg *Config) addTransports(h host.Host) (err error) {
 // NewNode constructs a new libp2p Host from the Config.
 //
 // This function consumes the config. Do not reuse it (really!).
-func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
-	swrm, err := cfg.makeSwarm(ctx)
+func (cfg *Config) NewNode() (host.Host, error) {
+	swrm, err := cfg.makeSwarm()
 	if err != nil {
 		return nil, err
 	}
 
-	h, err := bhost.NewHost(ctx, swrm, &bhost.HostOpts{
+	h, err := bhost.NewHost(swrm, &bhost.HostOpts{
 		ConnManager:         cfg.ConnManager,
 		AddrsFactory:        cfg.AddrsFactory,
 		NATManager:          cfg.NATManager,
@@ -296,7 +295,7 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 			Peerstore: pstoremem.NewPeerstore(),
 		}
 
-		dialer, err := autoNatCfg.makeSwarm(ctx)
+		dialer, err := autoNatCfg.makeSwarm()
 		if err != nil {
 			h.Close()
 			return nil, err
