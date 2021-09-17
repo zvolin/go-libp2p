@@ -20,12 +20,12 @@ import (
 
 	logging "github.com/ipfs/go-log/v2"
 	bhost "github.com/libp2p/go-libp2p-blankhost"
-	metrics "github.com/libp2p/go-libp2p-core/metrics"
-	pstoremem "github.com/libp2p/go-libp2p-peerstore/pstoremem"
+	"github.com/libp2p/go-libp2p-core/metrics"
+	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
 	swarm "github.com/libp2p/go-libp2p-swarm"
 	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
 	tptu "github.com/libp2p/go-libp2p-transport-upgrader"
-	tcp "github.com/libp2p/go-tcp-transport"
+	"github.com/libp2p/go-tcp-transport"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -85,9 +85,8 @@ func connect(t *testing.T, a, b host.Host) {
 	}
 }
 
-func addTransport(t *testing.T, ctx context.Context, h host.Host, upgrader *tptu.Upgrader) {
-	err := client.AddTransport(ctx, h, upgrader)
-	if err != nil {
+func addTransport(t *testing.T, h host.Host, upgrader *tptu.Upgrader) {
+	if err := client.AddTransport(h, upgrader); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -97,8 +96,8 @@ func TestBasicRelay(t *testing.T) {
 	defer cancel()
 
 	hosts, upgraders := getNetHosts(t, ctx, 3)
-	addTransport(t, ctx, hosts[0], upgraders[0])
-	addTransport(t, ctx, hosts[2], upgraders[2])
+	addTransport(t, hosts[0], upgraders[0])
+	addTransport(t, hosts[2], upgraders[2])
 
 	rch := make(chan []byte, 1)
 	hosts[0].SetStreamHandler("test", func(s network.Stream) {
@@ -184,8 +183,8 @@ func TestRelayLimitTime(t *testing.T) {
 	defer cancel()
 
 	hosts, upgraders := getNetHosts(t, ctx, 3)
-	addTransport(t, ctx, hosts[0], upgraders[0])
-	addTransport(t, ctx, hosts[2], upgraders[2])
+	addTransport(t, hosts[0], upgraders[0])
+	addTransport(t, hosts[2], upgraders[2])
 
 	rch := make(chan error, 1)
 	hosts[0].SetStreamHandler("test", func(s network.Stream) {
@@ -258,8 +257,8 @@ func TestRelayLimitData(t *testing.T) {
 	defer cancel()
 
 	hosts, upgraders := getNetHosts(t, ctx, 3)
-	addTransport(t, ctx, hosts[0], upgraders[0])
-	addTransport(t, ctx, hosts[2], upgraders[2])
+	addTransport(t, hosts[0], upgraders[0])
+	addTransport(t, hosts[2], upgraders[2])
 
 	rch := make(chan int, 1)
 	hosts[0].SetStreamHandler("test", func(s network.Stream) {
