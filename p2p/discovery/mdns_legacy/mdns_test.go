@@ -28,9 +28,9 @@ func TestMdnsDiscovery(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	a, err := bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx), nil)
+	a, err := bhost.NewHost(ctx, swarmt.GenSwarm(t), nil)
 	require.NoError(t, err)
-	b, err := bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx), nil)
+	b, err := bhost.NewHost(ctx, swarmt.GenSwarm(t), nil)
 	require.NoError(t, err)
 
 	sa, err := NewMdnsService(ctx, a, time.Second, "someTag")

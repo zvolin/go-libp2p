@@ -19,7 +19,7 @@ func TestFastDisconnect(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	target := blhost.NewBlankHost(swarmt.GenSwarm(t, ctx))
+	target := blhost.NewBlankHost(swarmt.GenSwarm(t))
 	defer target.Close()
 	ids, err := NewIDService(target)
 	require.NoError(t, err)
@@ -54,7 +54,7 @@ func TestFastDisconnect(t *testing.T) {
 		}
 	})
 
-	source := blhost.NewBlankHost(swarmt.GenSwarm(t, ctx))
+	source := blhost.NewBlankHost(swarmt.GenSwarm(t))
 	defer source.Close()
 
 	err = source.Connect(ctx, peer.AddrInfo{ID: target.ID(), Addrs: target.Addrs()})

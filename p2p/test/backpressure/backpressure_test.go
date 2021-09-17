@@ -23,9 +23,9 @@ func TestStBackpressureStreamWrite(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	h1, err := bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx), nil)
+	h1, err := bhost.NewHost(ctx, swarmt.GenSwarm(t), nil)
 	require.NoError(t, err)
-	h2, err := bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx), nil)
+	h2, err := bhost.NewHost(ctx, swarmt.GenSwarm(t), nil)
 	require.NoError(t, err)
 
 	// setup sender handler on 1

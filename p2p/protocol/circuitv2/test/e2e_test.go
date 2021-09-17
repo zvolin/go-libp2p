@@ -54,7 +54,10 @@ func getNetHosts(t *testing.T, ctx context.Context, n int) (hosts []host.Host, u
 		}
 
 		bwr := metrics.NewBandwidthCounter()
-		netw := swarm.NewSwarm(ctx, p, ps, bwr)
+		netw, err := swarm.NewSwarm(p, ps, swarm.WithMetrics(bwr))
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		upgrader := swarmt.GenUpgrader(netw)
 		upgraders = append(upgraders, upgrader)

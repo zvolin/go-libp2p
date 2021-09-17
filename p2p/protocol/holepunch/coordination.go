@@ -240,7 +240,7 @@ func (hs *Service) directConnect(rp peer.ID) error {
 				Addrs: addrs,
 			}
 			hs.tracer.StartHolePunch(rp, addrs, rtt)
-			err := hs.holePunchConnect(pi)
+			err := hs.holePunchConnect(pi, true)
 			dt := time.Since(start)
 			hs.tracer.EndHolePunch(rp, dt, err)
 			if err == nil {
@@ -324,7 +324,7 @@ func (hs *Service) handleNewStream(s network.Stream) {
 	hs.tracer.StartHolePunch(rp, addrs, rtt)
 	log.Debugw("starting hole punch with", rp)
 	start := time.Now()
-	err = hs.holePunchConnect(pi)
+	err = hs.holePunchConnect(pi, false)
 	dt := time.Since(start)
 	hs.tracer.EndHolePunch(rp, dt, err)
 	if err != nil {
@@ -334,8 +334,8 @@ func (hs *Service) handleNewStream(s network.Stream) {
 	}
 }
 
-func (hs *Service) holePunchConnect(pi peer.AddrInfo) error {
-	holePunchCtx := network.WithSimultaneousConnect(hs.ctx, "hole-punching")
+func (hs *Service) holePunchConnect(pi peer.AddrInfo, isClient bool) error {
+	holePunchCtx := network.WithSimultaneousConnect(hs.ctx, isClient, "hole-punching")
 	forceDirectConnCtx := network.WithForceDirectDial(holePunchCtx, "hole-punching")
 	dialCtx, cancel := context.WithTimeout(forceDirectConnCtx, dialTimeout)
 	defer cancel()

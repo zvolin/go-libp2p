@@ -38,8 +38,8 @@ func subtestIDService(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	h1 := blhost.NewBlankHost(swarmt.GenSwarm(t, ctx))
-	h2 := blhost.NewBlankHost(swarmt.GenSwarm(t, ctx))
+	h1 := blhost.NewBlankHost(swarmt.GenSwarm(t))
+	h2 := blhost.NewBlankHost(swarmt.GenSwarm(t))
 
 	h1p := h1.ID()
 	h2p := h2.ID()
@@ -388,8 +388,8 @@ func TestIdentifyDeltaOnProtocolChange(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	h1 := blhost.NewBlankHost(swarmt.GenSwarm(t, ctx))
-	h2 := blhost.NewBlankHost(swarmt.GenSwarm(t, ctx))
+	h1 := blhost.NewBlankHost(swarmt.GenSwarm(t))
+	h2 := blhost.NewBlankHost(swarmt.GenSwarm(t))
 	defer h2.Close()
 	defer h1.Close()
 
@@ -519,8 +519,8 @@ func TestIdentifyDeltaWhileIdentifyingConn(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	h1 := blhost.NewBlankHost(swarmt.GenSwarm(t, ctx))
-	h2 := blhost.NewBlankHost(swarmt.GenSwarm(t, ctx))
+	h1 := blhost.NewBlankHost(swarmt.GenSwarm(t))
+	h2 := blhost.NewBlankHost(swarmt.GenSwarm(t))
 	defer h2.Close()
 	defer h1.Close()
 
@@ -590,8 +590,8 @@ func TestIdentifyPushOnAddrChange(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	h1 := blhost.NewBlankHost(swarmt.GenSwarm(t, ctx))
-	h2 := blhost.NewBlankHost(swarmt.GenSwarm(t, ctx))
+	h1 := blhost.NewBlankHost(swarmt.GenSwarm(t))
+	h2 := blhost.NewBlankHost(swarmt.GenSwarm(t))
 
 	h1p := h1.ID()
 	h2p := h2.ID()
@@ -745,8 +745,8 @@ func TestSendPushIfDeltaNotSupported(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	h1 := blhost.NewBlankHost(swarmt.GenSwarm(t, ctx))
-	h2 := blhost.NewBlankHost(swarmt.GenSwarm(t, ctx))
+	h1 := blhost.NewBlankHost(swarmt.GenSwarm(t))
+	h2 := blhost.NewBlankHost(swarmt.GenSwarm(t))
 	defer h2.Close()
 	defer h1.Close()
 
@@ -811,8 +811,8 @@ func TestLargeIdentifyMessage(t *testing.T) {
 	sk2, _, err := coretest.RandTestKeyPair(ic.RSA, 4096)
 	require.NoError(t, err)
 
-	h1 := blhost.NewBlankHost(swarmt.GenSwarm(t, ctx, swarmt.OptPeerPrivateKey(sk1)))
-	h2 := blhost.NewBlankHost(swarmt.GenSwarm(t, ctx, swarmt.OptPeerPrivateKey(sk2)))
+	h1 := blhost.NewBlankHost(swarmt.GenSwarm(t, swarmt.OptPeerPrivateKey(sk1)))
+	h2 := blhost.NewBlankHost(swarmt.GenSwarm(t, swarmt.OptPeerPrivateKey(sk2)))
 
 	// add protocol strings to make the message larger
 	// about 2K of protocol strings
@@ -925,8 +925,8 @@ func TestLargePushMessage(t *testing.T) {
 	sk2, _, err := coretest.RandTestKeyPair(ic.RSA, 4096)
 	require.NoError(t, err)
 
-	h1 := blhost.NewBlankHost(swarmt.GenSwarm(t, ctx, swarmt.OptPeerPrivateKey(sk1)))
-	h2 := blhost.NewBlankHost(swarmt.GenSwarm(t, ctx, swarmt.OptPeerPrivateKey(sk2)))
+	h1 := blhost.NewBlankHost(swarmt.GenSwarm(t, swarmt.OptPeerPrivateKey(sk1)))
+	h2 := blhost.NewBlankHost(swarmt.GenSwarm(t, swarmt.OptPeerPrivateKey(sk2)))
 
 	// add protocol strings to make the message larger
 	// about 2K of protocol strings
@@ -1027,8 +1027,8 @@ func TestIdentifyResponseReadTimeout(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	h1 := blhost.NewBlankHost(swarmt.GenSwarm(t, ctx))
-	h2 := blhost.NewBlankHost(swarmt.GenSwarm(t, ctx))
+	h1 := blhost.NewBlankHost(swarmt.GenSwarm(t))
+	h2 := blhost.NewBlankHost(swarmt.GenSwarm(t))
 	defer h1.Close()
 	defer h2.Close()
 
@@ -1074,8 +1074,8 @@ func TestIncomingIDStreamsTimeout(t *testing.T) {
 	protocols := []protocol.ID{identify.IDPush, identify.IDDelta}
 
 	for _, p := range protocols {
-		h1 := blhost.NewBlankHost(swarmt.GenSwarm(t, ctx))
-		h2 := blhost.NewBlankHost(swarmt.GenSwarm(t, ctx))
+		h1 := blhost.NewBlankHost(swarmt.GenSwarm(t))
+		h2 := blhost.NewBlankHost(swarmt.GenSwarm(t))
 		defer h1.Close()
 		defer h2.Close()
 

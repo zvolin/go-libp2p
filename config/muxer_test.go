@@ -60,7 +60,7 @@ func TestMuxerBadTypes(t *testing.T) {
 
 func TestCatchDuplicateTransportsMuxer(t *testing.T) {
 	ctx := context.Background()
-	h, err := bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx), nil)
+	h, err := bhost.NewHost(ctx, swarmt.GenSwarm(t), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

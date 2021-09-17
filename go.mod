@@ -18,24 +18,24 @@ require (
 	github.com/koron/go-ssdp v0.0.2 // indirect
 	github.com/libp2p/go-addr-util v0.1.0
 	github.com/libp2p/go-buffer-pool v0.0.2
-	github.com/libp2p/go-conn-security-multistream v0.2.1
+	github.com/libp2p/go-conn-security-multistream v0.3.0
 	github.com/libp2p/go-eventbus v0.2.1
 	github.com/libp2p/go-libp2p-asn-util v0.0.0-20210818120414-1f382a4aa43a
 	github.com/libp2p/go-libp2p-autonat v0.5.0
 	github.com/libp2p/go-libp2p-blankhost v0.2.0
 	github.com/libp2p/go-libp2p-circuit v0.4.0
-	github.com/libp2p/go-libp2p-core v0.9.0
+	github.com/libp2p/go-libp2p-core v0.10.0
 	github.com/libp2p/go-libp2p-discovery v0.5.1
 	github.com/libp2p/go-libp2p-mplex v0.4.1
 	github.com/libp2p/go-libp2p-nat v0.0.6
 	github.com/libp2p/go-libp2p-netutil v0.1.0
-	github.com/libp2p/go-libp2p-noise v0.2.2
+	github.com/libp2p/go-libp2p-noise v0.3.0
 	github.com/libp2p/go-libp2p-peerstore v0.2.8
-	github.com/libp2p/go-libp2p-quic-transport v0.12.0
-	github.com/libp2p/go-libp2p-swarm v0.5.3
-	github.com/libp2p/go-libp2p-testing v0.4.2
-	github.com/libp2p/go-libp2p-tls v0.2.0
-	github.com/libp2p/go-libp2p-transport-upgrader v0.4.6
+	github.com/libp2p/go-libp2p-quic-transport v0.13.0
+	github.com/libp2p/go-libp2p-swarm v0.6.0
+	github.com/libp2p/go-libp2p-testing v0.5.0
+	github.com/libp2p/go-libp2p-tls v0.3.0
+	github.com/libp2p/go-libp2p-transport-upgrader v0.5.0
 	github.com/libp2p/go-libp2p-yamux v0.5.4
 	github.com/libp2p/go-msgio v0.0.6
 	github.com/libp2p/go-netroute v0.1.6
