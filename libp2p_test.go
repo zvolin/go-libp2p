@@ -14,11 +14,11 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/transport"
 	noise "github.com/libp2p/go-libp2p-noise"
+	tptu "github.com/libp2p/go-libp2p-transport-upgrader"
 	"github.com/libp2p/go-tcp-transport"
 	ma "github.com/multiformats/go-multiaddr"
-	"github.com/stretchr/testify/require"
 
-	tptu "github.com/libp2p/go-libp2p-transport-upgrader"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewHost(t *testing.T) {
@@ -30,8 +30,7 @@ func TestNewHost(t *testing.T) {
 }
 
 func TestBadTransportConstructor(t *testing.T) {
-	ctx := context.Background()
-	h, err := New(ctx, Transport(func() {}))
+	h, err := New(Transport(func() {}))
 	if err == nil {
 		h.Close()
 		t.Fatal("expected an error")
@@ -42,7 +41,6 @@ func TestBadTransportConstructor(t *testing.T) {
 }
 
 func TestTransportConstructor(t *testing.T) {
-	ctx := context.Background()
 	ctor := func(
 		h host.Host,
 		_ connmgr.ConnectionGater,
@@ -50,7 +48,7 @@ func TestTransportConstructor(t *testing.T) {
 	) transport.Transport {
 		return tcp.NewTCPTransport(upgrader)
 	}
-	h, err := New(ctx, Transport(ctor))
+	h, err := New(Transport(ctor))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,11 +56,8 @@ func TestTransportConstructor(t *testing.T) {
 }
 
 func TestNoListenAddrs(t *testing.T) {
-	ctx := context.Background()
-	h, err := New(ctx, NoListenAddrs)
-	if err != nil {
-		t.Fatal(err)
-	}
+	h, err := New(NoListenAddrs)
+	require.NoError(t, err)
 	defer h.Close()
 	if len(h.Addrs()) != 0 {
 		t.Fatal("expected no addresses")
@@ -71,16 +66,12 @@ func TestNoListenAddrs(t *testing.T) {
 
 func TestNoTransports(t *testing.T) {
 	ctx := context.Background()
-	a, err := New(ctx, NoTransports)
-	if err != nil {
-		t.Fatal(err)
-	}
+	a, err := New(NoTransports)
+	require.NoError(t, err)
 	defer a.Close()
 
-	b, err := New(ctx, ListenAddrStrings("/ip4/127.0.0.1/tcp/0"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	b, err := New(ListenAddrStrings("/ip4/127.0.0.1/tcp/0"))
+	require.NoError(t, err)
 	defer b.Close()
 
 	err = a.Connect(ctx, peer.AddrInfo{
@@ -93,34 +84,24 @@ func TestNoTransports(t *testing.T) {
 }
 
 func TestInsecure(t *testing.T) {
-	ctx := context.Background()
-	h, err := New(ctx, NoSecurity)
-	if err != nil {
-		t.Fatal(err)
-	}
+	h, err := New(NoSecurity)
+	require.NoError(t, err)
 	h.Close()
 }
 
 func TestAutoNATService(t *testing.T) {
-	ctx := context.Background()
-	h, err := New(ctx, EnableNATService())
-	if err != nil {
-		t.Fatal(err)
-	}
+	h, err := New(EnableNATService())
+	require.NoError(t, err)
 	h.Close()
 }
 
 func TestDefaultListenAddrs(t *testing.T) {
-	ctx := context.Background()
-
 	re := regexp.MustCompile("/(ip)[4|6]/((0.0.0.0)|(::))/tcp/")
 	re2 := regexp.MustCompile("/p2p-circuit")
 
 	// Test 1: Setting the correct listen addresses if userDefined.Transport == nil && userDefined.ListenAddrs == nil
-	h, err := New(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
+	h, err := New()
+	require.NoError(t, err)
 	for _, addr := range h.Network().ListenAddresses() {
 		if re.FindStringSubmatchIndex(addr.String()) == nil &&
 			re2.FindStringSubmatchIndex(addr.String()) == nil {
@@ -131,13 +112,8 @@ func TestDefaultListenAddrs(t *testing.T) {
 	h.Close()
 
 	// Test 2: Listen addr only include relay if user defined transport is passed.
-	h, err = New(
-		ctx,
-		Transport(tcp.NewTCPTransport),
-	)
-	if err != nil {
-		t.Fatal(err)
-	}
+	h, err = New(Transport(tcp.NewTCPTransport))
+	require.NoError(t, err)
 
 	if len(h.Network().ListenAddresses()) != 1 {
 		t.Error("expected one listen addr with user defined transport")
@@ -149,22 +125,17 @@ func TestDefaultListenAddrs(t *testing.T) {
 }
 
 func makeRandomHost(t *testing.T, port int) (host.Host, error) {
-	ctx := context.Background()
 	priv, _, err := crypto.GenerateKeyPair(crypto.RSA, 2048)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
-	opts := []Option{
+	return New([]Option{
 		ListenAddrStrings(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", port)),
 		Identity(priv),
 		DefaultTransports,
 		DefaultMuxers,
 		DefaultSecurity,
 		NATPortMap(),
-	}
-
-	return New(ctx, opts...)
+	}...)
 }
 
 func TestChainOptions(t *testing.T) {
@@ -198,17 +169,13 @@ func TestChainOptions(t *testing.T) {
 }
 
 func TestTcpSimultaneousConnect(t *testing.T) {
-	ctx := context.Background()
-
 	// Host1
-	h1, err := New(ctx, Transport(tcp.NewTCPTransport), Security(noise.ID, noise.New),
-		ListenAddrs(ma.StringCast("/ip4/0.0.0.0/tcp/0")))
+	h1, err := New(Transport(tcp.NewTCPTransport), Security(noise.ID, noise.New), ListenAddrs(ma.StringCast("/ip4/0.0.0.0/tcp/0")))
 	require.NoError(t, err)
 	defer h1.Close()
 
 	// Host2
-	h2, err := New(ctx, Transport(tcp.NewTCPTransport), Security(noise.ID, noise.New),
-		ListenAddrs(ma.StringCast("/ip4/0.0.0.0/tcp/0")))
+	h2, err := New(Transport(tcp.NewTCPTransport), Security(noise.ID, noise.New), ListenAddrs(ma.StringCast("/ip4/0.0.0.0/tcp/0")))
 	require.NoError(t, err)
 	defer h2.Close()
 

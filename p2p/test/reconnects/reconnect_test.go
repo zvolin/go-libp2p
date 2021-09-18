@@ -102,10 +102,9 @@ func newSender() (chan sendChans, func(s network.Stream)) {
 
 // TestReconnect tests whether hosts are able to disconnect and reconnect.
 func TestReconnect2(t *testing.T) {
-	ctx := context.Background()
-	h1, err := bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx), nil)
+	h1, err := bhost.NewHost(swarmt.GenSwarm(t), nil)
 	require.NoError(t, err)
-	h2, err := bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx), nil)
+	h2, err := bhost.NewHost(swarmt.GenSwarm(t), nil)
 	require.NoError(t, err)
 	hosts := []host.Host{h1, h2}
 
@@ -125,10 +124,9 @@ func TestReconnect2(t *testing.T) {
 // TestReconnect tests whether hosts are able to disconnect and reconnect.
 func TestReconnect5(t *testing.T) {
 	const num = 5
-	ctx := context.Background()
 	hosts := make([]host.Host, 0, num)
 	for i := 0; i < num; i++ {
-		h, err := bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx), nil)
+		h, err := bhost.NewHost(swarmt.GenSwarm(t), nil)
 		require.NoError(t, err)
 		h.SetStreamHandler(protocol.TestingID, EchoStreamHandler)
 		hosts = append(hosts, h)

@@ -1,7 +1,6 @@
 package mdns
 
 import (
-	"context"
 	"sync"
 	"testing"
 	"time"
@@ -16,7 +15,7 @@ import (
 
 func setupMDNS(t *testing.T, notifee Notifee) (host.Host, *mdnsService) {
 	t.Helper()
-	host, err := libp2p.New(context.Background(), libp2p.ListenAddrStrings("/ip4/127.0.0.1/tcp/0"))
+	host, err := libp2p.New(libp2p.ListenAddrStrings("/ip4/127.0.0.1/tcp/0"))
 	require.NoError(t, err)
 	s := NewMdnsService(host, "")
 	s.RegisterNotifee(notifee)

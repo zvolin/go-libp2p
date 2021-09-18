@@ -146,8 +146,8 @@ type HostOpts struct {
 }
 
 // NewHost constructs a new *BasicHost and activates it by attaching its stream and connection handlers to the given inet.Network.
-func NewHost(ctx context.Context, n network.Network, opts *HostOpts) (*BasicHost, error) {
-	hostCtx, cancel := context.WithCancel(ctx)
+func NewHost(n network.Network, opts *HostOpts) (*BasicHost, error) {
+	hostCtx, cancel := context.WithCancel(context.Background())
 	if opts == nil {
 		opts = &HostOpts{}
 	}

@@ -41,7 +41,6 @@ func main() {
 	// TODO: Configure libp2p to use a DHT with a libp2p.Routing option
 
 	host, err := libp2p.New(
-		ctx,
 		transports,
 		listenAddrs,
 		muxers,

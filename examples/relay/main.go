@@ -22,7 +22,7 @@ func run() {
 	// of them.
 
 	// Tell the host use relays
-	h1, err := libp2p.New(context.Background(), libp2p.EnableRelay())
+	h1, err := libp2p.New(libp2p.EnableRelay())
 	if err != nil {
 		log.Printf("Failed to create h1: %v", err)
 		return
@@ -30,7 +30,7 @@ func run() {
 
 	// Tell the host to relay connections for other peers (The ability to *use*
 	// a relay vs the ability to *be* a relay)
-	h2, err := libp2p.New(context.Background(), libp2p.DisableRelay())
+	h2, err := libp2p.New(libp2p.DisableRelay())
 	if err != nil {
 		log.Printf("Failed to create h2: %v", err)
 		return
@@ -43,7 +43,7 @@ func run() {
 
 	// Zero out the listen addresses for the host, so it can only communicate
 	// via p2p-circuit for our example
-	h3, err := libp2p.New(context.Background(), libp2p.ListenAddrs(), libp2p.EnableRelay())
+	h3, err := libp2p.New(libp2p.ListenAddrs(), libp2p.EnableRelay())
 	if err != nil {
 		log.Printf("Failed to create h3: %v", err)
 		return

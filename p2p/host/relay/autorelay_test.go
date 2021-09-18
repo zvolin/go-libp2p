@@ -133,18 +133,16 @@ func TestAutoRelay(t *testing.T) {
 	// this is the relay host
 	// announce dns addrs because filter out private addresses from relays,
 	// and we consider dns addresses "public".
-	relayHost, err := libp2p.New(ctx,
-		libp2p.DisableRelay(),
-		libp2p.AddrsFactory(func(addrs []ma.Multiaddr) []ma.Multiaddr {
-			for i, addr := range addrs {
-				saddr := addr.String()
-				if strings.HasPrefix(saddr, "/ip4/127.0.0.1/") {
-					addrNoIP := strings.TrimPrefix(saddr, "/ip4/127.0.0.1")
-					addrs[i] = ma.StringCast("/dns4/localhost" + addrNoIP)
-				}
+	relayHost, err := libp2p.New(libp2p.DisableRelay(), libp2p.AddrsFactory(func(addrs []ma.Multiaddr) []ma.Multiaddr {
+		for i, addr := range addrs {
+			saddr := addr.String()
+			if strings.HasPrefix(saddr, "/ip4/127.0.0.1/") {
+				addrNoIP := strings.TrimPrefix(saddr, "/ip4/127.0.0.1")
+				addrs[i] = ma.StringCast("/dns4/localhost" + addrNoIP)
 			}
-			return addrs
-		}))
+		}
+		return addrs
+	}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -164,16 +162,16 @@ func TestAutoRelay(t *testing.T) {
 	relay.Advertise(ctx, relayDiscovery)
 
 	// the client hosts
-	h1, err := libp2p.New(ctx, libp2p.EnableRelay())
+	h1, err := libp2p.New(libp2p.EnableRelay())
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	h2, err := libp2p.New(ctx, libp2p.EnableRelay(), libp2p.EnableAutoRelay(), libp2p.Routing(makePeerRouting))
+	h2, err := libp2p.New(libp2p.EnableRelay(), libp2p.EnableAutoRelay(), libp2p.Routing(makePeerRouting))
 	if err != nil {
 		t.Fatal(err)
 	}
-	h3, err := libp2p.New(ctx, libp2p.EnableRelay())
+	h3, err := libp2p.New(libp2p.EnableRelay())
 	if err != nil {
 		t.Fatal(err)
 	}

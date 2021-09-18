@@ -12,10 +12,10 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
-	"github.com/libp2p/go-libp2p-discovery"
+	discovery "github.com/libp2p/go-libp2p-discovery"
 
 	dht "github.com/libp2p/go-libp2p-kad-dht"
-	multiaddr "github.com/multiformats/go-multiaddr"
+	"github.com/multiformats/go-multiaddr"
 
 	"github.com/ipfs/go-log/v2"
 )
@@ -95,13 +95,9 @@ func main() {
 		return
 	}
 
-	ctx := context.Background()
-
 	// libp2p.New constructs a new libp2p Host. Other options can be added
 	// here.
-	host, err := libp2p.New(ctx,
-		libp2p.ListenAddrs([]multiaddr.Multiaddr(config.ListenAddresses)...),
-	)
+	host, err := libp2p.New(libp2p.ListenAddrs([]multiaddr.Multiaddr(config.ListenAddresses)...))
 	if err != nil {
 		panic(err)
 	}
@@ -116,6 +112,7 @@ func main() {
 	// client because we want each peer to maintain its own local copy of the
 	// DHT, so that the bootstrapping node of the DHT can go down without
 	// inhibiting future peer discovery.
+	ctx := context.Background()
 	kademliaDHT, err := dht.New(ctx, host)
 	if err != nil {
 		panic(err)

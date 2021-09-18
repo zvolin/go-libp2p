@@ -33,8 +33,7 @@ import (
 )
 
 func TestHostDoubleClose(t *testing.T) {
-	ctx := context.Background()
-	h1, err := NewHost(ctx, swarmt.GenSwarm(t, ctx), nil)
+	h1, err := NewHost(swarmt.GenSwarm(t), nil)
 	require.NoError(t, err)
 	h1.Close()
 	h1.Close()
@@ -42,10 +41,10 @@ func TestHostDoubleClose(t *testing.T) {
 
 func TestHostSimple(t *testing.T) {
 	ctx := context.Background()
-	h1, err := NewHost(ctx, swarmt.GenSwarm(t, ctx), nil)
+	h1, err := NewHost(swarmt.GenSwarm(t), nil)
 	require.NoError(t, err)
 	defer h1.Close()
-	h2, err := NewHost(ctx, swarmt.GenSwarm(t, ctx), nil)
+	h2, err := NewHost(swarmt.GenSwarm(t), nil)
 	require.NoError(t, err)
 	defer h2.Close()
 
@@ -92,8 +91,7 @@ func TestHostSimple(t *testing.T) {
 }
 
 func TestMultipleClose(t *testing.T) {
-	ctx := context.Background()
-	h, err := NewHost(ctx, swarmt.GenSwarm(t, ctx), nil)
+	h, err := NewHost(swarmt.GenSwarm(t), nil)
 	require.NoError(t, err)
 
 	require.NoError(t, h.Close())
@@ -102,9 +100,7 @@ func TestMultipleClose(t *testing.T) {
 }
 
 func TestSignedPeerRecordWithNoListenAddrs(t *testing.T) {
-	ctx := context.Background()
-
-	h, err := NewHost(ctx, swarmt.GenSwarm(t, ctx, swarmt.OptDialOnly), nil)
+	h, err := NewHost(swarmt.GenSwarm(t, swarmt.OptDialOnly), nil)
 	require.NoError(t, err)
 	h.Start()
 
@@ -134,8 +130,7 @@ func TestSignedPeerRecordWithNoListenAddrs(t *testing.T) {
 }
 
 func TestProtocolHandlerEvents(t *testing.T) {
-	ctx := context.Background()
-	h, err := NewHost(ctx, swarmt.GenSwarm(t, ctx), nil)
+	h, err := NewHost(swarmt.GenSwarm(t), nil)
 	require.NoError(t, err)
 	defer h.Close()
 
@@ -196,8 +191,7 @@ func TestHostAddrsFactory(t *testing.T) {
 		return []ma.Multiaddr{maddr}
 	}
 
-	ctx := context.Background()
-	h, err := NewHost(ctx, swarmt.GenSwarm(t, ctx), &HostOpts{AddrsFactory: addrsFactory})
+	h, err := NewHost(swarmt.GenSwarm(t), &HostOpts{AddrsFactory: addrsFactory})
 	require.NoError(t, err)
 	defer h.Close()
 
@@ -221,10 +215,8 @@ func TestHostAddrsFactory(t *testing.T) {
 }
 
 func TestLocalIPChangesWhenListenAddrChanges(t *testing.T) {
-	ctx := context.Background()
-
 	// no listen addrs
-	h, err := NewHost(ctx, swarmt.GenSwarm(t, ctx, swarmt.OptDialOnly), nil)
+	h, err := NewHost(swarmt.GenSwarm(t, swarmt.OptDialOnly), nil)
 	require.NoError(t, err)
 	h.Start()
 	defer h.Close()
@@ -246,10 +238,8 @@ func TestLocalIPChangesWhenListenAddrChanges(t *testing.T) {
 }
 
 func TestAllAddrs(t *testing.T) {
-	ctx := context.Background()
-
 	// no listen addrs
-	h, err := NewHost(ctx, swarmt.GenSwarm(t, ctx, swarmt.OptDialOnly), nil)
+	h, err := NewHost(swarmt.GenSwarm(t, swarmt.OptDialOnly), nil)
 	require.NoError(t, err)
 	defer h.Close()
 	require.Nil(t, h.AllAddrs())
@@ -274,19 +264,20 @@ func TestAllAddrs(t *testing.T) {
 	t.Fatal("expected addrs to contain original addr")
 }
 
-func getHostPair(ctx context.Context, t *testing.T) (host.Host, host.Host) {
+func getHostPair(t *testing.T) (host.Host, host.Host) {
 	t.Helper()
 
-	h1, err := NewHost(ctx, swarmt.GenSwarm(t, ctx), nil)
+	h1, err := NewHost(swarmt.GenSwarm(t), nil)
 	require.NoError(t, err)
-	h2, err := NewHost(ctx, swarmt.GenSwarm(t, ctx), nil)
+	h2, err := NewHost(swarmt.GenSwarm(t), nil)
 	require.NoError(t, err)
 
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
 	h2pi := h2.Peerstore().PeerInfo(h2.ID())
 	if err := h1.Connect(ctx, h2pi); err != nil {
 		t.Fatal(err)
 	}
-
 	return h1, h2
 }
 
@@ -306,7 +297,7 @@ func TestHostProtoPreference(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	h1, h2 := getHostPair(ctx, t)
+	h1, h2 := getHostPair(t)
 	defer h1.Close()
 	defer h2.Close()
 
@@ -383,7 +374,7 @@ func TestHostProtoMismatch(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	h1, h2 := getHostPair(ctx, t)
+	h1, h2 := getHostPair(t)
 	defer h1.Close()
 	defer h2.Close()
 
@@ -402,9 +393,9 @@ func TestHostProtoPreknowledge(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	h1, err := NewHost(ctx, swarmt.GenSwarm(t, ctx), nil)
+	h1, err := NewHost(swarmt.GenSwarm(t), nil)
 	require.NoError(t, err)
-	h2, err := NewHost(ctx, swarmt.GenSwarm(t, ctx), nil)
+	h2, err := NewHost(swarmt.GenSwarm(t), nil)
 	require.NoError(t, err)
 
 	conn := make(chan protocol.ID)
@@ -466,7 +457,7 @@ func TestNewDialOld(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	h1, h2 := getHostPair(ctx, t)
+	h1, h2 := getHostPair(t)
 	defer h1.Close()
 	defer h2.Close()
 
@@ -500,7 +491,7 @@ func TestProtoDowngrade(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	h1, h2 := getHostPair(ctx, t)
+	h1, h2 := getHostPair(t)
 	defer h1.Close()
 	defer h2.Close()
 
@@ -613,7 +604,7 @@ func TestAddrResolution(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	h, err := NewHost(ctx, swarmt.GenSwarm(t, ctx), &HostOpts{MultiaddrResolver: resolver})
+	h, err := NewHost(swarmt.GenSwarm(t), &HostOpts{MultiaddrResolver: resolver})
 	require.NoError(t, err)
 	defer h.Close()
 
@@ -671,7 +662,7 @@ func TestAddrResolutionRecursive(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	h, err := NewHost(ctx, swarmt.GenSwarm(t, ctx), &HostOpts{MultiaddrResolver: resolver})
+	h, err := NewHost(swarmt.GenSwarm(t), &HostOpts{MultiaddrResolver: resolver})
 	require.NoError(t, err)
 	defer h.Close()
 
@@ -706,7 +697,7 @@ func TestAddrChangeImmediatelyIfAddressNonEmpty(t *testing.T) {
 	taddrs := []ma.Multiaddr{ma.StringCast("/ip4/1.2.3.4/tcp/1234")}
 
 	starting := make(chan struct{})
-	h, err := NewHost(ctx, swarmt.GenSwarm(t, ctx), &HostOpts{AddrsFactory: func(addrs []ma.Multiaddr) []ma.Multiaddr {
+	h, err := NewHost(swarmt.GenSwarm(t), &HostOpts{AddrsFactory: func(addrs []ma.Multiaddr) []ma.Multiaddr {
 		<-starting
 		return taddrs
 	}})
@@ -746,8 +737,7 @@ func TestAddrChangeImmediatelyIfAddressNonEmpty(t *testing.T) {
 }
 
 func TestStatefulAddrEvents(t *testing.T) {
-	ctx := context.Background()
-	h, err := NewHost(ctx, swarmt.GenSwarm(t, ctx), nil)
+	h, err := NewHost(swarmt.GenSwarm(t), nil)
 	require.NoError(t, err)
 	h.Start()
 	defer h.Close()
@@ -816,7 +806,7 @@ func TestHostAddrChangeDetection(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	h, err := NewHost(ctx, swarmt.GenSwarm(t, ctx), &HostOpts{AddrsFactory: addrsFactory})
+	h, err := NewHost(swarmt.GenSwarm(t), &HostOpts{AddrsFactory: addrsFactory})
 	require.NoError(t, err)
 	h.Start()
 	defer h.Close()
@@ -860,7 +850,7 @@ func TestNegotiationCancel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	h1, h2 := getHostPair(ctx, t)
+	h1, h2 := getHostPair(t)
 	defer h1.Close()
 	defer h2.Close()
 

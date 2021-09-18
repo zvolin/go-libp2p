@@ -29,7 +29,7 @@ func main() {
 	ctx := context.Background()
 
 	// create a new libp2p Host that listens on a random TCP port
-	h, err := libp2p.New(ctx, libp2p.ListenAddrStrings("/ip4/0.0.0.0/tcp/0"))
+	h, err := libp2p.New(libp2p.ListenAddrStrings("/ip4/0.0.0.0/tcp/0"))
 	if err != nil {
 		panic(err)
 	}

@@ -18,7 +18,7 @@ func TestMakeApplyDelta(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	h1 := blhost.NewBlankHost(swarmt.GenSwarm(t, ctx))
+	h1 := blhost.NewBlankHost(swarmt.GenSwarm(t))
 	defer h1.Close()
 	ids1, err := NewIDService(h1)
 	require.NoError(t, err)
@@ -64,7 +64,7 @@ func TestHandlerClose(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	h1 := blhost.NewBlankHost(swarmt.GenSwarm(t, ctx))
+	h1 := blhost.NewBlankHost(swarmt.GenSwarm(t))
 	defer h1.Close()
 	ids1, err := NewIDService(h1)
 	require.NoError(t, err)
@@ -93,7 +93,7 @@ func TestPeerSupportsProto(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	h1 := blhost.NewBlankHost(swarmt.GenSwarm(t, ctx))
+	h1 := blhost.NewBlankHost(swarmt.GenSwarm(t))
 	defer h1.Close()
 	ids1, err := NewIDService(h1)
 	require.NoError(t, err)

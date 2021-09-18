@@ -1,7 +1,6 @@
 package config
 
 import (
-	"context"
 	"crypto/rand"
 	"fmt"
 	"time"
@@ -100,7 +99,7 @@ type Config struct {
 	HolePunchingOptions []holepunch.Option
 }
 
-func (cfg *Config) makeSwarm(ctx context.Context) (*swarm.Swarm, error) {
+func (cfg *Config) makeSwarm() (*swarm.Swarm, error) {
 	if cfg.Peerstore == nil {
 		return nil, fmt.Errorf("no peerstore specified")
 	}
@@ -133,8 +132,7 @@ func (cfg *Config) makeSwarm(ctx context.Context) (*swarm.Swarm, error) {
 	}
 
 	// TODO: Make the swarm implementation configurable.
-	swrm := swarm.NewSwarm(ctx, pid, cfg.Peerstore, cfg.Reporter, cfg.ConnectionGater)
-	return swrm, nil
+	return swarm.NewSwarm(pid, cfg.Peerstore, swarm.WithMetrics(cfg.Reporter), swarm.WithConnectionGater(cfg.ConnectionGater))
 }
 
 func (cfg *Config) addTransports(h host.Host) (err error) {
@@ -183,13 +181,13 @@ func (cfg *Config) addTransports(h host.Host) (err error) {
 // NewNode constructs a new libp2p Host from the Config.
 //
 // This function consumes the config. Do not reuse it (really!).
-func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
-	swrm, err := cfg.makeSwarm(ctx)
+func (cfg *Config) NewNode() (host.Host, error) {
+	swrm, err := cfg.makeSwarm()
 	if err != nil {
 		return nil, err
 	}
 
-	h, err := bhost.NewHost(ctx, swrm, &bhost.HostOpts{
+	h, err := bhost.NewHost(swrm, &bhost.HostOpts{
 		ConnManager:         cfg.ConnManager,
 		AddrsFactory:        cfg.AddrsFactory,
 		NATManager:          cfg.NATManager,
@@ -203,14 +201,6 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 		swrm.Close()
 		return nil, err
 	}
-
-	// XXX: This is the only sane way to get a context out that's guaranteed
-	// to be canceled when we shut down.
-	//
-	// TODO: Stop using contexts to stop services. This is just lazy.
-	// Contexts are for canceling requests, services should be managed
-	// explicitly.
-	ctx = swrm.Context()
 
 	if cfg.Relay {
 		// If we've enabled the relay, we should filter out relay
@@ -305,7 +295,7 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 			Peerstore: pstoremem.NewPeerstore(),
 		}
 
-		dialer, err := autoNatCfg.makeSwarm(ctx)
+		dialer, err := autoNatCfg.makeSwarm()
 		if err != nil {
 			h.Close()
 			return nil, err

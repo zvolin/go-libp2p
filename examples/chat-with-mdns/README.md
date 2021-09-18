@@ -28,7 +28,7 @@ ctx := context.Background()
 
 // libp2p.New constructs a new libp2p Host.
 // Other options can be added here.
-host, err := libp2p.New(ctx)
+host, err := libp2p.New()
 ```
 [libp2p.New](https://godoc.org/github.com/libp2p/go-libp2p#New) is the constructor for libp2p node. It creates a host with given configuration.
 
