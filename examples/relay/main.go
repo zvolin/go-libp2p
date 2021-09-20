@@ -8,7 +8,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 
-	circuit "github.com/libp2p/go-libp2p-circuit"
+	relayv1 "github.com/libp2p/go-libp2p/p2p/protocol/circuitv1/relay"
+
 	swarm "github.com/libp2p/go-libp2p-swarm"
 	ma "github.com/multiformats/go-multiaddr"
 )
@@ -35,7 +36,7 @@ func run() {
 		log.Printf("Failed to create h2: %v", err)
 		return
 	}
-	_, err = circuit.NewRelay(context.Background(), h2, nil, circuit.OptHop)
+	_, err = relayv1.NewRelay(h2)
 	if err != nil {
 		log.Printf("Failed to instantiate h2 relay: %v", err)
 		return

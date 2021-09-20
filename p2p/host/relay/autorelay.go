@@ -13,8 +13,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/routing"
 
-	circuit "github.com/libp2p/go-libp2p-circuit"
 	basic "github.com/libp2p/go-libp2p/p2p/host/basic"
+	relayv1 "github.com/libp2p/go-libp2p/p2p/protocol/circuitv1/relay"
 
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
@@ -204,7 +204,7 @@ func (ar *AutoRelay) tryRelay(ctx context.Context, pi peer.AddrInfo) bool {
 		return false
 	}
 
-	ok, err := circuit.CanHop(ctx, ar.host, pi.ID)
+	ok, err := relayv1.CanHop(ctx, ar.host, pi.ID)
 	if err != nil {
 		log.Debugf("error querying relay: %s", err.Error())
 		return false

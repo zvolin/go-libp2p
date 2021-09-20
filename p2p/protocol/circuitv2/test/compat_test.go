@@ -7,7 +7,8 @@ import (
 	"io"
 	"testing"
 
-	v1 "github.com/libp2p/go-libp2p-circuit"
+	compatv1 "github.com/libp2p/go-libp2p-circuit"
+	relayv1 "github.com/libp2p/go-libp2p/p2p/protocol/circuitv1/relay"
 
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -18,7 +19,7 @@ import (
 )
 
 func addTransportV1(t *testing.T, ctx context.Context, h host.Host, upgrader *tptu.Upgrader) {
-	err := v1.AddRelayTransport(ctx, h, upgrader)
+	err := compatv1.AddRelayTransport(ctx, h, upgrader)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,10 +54,11 @@ func TestRelayCompatV2DialV1(t *testing.T) {
 		rch <- buf[:nread]
 	})
 
-	_, err := v1.NewRelay(ctx, hosts[1], upgraders[1], v1.OptHop)
+	r, err := relayv1.NewRelay(hosts[1])
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer r.Close()
 
 	connect(t, hosts[0], hosts[1])
 	connect(t, hosts[1], hosts[2])
@@ -129,10 +131,11 @@ func TestRelayCompatV1DialV2(t *testing.T) {
 		rch <- buf[:nread]
 	})
 
-	_, err := v1.NewRelay(ctx, hosts[1], upgraders[1], v1.OptHop)
+	r, err := relayv1.NewRelay(hosts[1])
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer r.Close()
 
 	connect(t, hosts[0], hosts[1])
 	connect(t, hosts[1], hosts[2])

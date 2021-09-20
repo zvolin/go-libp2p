@@ -10,6 +10,7 @@ import (
 
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p/p2p/host/relay"
+	relayv1 "github.com/libp2p/go-libp2p/p2p/protocol/circuitv1/relay"
 
 	"github.com/libp2p/go-libp2p-core/event"
 	"github.com/libp2p/go-libp2p-core/host"
@@ -17,7 +18,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/routing"
 
-	circuit "github.com/libp2p/go-libp2p-circuit"
 	discovery "github.com/libp2p/go-libp2p-discovery"
 
 	"github.com/ipfs/go-cid"
@@ -148,10 +148,11 @@ func TestAutoRelay(t *testing.T) {
 	}
 
 	// instantiate the relay
-	_, err = circuit.NewRelay(ctx, relayHost, nil, circuit.OptHop)
+	r, err := relayv1.NewRelay(relayHost)
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer r.Close()
 
 	// advertise the relay
 	relayRouting, err := makeRouting(relayHost)
