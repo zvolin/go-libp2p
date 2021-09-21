@@ -30,8 +30,8 @@ const (
 	ConnectTimeout   = 30 * time.Second
 	HandshakeTimeout = time.Minute
 
-	RelayHopTag      = "relay-v2-hop"
-	RelayHopTagValue = 2
+	relayHopTag      = "relay-v2-hop"
+	relayHopTagValue = 2
 
 	maxMessageSize = 4096
 )
@@ -347,7 +347,7 @@ func (r *Relay) addConn(p peer.ID) {
 	conns++
 	r.conns[p] = conns
 	if conns == 1 {
-		r.host.ConnManager().TagPeer(p, RelayHopTag, RelayHopTagValue)
+		r.host.ConnManager().TagPeer(p, relayHopTag, relayHopTagValue)
 	}
 }
 
@@ -358,7 +358,7 @@ func (r *Relay) rmConn(p peer.ID) {
 		r.conns[p] = conns
 	} else {
 		delete(r.conns, p)
-		r.host.ConnManager().UntagPeer(p, RelayHopTag)
+		r.host.ConnManager().UntagPeer(p, relayHopTag)
 	}
 }
 
