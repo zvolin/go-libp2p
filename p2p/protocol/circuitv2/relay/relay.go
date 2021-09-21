@@ -30,6 +30,9 @@ const (
 	ConnectTimeout   = 30 * time.Second
 	HandshakeTimeout = time.Minute
 
+	relayHopTag      = "relay-v2-hop"
+	relayHopTagValue = 2
+
 	maxMessageSize = 4096
 )
 
@@ -215,23 +218,23 @@ func (r *Relay) handleConnect(s network.Stream, msg *pbv2.HopMessage) {
 		r.handleError(s, pbv2.Status_RESOURCE_LIMIT_EXCEEDED)
 		return
 	}
-	r.conns[src]++
 
 	destConns := r.conns[dest.ID]
 	if destConns >= r.rc.MaxCircuits {
-		r.conns[src]--
 		r.mx.Unlock()
 		log.Debugf("refusing connection from %s to %s; too many connecitons to %s", src, dest.ID, dest.ID)
 		r.handleError(s, pbv2.Status_RESOURCE_LIMIT_EXCEEDED)
 		return
 	}
-	r.conns[dest.ID]++
+
+	r.addConn(src)
+	r.addConn(dest.ID)
 	r.mx.Unlock()
 
 	cleanup := func() {
 		r.mx.Lock()
-		r.conns[src]--
-		r.conns[dest.ID]--
+		r.rmConn(src)
+		r.rmConn(dest.ID)
 		r.mx.Unlock()
 	}
 
@@ -336,6 +339,26 @@ func (r *Relay) handleConnect(s network.Stream, msg *pbv2.HopMessage) {
 	} else {
 		go r.relayUnlimited(s, bs, src, dest.ID, done)
 		go r.relayUnlimited(bs, s, dest.ID, src, done)
+	}
+}
+
+func (r *Relay) addConn(p peer.ID) {
+	conns := r.conns[p]
+	conns++
+	r.conns[p] = conns
+	if conns == 1 {
+		r.host.ConnManager().TagPeer(p, relayHopTag, relayHopTagValue)
+	}
+}
+
+func (r *Relay) rmConn(p peer.ID) {
+	conns := r.conns[p]
+	conns--
+	if conns > 0 {
+		r.conns[p] = conns
+	} else {
+		delete(r.conns, p)
+		r.host.ConnManager().UntagPeer(p, relayHopTag)
 	}
 }
 
