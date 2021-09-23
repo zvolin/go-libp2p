@@ -9,7 +9,12 @@ import (
 	"sync"
 	"time"
 
-	autonat "github.com/libp2p/go-libp2p-autonat"
+	"github.com/libp2p/go-libp2p/p2p/host/relaysvc"
+	relayv2 "github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/relay"
+	"github.com/libp2p/go-libp2p/p2p/protocol/holepunch"
+	"github.com/libp2p/go-libp2p/p2p/protocol/identify"
+	"github.com/libp2p/go-libp2p/p2p/protocol/ping"
+
 	"github.com/libp2p/go-libp2p-core/connmgr"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/event"
@@ -19,13 +24,11 @@ import (
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/libp2p/go-libp2p-core/record"
-	"github.com/libp2p/go-libp2p/p2p/protocol/holepunch"
 
 	addrutil "github.com/libp2p/go-addr-util"
 	"github.com/libp2p/go-eventbus"
+	autonat "github.com/libp2p/go-libp2p-autonat"
 	inat "github.com/libp2p/go-libp2p-nat"
-	"github.com/libp2p/go-libp2p/p2p/protocol/identify"
-	"github.com/libp2p/go-libp2p/p2p/protocol/ping"
 	"github.com/libp2p/go-netroute"
 
 	logging "github.com/ipfs/go-log/v2"
@@ -70,15 +73,16 @@ type BasicHost struct {
 	// keep track of resources we need to wait on before shutting down
 	refCount sync.WaitGroup
 
-	network    network.Network
-	mux        *msmux.MultistreamMuxer
-	ids        *identify.IDService
-	hps        *holepunch.Service
-	pings      *ping.PingService
-	natmgr     NATManager
-	maResolver *madns.Resolver
-	cmgr       connmgr.ConnManager
-	eventbus   event.Bus
+	network      network.Network
+	mux          *msmux.MultistreamMuxer
+	ids          *identify.IDService
+	hps          *holepunch.Service
+	pings        *ping.PingService
+	natmgr       NATManager
+	maResolver   *madns.Resolver
+	cmgr         connmgr.ConnManager
+	eventbus     event.Bus
+	relayManager *relaysvc.RelayManager
 
 	AddrsFactory AddrsFactory
 
@@ -132,6 +136,11 @@ type HostOpts struct {
 
 	// EnablePing indicates whether to instantiate the ping service
 	EnablePing bool
+
+	// EnableRelayService enables the circuit v2 relay (if we're publicly reachable).
+	EnableRelayService bool
+	// RelayServiceOpts are options for the circuit v2 relay.
+	RelayServiceOpts []relayv2.Option
 
 	// UserAgent sets the user-agent for the host.
 	UserAgent string
@@ -243,6 +252,10 @@ func NewHost(n network.Network, opts *HostOpts) (*BasicHost, error) {
 	} else {
 		h.cmgr = opts.ConnManager
 		n.Notify(h.cmgr.Notifee())
+	}
+
+	if opts.EnableRelayService {
+		h.relayManager = relaysvc.NewRelayManager(h, opts.RelayServiceOpts...)
 	}
 
 	if opts.EnablePing {
@@ -1007,7 +1020,9 @@ func (h *BasicHost) Close() error {
 		if h.autoNat != nil {
 			h.autoNat.Close()
 		}
-
+		if h.relayManager != nil {
+			h.relayManager.Close()
+		}
 		if h.hps != nil {
 			h.hps.Close()
 		}

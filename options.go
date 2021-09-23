@@ -17,9 +17,10 @@ import (
 	"github.com/libp2p/go-libp2p-core/pnet"
 
 	"github.com/libp2p/go-libp2p/config"
-	autorelay "github.com/libp2p/go-libp2p/p2p/host/autorelay"
+	"github.com/libp2p/go-libp2p/p2p/host/autorelay"
 	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
-	holepunch "github.com/libp2p/go-libp2p/p2p/protocol/holepunch"
+	relayv2 "github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/relay"
+	"github.com/libp2p/go-libp2p/p2p/protocol/holepunch"
 
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
@@ -227,6 +228,16 @@ func DisableRelay() Option {
 	return func(cfg *Config) error {
 		cfg.RelayCustom = true
 		cfg.Relay = false
+		return nil
+	}
+}
+
+// EnableRelayService configures libp2p to run a circuit v2 relay,
+// if we dected that we're publicly reachable.
+func EnableRelayService(opts ...relayv2.Option) Option {
+	return func(cfg *Config) error {
+		cfg.EnableRelayService = true
+		cfg.RelayServiceOpts = opts
 		return nil
 	}
 }
