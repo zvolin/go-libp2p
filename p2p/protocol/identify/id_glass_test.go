@@ -36,9 +36,13 @@ func TestFastDisconnect(t *testing.T) {
 		}
 
 		// Kill the connection, and make sure we're completely disconnected.
-		s.Conn().Close()
 		assert.Eventually(t,
-			func() bool { return target.Network().Connectedness(s.Conn().RemotePeer()) != network.Connected },
+			func() bool {
+				for _, conn := range target.Network().ConnsToPeer(s.Conn().RemotePeer()) {
+					conn.Close()
+				}
+				return target.Network().Connectedness(s.Conn().RemotePeer()) != network.Connected
+			},
 			2*time.Second,
 			time.Millisecond,
 		)
@@ -60,7 +64,7 @@ func TestFastDisconnect(t *testing.T) {
 	defer source.Close()
 
 	// only connect to the first address, to make sure we only end up with one connection
-	require.NoError(t, source.Connect(ctx, peer.AddrInfo{ID: target.ID(), Addrs: target.Addrs()[:1]}))
+	require.NoError(t, source.Connect(ctx, peer.AddrInfo{ID: target.ID(), Addrs: target.Addrs()}))
 	s, err := source.NewStream(ctx, target.ID(), ID)
 	require.NoError(t, err)
 	select {
