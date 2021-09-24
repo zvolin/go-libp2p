@@ -87,8 +87,13 @@ func Reserve(ctx context.Context, h host.Host, ai peer.AddrInfo) (*Reservation, 
 
 	result := &Reservation{}
 	result.Expiration = time.Unix(int64(rsvp.GetExpire()), 0)
+	if result.Expiration.Before(time.Now()) {
+		return nil, fmt.Errorf("received reservation with expiration date in the past: %s", result.Expiration)
+	}
 
-	for _, ab := range rsvp.GetAddrs() {
+	addrs := rsvp.GetAddrs()
+	result.Addrs = make([]ma.Multiaddr, 0, len(addrs))
+	for _, ab := range addrs {
 		a, err := ma.NewMultiaddrBytes(ab)
 		if err != nil {
 			log.Warnf("ignoring unparsable relay address: %s", err)
@@ -108,7 +113,6 @@ func Reserve(ctx context.Context, h host.Host, ai peer.AddrInfo) (*Reservation, 
 		if !ok {
 			return nil, fmt.Errorf("unexpected voucher record type: %+T", rec)
 		}
-
 		result.Voucher = voucher
 	}
 
