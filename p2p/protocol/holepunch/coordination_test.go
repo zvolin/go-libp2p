@@ -104,8 +104,15 @@ func TestEndToEndSimConnect(t *testing.T) {
 	ensureDirectConn(t, h1, h2)
 	// ensure no hole-punching streams are open on either side
 	ensureNoHolePunchingStream(t, h1, h2)
-	events := tr.getEvents()
-	require.Len(t, events, 3)
+	var events []*holepunch.Event
+	require.Eventually(t,
+		func() bool {
+			events = tr.getEvents()
+			return len(events) == 3
+		},
+		time.Second,
+		10*time.Millisecond,
+	)
 	require.Equal(t, events[0].Type, holepunch.StartHolePunchEvtT)
 	require.Equal(t, events[1].Type, holepunch.HolePunchAttemptEvtT)
 	require.Equal(t, events[2].Type, holepunch.EndHolePunchEvtT)
