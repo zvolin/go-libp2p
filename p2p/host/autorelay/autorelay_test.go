@@ -1,4 +1,4 @@
-package relay_test
+package autorelay_test
 
 import (
 	"context"
@@ -9,8 +9,9 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p"
-	"github.com/libp2p/go-libp2p/p2p/host/relay"
+	"github.com/libp2p/go-libp2p/p2p/host/autorelay"
 	relayv1 "github.com/libp2p/go-libp2p/p2p/protocol/circuitv1/relay"
+	relayv2 "github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/relay"
 
 	"github.com/libp2p/go-libp2p-core/event"
 	"github.com/libp2p/go-libp2p-core/host"
@@ -27,8 +28,8 @@ import (
 
 // test specific parameters
 func init() {
-	relay.BootDelay = 1 * time.Second
-	relay.AdvertiseBootDelay = 100 * time.Millisecond
+	autorelay.BootDelay = 1 * time.Second
+	autorelay.AdvertiseBootDelay = 100 * time.Millisecond
 }
 
 // mock routing
@@ -118,6 +119,13 @@ func connect(t *testing.T, a, b host.Host) {
 func TestAutoRelay(t *testing.T) {
 	manet.Private4 = []*net.IPNet{}
 
+	t.Log("testing autorelay with circuitv1 relay")
+	testAutoRelay(t, false)
+	t.Log("testing autorelay with circuitv2 relay")
+	testAutoRelay(t, true)
+}
+
+func testAutoRelay(t *testing.T, useRelayv2 bool) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -133,26 +141,36 @@ func TestAutoRelay(t *testing.T) {
 	// this is the relay host
 	// announce dns addrs because filter out private addresses from relays,
 	// and we consider dns addresses "public".
-	relayHost, err := libp2p.New(libp2p.DisableRelay(), libp2p.AddrsFactory(func(addrs []ma.Multiaddr) []ma.Multiaddr {
-		for i, addr := range addrs {
-			saddr := addr.String()
-			if strings.HasPrefix(saddr, "/ip4/127.0.0.1/") {
-				addrNoIP := strings.TrimPrefix(saddr, "/ip4/127.0.0.1")
-				addrs[i] = ma.StringCast("/dns4/localhost" + addrNoIP)
+	relayHost, err := libp2p.New(
+		libp2p.DisableRelay(),
+		libp2p.AddrsFactory(func(addrs []ma.Multiaddr) []ma.Multiaddr {
+			for i, addr := range addrs {
+				saddr := addr.String()
+				if strings.HasPrefix(saddr, "/ip4/127.0.0.1/") {
+					addrNoIP := strings.TrimPrefix(saddr, "/ip4/127.0.0.1")
+					addrs[i] = ma.StringCast("/dns4/localhost" + addrNoIP)
+				}
 			}
-		}
-		return addrs
-	}))
+			return addrs
+		}))
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// instantiate the relay
-	r, err := relayv1.NewRelay(relayHost)
-	if err != nil {
-		t.Fatal(err)
+	if useRelayv2 {
+		r, err := relayv2.New(relayHost)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer r.Close()
+	} else {
+		r, err := relayv1.NewRelay(relayHost)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer r.Close()
 	}
-	defer r.Close()
 
 	// advertise the relay
 	relayRouting, err := makeRouting(relayHost)
@@ -160,7 +178,7 @@ func TestAutoRelay(t *testing.T) {
 		t.Fatal(err)
 	}
 	relayDiscovery := discovery.NewRoutingDiscovery(relayRouting)
-	relay.Advertise(ctx, relayDiscovery)
+	autorelay.Advertise(ctx, relayDiscovery)
 
 	// the client hosts
 	h1, err := libp2p.New(libp2p.EnableRelay())
