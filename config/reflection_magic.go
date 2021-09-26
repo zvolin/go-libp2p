@@ -81,7 +81,11 @@ func callConstructor(c reflect.Value, args []reflect.Value) (interface{}, error)
 type constructor func(h host.Host, u *tptu.Upgrader, cg connmgr.ConnectionGater) interface{}
 
 func makeArgumentConstructors(fnType reflect.Type, argTypes map[reflect.Type]constructor) ([]constructor, error) {
-	out := make([]constructor, fnType.NumIn())
+	params := fnType.NumIn()
+	if fnType.IsVariadic() {
+		params--
+	}
+	out := make([]constructor, params)
 	for i := range out {
 		argType := fnType.In(i)
 		c, ok := argTypes[argType]
