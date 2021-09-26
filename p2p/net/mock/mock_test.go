@@ -11,12 +11,12 @@ import (
 	"testing"
 	"time"
 
-	detectrace "github.com/ipfs/go-detect-race"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/libp2p/go-libp2p-testing/ci"
 	tnet "github.com/libp2p/go-libp2p-testing/net"
+	"github.com/libp2p/go-libp2p-testing/race"
 )
 
 func TestNetworkSetup(t *testing.T) {
@@ -358,7 +358,7 @@ func makePonger(t *testing.T, st string, errs chan<- error) func(network.Stream)
 func TestStreamsStress(t *testing.T) {
 	ctx := context.Background()
 	nnodes := 100
-	if detectrace.WithRace() {
+	if race.WithRace() {
 		nnodes = 30
 	}
 
@@ -594,7 +594,7 @@ func TestLimitedStreams(t *testing.T) {
 }
 func TestFuzzManyPeers(t *testing.T) {
 	peerCount := 500
-	if detectrace.WithRace() {
+	if race.WithRace() {
 		peerCount = 100
 	}
 	for i := 0; i < peerCount; i++ {
