@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"runtime"
@@ -102,6 +103,7 @@ func makeConstructor(
 	tpt interface{},
 	tptType reflect.Type,
 	argTypes map[reflect.Type]constructor,
+	opts ...interface{},
 ) (func(host.Host, *tptu.Upgrader, connmgr.ConnectionGater) (interface{}, error), error) {
 	v := reflect.ValueOf(tpt)
 	// avoid panicing on nil/zero value.
@@ -123,16 +125,23 @@ func makeConstructor(
 	}
 
 	return func(h host.Host, u *tptu.Upgrader, cg connmgr.ConnectionGater) (interface{}, error) {
-		arguments := make([]reflect.Value, len(argConstructors))
+		arguments := make([]reflect.Value, 0, len(argConstructors)+len(opts))
 		for i, makeArg := range argConstructors {
 			if arg := makeArg(h, u, cg); arg != nil {
-				arguments[i] = reflect.ValueOf(arg)
+				arguments = append(arguments, reflect.ValueOf(arg))
 			} else {
 				// ValueOf an un-typed nil yields a zero reflect
 				// value. However, we _want_ the zero value of
 				// the _type_.
-				arguments[i] = reflect.Zero(t.In(i))
+				arguments = append(arguments, reflect.Zero(t.In(i)))
 			}
+		}
+		for _, opt := range opts {
+			// don't panic on nil options
+			if opt == nil {
+				return nil, errors.New("expected a transport option, got nil")
+			}
+			arguments = append(arguments, reflect.ValueOf(opt))
 		}
 		return callConstructor(v, arguments)
 	}, nil
