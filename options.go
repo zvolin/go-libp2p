@@ -125,8 +125,8 @@ func Muxer(name string, tpt interface{}) Option {
 // * Public Key
 // * Address filter (filter.Filter)
 // * Peerstore
-func Transport(tpt interface{}) Option {
-	tptc, err := config.TransportConstructor(tpt)
+func Transport(tpt interface{}, opts ...interface{}) Option {
+	tptc, err := config.TransportConstructor(tpt, opts...)
 	err = traceError(err, 1)
 	return func(cfg *Config) error {
 		if err != nil {
