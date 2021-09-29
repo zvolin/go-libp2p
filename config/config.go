@@ -21,6 +21,7 @@ import (
 	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
 	routed "github.com/libp2p/go-libp2p/p2p/host/routed"
 	circuitv2 "github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/client"
+	relayv2 "github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/relay"
 	"github.com/libp2p/go-libp2p/p2p/protocol/holepunch"
 
 	autonat "github.com/libp2p/go-libp2p-autonat"
@@ -74,7 +75,10 @@ type Config struct {
 	PSK                pnet.PSK
 
 	RelayCustom bool
-	Relay       bool
+	Relay       bool // should the relay transport be used
+
+	EnableRelayService bool // should we run a circuitv2 relay (if publicly reachable)
+	RelayServiceOpts   []relayv2.Option
 
 	ListenAddrs     []ma.Multiaddr
 	AddrsFactory    bhost.AddrsFactory
@@ -196,6 +200,8 @@ func (cfg *Config) NewNode() (host.Host, error) {
 		MultiaddrResolver:   cfg.MultiaddrResolver,
 		EnableHolePunching:  cfg.EnableHolePunching,
 		HolePunchingOptions: cfg.HolePunchingOptions,
+		EnableRelayService:  cfg.EnableRelayService,
+		RelayServiceOpts:    cfg.RelayServiceOpts,
 	})
 	if err != nil {
 		swrm.Close()
