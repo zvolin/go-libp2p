@@ -28,8 +28,8 @@ func TestStBackpressureStreamWrite(t *testing.T) {
 	h2, err := bhost.NewHost(swarmt.GenSwarm(t), nil)
 	require.NoError(t, err)
 
-	// setup sender handler on 1
-	h1.SetStreamHandler(protocol.TestingID, func(s network.Stream) {
+	// setup sender handler on 2
+	h2.SetStreamHandler(protocol.TestingID, func(s network.Stream) {
 		defer s.Reset()
 		<-ctx.Done()
 	})
@@ -40,19 +40,16 @@ func TestStBackpressureStreamWrite(t *testing.T) {
 		t.Fatal("Failed to connect:", err)
 	}
 
-	// open a stream, from 2->1, this is our reader
-	s, err := h2.NewStream(ctx, h1.ID(), protocol.TestingID)
-	if err != nil {
-		t.Fatal(err)
-	}
+	// open a stream, from 1->2, this is our reader
+	s, err := h1.NewStream(ctx, h2.ID(), protocol.TestingID)
+	require.NoError(t, err)
 	defer s.Reset()
 
-	// If nobody is reading, we should eventually timeout.
+	// If nobody is reading, we should eventually time out.
 	require.NoError(t, s.SetWriteDeadline(time.Now().Add(100*time.Millisecond)))
 	data := make([]byte, 16*1024)
 	for i := 0; i < 5*1024; i++ { // write at most 100MiB
-		_, err := s.Write(data)
-		if err != nil {
+		if _, err := s.Write(data); err != nil {
 			require.True(t, os.IsTimeout(err), err)
 			return
 		}
