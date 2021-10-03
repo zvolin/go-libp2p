@@ -6,20 +6,23 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p"
-	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func setupMDNS(t *testing.T, notifee Notifee) (host.Host, *mdnsService) {
+func setupMDNS(t *testing.T, notifee Notifee) peer.ID {
 	t.Helper()
 	host, err := libp2p.New(libp2p.ListenAddrStrings("/ip4/127.0.0.1/tcp/0"))
 	require.NoError(t, err)
 	s := NewMdnsService(host, "")
 	s.RegisterNotifee(notifee)
-	return host, s
+	t.Cleanup(func() {
+		host.Close()
+		s.Close()
+	})
+	return host.ID()
 }
 
 type notif struct {
@@ -45,14 +48,13 @@ func (n *notif) GetPeers() []peer.AddrInfo {
 
 func TestSelfDiscovery(t *testing.T) {
 	notif := &notif{}
-	host, s := setupMDNS(t, notif)
-	defer s.Close()
+	hostID := setupMDNS(t, notif)
 	assert.Eventuallyf(
 		t,
 		func() bool {
 			var found bool
 			for _, info := range notif.GetPeers() {
-				if info.ID == host.ID() {
+				if info.ID == hostID {
 					found = true
 					break
 				}
@@ -73,10 +75,7 @@ func TestOtherDiscovery(t *testing.T) {
 	for i := 0; i < n; i++ {
 		notif := &notif{}
 		notifs[i] = notif
-		var s *mdnsService
-		host, s := setupMDNS(t, notif)
-		hostIDs[i] = host.ID()
-		defer s.Close()
+		hostIDs[i] = setupMDNS(t, notif)
 	}
 
 	containsAllHostIDs := func(ids []peer.ID) bool {
