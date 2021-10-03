@@ -273,6 +273,7 @@ func (ids *IDService) loop() {
 // Close shuts down the IDService
 func (ids *IDService) Close() error {
 	ids.ctxCancel()
+	ids.observedAddrs.Close()
 	ids.refCount.Wait()
 	return nil
 }
