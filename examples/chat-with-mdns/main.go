@@ -113,7 +113,7 @@ func main() {
 
 	fmt.Printf("\n[*] Your Multiaddress Is: /ip4/%s/tcp/%v/p2p/%s\n", cfg.listenHost, cfg.listenPort, host.ID().Pretty())
 
-	peerChan := initMDNS(ctx, host, cfg.RendezvousString)
+	peerChan := initMDNS(host, cfg.RendezvousString)
 
 	peer := <-peerChan // will block untill we discover a peer
 	fmt.Println("Found peer:", peer, ", connecting")
