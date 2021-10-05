@@ -109,7 +109,7 @@ func (hs *Service) initiateHolePunch(rp peer.ID) ([]ma.Multiaddr, time.Duration,
 	sCtx := network.WithNoDial(hpCtx, "hole-punch")
 	str, err := hs.host.NewStream(sCtx, rp, Protocol)
 	if err != nil {
-		return nil, 0, fmt.Errorf("failed to open hole-punching stream with peer %s: %w", rp, err)
+		return nil, 0, fmt.Errorf("failed to open hole-punching stream: %w", err)
 	}
 	defer str.Close()
 	str.SetDeadline(time.Now().Add(StreamTimeout))
@@ -174,7 +174,7 @@ func (hs *Service) beginDirectConnect(p peer.ID) error {
 // It first attempts a direct dial (if we have a public address of that peer), and then
 // coordinates a hole punch over the given relay connection.
 func (hs *Service) DirectConnect(p peer.ID) error {
-	log.Debugw("got inbound proxy conn from peer", p)
+	log.Debugw("got inbound proxy conn", "peer", p)
 	if err := hs.beginDirectConnect(p); err != nil {
 		return err
 	}
@@ -214,7 +214,7 @@ func (hs *Service) directConnect(rp peer.ID) error {
 				break
 			}
 			hs.tracer.DirectDialSuccessful(rp, dt)
-			log.Debugf("direct connection to peer %s successful, no need for a hole punch", rp.Pretty())
+			log.Debugw("direct connection to peer successful, no need for a hole punch", "peer", rp)
 			return nil
 		}
 	}
@@ -223,7 +223,7 @@ func (hs *Service) directConnect(rp peer.ID) error {
 	for i := 0; i < maxRetries; i++ {
 		addrs, rtt, err := hs.initiateHolePunch(rp)
 		if err != nil {
-			log.Debugw("hole punching failed to peer", rp, "error", err)
+			log.Debugw("hole punching failed", "peer", rp, "error", err)
 			hs.tracer.ProtocolError(rp, err)
 			return err
 		}
@@ -244,7 +244,7 @@ func (hs *Service) directConnect(rp peer.ID) error {
 			dt := time.Since(start)
 			hs.tracer.EndHolePunch(rp, dt, err)
 			if err == nil {
-				log.Debugw("hole punching with", rp, "successful after", dt)
+				log.Debugw("hole punching with successful", "peer", rp, "time", dt)
 				return nil
 			}
 		case <-hs.ctx.Done():
@@ -261,8 +261,7 @@ func (hs *Service) incomingHolePunch(s network.Stream) (rtt time.Duration, addrs
 		return 0, nil, fmt.Errorf("received hole punch stream: %s", s.Conn().RemoteMultiaddr())
 	}
 
-	log.Debugw("got hole punch request from peer", s.Conn().RemotePeer().Pretty())
-	_ = s.SetDeadline(time.Now().Add(StreamTimeout))
+	s.SetDeadline(time.Now().Add(StreamTimeout))
 	wr := protoio.NewDelimitedWriter(s)
 	rd := protoio.NewDelimitedReader(s, maxMsgSize)
 
@@ -275,6 +274,7 @@ func (hs *Service) incomingHolePunch(s network.Stream) (rtt time.Duration, addrs
 		return 0, nil, fmt.Errorf("expected CONNECT message from initiator but got %d", t)
 	}
 	obsDial := addrsFromBytes(msg.ObsAddrs)
+	log.Debugw("received hole punch request", "peer", s.Conn().RemotePeer(), "addrs", obsDial)
 
 	// Write CONNECT message
 	msg.Reset()
@@ -322,15 +322,15 @@ func (hs *Service) handleNewStream(s network.Stream) {
 		Addrs: addrs,
 	}
 	hs.tracer.StartHolePunch(rp, addrs, rtt)
-	log.Debugw("starting hole punch with", rp)
+	log.Debugw("starting hole punch", "peer", rp)
 	start := time.Now()
 	err = hs.holePunchConnect(pi, false)
 	dt := time.Since(start)
 	hs.tracer.EndHolePunch(rp, dt, err)
 	if err != nil {
-		log.Debugw("hole punching peer", rp, "failed after", dt, "error", err)
+		log.Debugw("hole punching failed", "peer", rp, "time", dt, "error", err)
 	} else {
-		log.Debugw("hole punching peer", rp, "succeeded after", dt)
+		log.Debugw("hole punching succeeded", "peer", rp, "time", dt)
 	}
 }
 
@@ -341,12 +341,12 @@ func (hs *Service) holePunchConnect(pi peer.AddrInfo, isClient bool) error {
 	defer cancel()
 
 	hs.tracer.HolePunchAttempt(pi.ID)
-	err := hs.host.Connect(dialCtx, pi)
-	if err == nil {
-		log.Debugw("hole punch with peer", pi.ID, "successful")
+	if err := hs.host.Connect(dialCtx, pi); err != nil {
+		log.Debugw("hole punch attempt with peer failed", "peer ID", pi.ID, "error", err)
+		return err
 	}
-	log.Debugw("hole punch attempt with peer", pi.ID, "failed:", err)
-	return err
+	log.Debugw("hole punch successful", "peer", pi.ID)
+	return nil
 }
 
 func isRelayAddress(a ma.Multiaddr) bool {
