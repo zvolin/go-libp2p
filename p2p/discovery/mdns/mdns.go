@@ -26,9 +26,8 @@ const (
 var log = logging.Logger("mdns")
 
 type Service interface {
+	Start() error
 	io.Closer
-	RegisterNotifee(Notifee)
-	UnregisterNotifee(Notifee)
 }
 
 type Notifee interface {
@@ -40,28 +39,34 @@ type mdnsService struct {
 	serviceName string
 
 	// The context is canceled when Close() is called.
+	ctx       context.Context
 	ctxCancel context.CancelFunc
 
 	resolverWG sync.WaitGroup
 	server     *zeroconf.Server
 
-	mutex    sync.Mutex
-	notifees []Notifee
+	notifee Notifee
 }
 
-func NewMdnsService(host host.Host, serviceName string) *mdnsService {
-	ctx, cancel := context.WithCancel(context.Background())
+func NewMdnsService(host host.Host, serviceName string, notifee Notifee) *mdnsService {
 	if serviceName == "" {
 		serviceName = ServiceName
 	}
 	s := &mdnsService{
-		ctxCancel:   cancel,
 		host:        host,
 		serviceName: serviceName,
+		notifee:     notifee,
 	}
-	s.startServer()
-	s.startResolver(ctx)
+	s.ctx, s.ctxCancel = context.WithCancel(context.Background())
 	return s
+}
+
+func (s *mdnsService) Start() error {
+	if err := s.startServer(); err != nil {
+		return err
+	}
+	s.startResolver(s.ctx)
+	return nil
 }
 
 func (s *mdnsService) Close() error {
@@ -176,13 +181,9 @@ func (s *mdnsService) startResolver(ctx context.Context) {
 				log.Debugf("failed to get peer info: %s", err)
 				continue
 			}
-			s.mutex.Lock()
 			for _, info := range infos {
-				for _, notif := range s.notifees {
-					go notif.HandlePeerFound(info)
-				}
+				go s.notifee.HandlePeerFound(info)
 			}
-			s.mutex.Unlock()
 		}
 	}()
 	go func() {
@@ -191,26 +192,4 @@ func (s *mdnsService) startResolver(ctx context.Context) {
 			log.Debugf("zeroconf browsing failed: %s", err)
 		}
 	}()
-}
-
-func (s *mdnsService) RegisterNotifee(n Notifee) {
-	s.mutex.Lock()
-	s.notifees = append(s.notifees, n)
-	s.mutex.Unlock()
-}
-
-func (s *mdnsService) UnregisterNotifee(n Notifee) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-
-	found := -1
-	for i, notif := range s.notifees {
-		if notif == n {
-			found = i
-			break
-		}
-	}
-	if found != -1 {
-		s.notifees = append(s.notifees[:found], s.notifees[found+1:]...)
-	}
 }

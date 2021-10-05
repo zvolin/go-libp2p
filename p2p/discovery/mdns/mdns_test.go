@@ -16,8 +16,8 @@ func setupMDNS(t *testing.T, notifee Notifee) peer.ID {
 	t.Helper()
 	host, err := libp2p.New(libp2p.ListenAddrStrings("/ip4/127.0.0.1/tcp/0"))
 	require.NoError(t, err)
-	s := NewMdnsService(host, "")
-	s.RegisterNotifee(notifee)
+	s := NewMdnsService(host, "", notifee)
+	require.NoError(t, s.Start())
 	t.Cleanup(func() {
 		host.Close()
 		s.Close()
