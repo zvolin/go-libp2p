@@ -100,9 +100,11 @@ func main() {
 		fmt.Println("Connected to", targetInfo.ID)
 	}
 
-	mdns := mdns.NewMdnsService(host, "")
 	notifee := &discoveryNotifee{h: host, ctx: ctx}
-	mdns.RegisterNotifee(notifee)
+	mdns := mdns.NewMdnsService(host, "", notifee)
+	if err := mdns.Start(); err != nil {
+		panic(err)
+	}
 
 	err = dht.Bootstrap(ctx)
 	if err != nil {
