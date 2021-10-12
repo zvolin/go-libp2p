@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"math/rand"
 	"net"
 	"strings"
 	"sync"
@@ -37,6 +38,7 @@ type Notifee interface {
 type mdnsService struct {
 	host        host.Host
 	serviceName string
+	peerName    string
 
 	// The context is canceled when Close() is called.
 	ctx       context.Context
@@ -55,6 +57,7 @@ func NewMdnsService(host host.Host, serviceName string, notifee Notifee) *mdnsSe
 	s := &mdnsService{
 		host:        host,
 		serviceName: serviceName,
+		peerName:    randomString(32 + rand.Intn(32)), // generate a random string between 32 and 63 characters long
 		notifee:     notifee,
 	}
 	s.ctx, s.ctxCancel = context.WithCancel(context.Background())
@@ -110,10 +113,6 @@ func (s *mdnsService) getIPs(addrs []ma.Multiaddr) ([]string, error) {
 	return ips, nil
 }
 
-func (s *mdnsService) mdnsInstance() string {
-	return string(s.host.ID())
-}
-
 func (s *mdnsService) startServer() error {
 	interfaceAddrs, err := s.host.Network().InterfaceListenAddresses()
 	if err != nil {
@@ -139,11 +138,11 @@ func (s *mdnsService) startServer() error {
 	}
 
 	server, err := zeroconf.RegisterProxy(
-		s.mdnsInstance(),
+		s.peerName,
 		s.serviceName,
 		mdnsDomain,
-		4001,                 // we have to pass in a port number here, but libp2p only uses the TXT records
-		s.host.ID().Pretty(), // TODO: deals with peer IDs longer than 63 characters
+		4001, // we have to pass in a port number here, but libp2p only uses the TXT records
+		s.peerName,
 		ips,
 		txts,
 		nil,
@@ -192,4 +191,13 @@ func (s *mdnsService) startResolver(ctx context.Context) {
 			log.Debugf("zeroconf browsing failed: %s", err)
 		}
 	}()
+}
+
+func randomString(l int) string {
+	const alphabet = "abcdefghijklmnopqrstuvwxyz0123456789"
+	s := make([]byte, 0, l)
+	for i := 0; i < l; i++ {
+		s = append(s, alphabet[rand.Intn(len(alphabet))])
+	}
+	return string(s)
 }
