@@ -1,4 +1,4 @@
-package test
+package relay_test
 
 import (
 	"bytes"
@@ -18,7 +18,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 
-	logging "github.com/ipfs/go-log/v2"
 	bhost "github.com/libp2p/go-libp2p-blankhost"
 	"github.com/libp2p/go-libp2p-core/metrics"
 	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
@@ -28,12 +27,6 @@ import (
 	"github.com/libp2p/go-tcp-transport"
 	ma "github.com/multiformats/go-multiaddr"
 )
-
-func init() {
-	// TODO temporary for debugging purposes; to be removed for merge.
-	logging.SetLogLevel("relay", "DEBUG")
-	logging.SetLogLevel("p2p-circuit", "DEBUG")
-}
 
 func getNetHosts(t *testing.T, ctx context.Context, n int) (hosts []host.Host, upgraders []*tptu.Upgrader) {
 	for i := 0; i < n; i++ {

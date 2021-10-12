@@ -139,7 +139,7 @@ func (r *Relay) handleReserve(s network.Stream) {
 	p := s.Conn().RemotePeer()
 	a := s.Conn().RemoteMultiaddr()
 
-	if util.IsRelayAddr(a) {
+	if isRelayAddr(a) {
 		log.Debugf("refusing relay reservation for %s; reservation attempt over relay connection")
 		r.handleError(s, pbv2.Status_PERMISSION_DENIED)
 		return
@@ -184,7 +184,7 @@ func (r *Relay) handleConnect(s network.Stream, msg *pbv2.HopMessage) {
 	src := s.Conn().RemotePeer()
 	a := s.Conn().RemoteMultiaddr()
 
-	if util.IsRelayAddr(a) {
+	if isRelayAddr(a) {
 		log.Debugf("refusing connection from %s; connection attempt over relay connection")
 		r.handleError(s, pbv2.Status_PERMISSION_DENIED)
 		return
@@ -530,4 +530,9 @@ func (r *Relay) disconnected(n network.Network, c network.Conn) {
 	defer r.mx.Unlock()
 
 	delete(r.rsvp, p)
+}
+
+func isRelayAddr(a ma.Multiaddr) bool {
+	_, err := a.ValueForProtocol(ma.P_CIRCUIT)
+	return err == nil
 }

@@ -1,4 +1,4 @@
-package test
+package relay_test
 
 import (
 	"bytes"
