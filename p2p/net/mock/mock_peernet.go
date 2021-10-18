@@ -32,7 +32,6 @@ type peernet struct {
 
 	// implement network.Network
 	streamHandler network.StreamHandler
-	connHandler   network.ConnHandler
 
 	notifmu sync.Mutex
 	notifs  map[network.Notifiee]struct{}
@@ -43,7 +42,6 @@ type peernet struct {
 
 // newPeernet constructs a new peernet
 func newPeernet(ctx context.Context, m *mocknet, p peer.ID, ps peerstore.Peerstore) (*peernet, error) {
-
 	n := &peernet{
 		mocknet: m,
 		peer:    p,
@@ -101,16 +99,6 @@ func (pn *peernet) handleNewStream(s network.Stream) {
 	pn.RUnlock()
 	if handler != nil {
 		go handler(s)
-	}
-}
-
-// handleNewConn is an internal function to trigger the client's handler
-func (pn *peernet) handleNewConn(c network.Conn) {
-	pn.RLock()
-	handler := pn.connHandler
-	pn.RUnlock()
-	if handler != nil {
-		go handler(c)
 	}
 }
 
@@ -205,7 +193,6 @@ func addConnPair(pn1, pn2 *peernet, c1, c2 *conn) {
 func (pn *peernet) remoteOpenedConn(c *conn) {
 	log.Debugf("%s accepting connection from %s", pn.LocalPeer(), c.RemotePeer())
 	pn.addConn(c)
-	pn.handleNewConn(c)
 }
 
 // addConn constructs and adds a connection
@@ -367,14 +354,6 @@ func (pn *peernet) NewStream(ctx context.Context, p peer.ID) (network.Stream, er
 func (pn *peernet) SetStreamHandler(h network.StreamHandler) {
 	pn.Lock()
 	pn.streamHandler = h
-	pn.Unlock()
-}
-
-// SetConnHandler sets the new conn handler on the Network.
-// This operation is threadsafe.
-func (pn *peernet) SetConnHandler(h network.ConnHandler) {
-	pn.Lock()
-	pn.connHandler = h
 	pn.Unlock()
 }
 

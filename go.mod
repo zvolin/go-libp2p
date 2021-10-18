@@ -23,7 +23,7 @@ require (
 	github.com/libp2p/go-libp2p-autonat v0.5.0
 	github.com/libp2p/go-libp2p-blankhost v0.2.0
 	github.com/libp2p/go-libp2p-circuit v0.4.0
-	github.com/libp2p/go-libp2p-core v0.10.0
+	github.com/libp2p/go-libp2p-core v0.11.0
 	github.com/libp2p/go-libp2p-discovery v0.5.1
 	github.com/libp2p/go-libp2p-mplex v0.4.1
 	github.com/libp2p/go-libp2p-nat v0.1.0
@@ -31,7 +31,7 @@ require (
 	github.com/libp2p/go-libp2p-noise v0.3.0
 	github.com/libp2p/go-libp2p-peerstore v0.2.8
 	github.com/libp2p/go-libp2p-quic-transport v0.13.0
-	github.com/libp2p/go-libp2p-swarm v0.6.0
+	github.com/libp2p/go-libp2p-swarm v0.7.0
 	github.com/libp2p/go-libp2p-testing v0.5.0
 	github.com/libp2p/go-libp2p-tls v0.3.0
 	github.com/libp2p/go-libp2p-transport-upgrader v0.5.0
@@ -39,7 +39,7 @@ require (
 	github.com/libp2p/go-msgio v0.0.6
 	github.com/libp2p/go-netroute v0.1.6
 	github.com/libp2p/go-stream-muxer-multistream v0.3.0
-	github.com/libp2p/go-tcp-transport v0.3.0
+	github.com/libp2p/go-tcp-transport v0.4.0
 	github.com/libp2p/go-ws-transport v0.5.0
 	github.com/libp2p/zeroconf/v2 v2.1.1
 	github.com/multiformats/go-multiaddr v0.4.0
