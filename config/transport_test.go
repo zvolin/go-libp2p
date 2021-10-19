@@ -32,7 +32,7 @@ func TestConstructorWithOptsTypeMismatch(t *testing.T) {
 
 func TestConstructorWithOpts(t *testing.T) {
 	var options []int
-	c, err := TransportConstructor(func(_ *tptu.Upgrader, opts ...int) transport.Transport {
+	c, err := TransportConstructor(func(_ *tptu.Upgrader, opts ...int) (transport.Transport, error) {
 		options = opts
 		return tcp.NewTCPTransport(nil)
 	}, 42, 1337)

@@ -46,12 +46,12 @@ func TestTransportConstructor(t *testing.T) {
 		_ connmgr.ConnectionGater,
 		upgrader *tptu.Upgrader,
 	) transport.Transport {
-		return tcp.NewTCPTransport(upgrader)
+		tpt, err := tcp.NewTCPTransport(upgrader)
+		require.NoError(t, err)
+		return tpt
 	}
 	h, err := New(Transport(ctor))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	h.Close()
 }
 
