@@ -56,6 +56,8 @@ type Service struct {
 	closed   bool
 	refCount sync.WaitGroup
 
+	hasPublicAddrsChan chan struct{} // this chan is closed as soon as we have a public address
+
 	// active hole punches for deduplicating
 	activeMx sync.Mutex
 	active   map[peer.ID]struct{}
@@ -71,11 +73,12 @@ func NewService(h host.Host, ids identify.IDService, opts ...Option) (*Service, 
 
 	ctx, cancel := context.WithCancel(context.Background())
 	hs := &Service{
-		ctx:       ctx,
-		ctxCancel: cancel,
-		host:      h,
-		ids:       ids,
-		active:    make(map[peer.ID]struct{}),
+		ctx:                ctx,
+		ctxCancel:          cancel,
+		host:               h,
+		ids:                ids,
+		active:             make(map[peer.ID]struct{}),
+		hasPublicAddrsChan: make(chan struct{}),
 	}
 
 	for _, opt := range opts {
@@ -85,9 +88,45 @@ func NewService(h host.Host, ids identify.IDService, opts ...Option) (*Service, 
 		}
 	}
 
-	h.SetStreamHandler(Protocol, hs.handleNewStream)
+	hs.refCount.Add(1)
+	go hs.watchForPublicAddr()
+
 	h.Network().Notify((*netNotifiee)(hs))
 	return hs, nil
+}
+
+func (hs *Service) watchForPublicAddr() {
+	defer hs.refCount.Done()
+
+	log.Debug("waiting until we have at least one public address", "peer", hs.host.ID())
+
+	// TODO: We should have an event here that fires when identify discovers a new
+	// address (and when autonat confirms that address).
+	// As we currently don't have an event like this, just check our observed addresses
+	// regularly (exponential backoff starting at 250 ms, capped at 5s).
+	duration := 250 * time.Millisecond
+	const maxDuration = 5 * time.Second
+	t := time.NewTimer(duration)
+	defer t.Stop()
+	for {
+		if containsPublicAddr(hs.ids.OwnObservedAddrs()) {
+			log.Debug("Host now has a public address. Starting holepunch protocol.")
+			hs.host.SetStreamHandler(Protocol, hs.handleNewStream)
+			close(hs.hasPublicAddrsChan)
+			return
+		}
+
+		select {
+		case <-hs.ctx.Done():
+			return
+		case <-t.C:
+			duration *= 2
+			if duration > maxDuration {
+				duration = maxDuration
+			}
+			t.Reset(duration)
+		}
+	}
 }
 
 // Close closes the Hole Punch Service.
@@ -176,7 +215,6 @@ func (hs *Service) beginDirectConnect(p peer.ID) error {
 // It first attempts a direct dial (if we have a public address of that peer), and then
 // coordinates a hole punch over the given relay connection.
 func (hs *Service) DirectConnect(p peer.ID) error {
-	log.Debugw("got inbound proxy conn", "peer", p)
 	if err := hs.beginDirectConnect(p); err != nil {
 		return err
 	}
@@ -221,8 +259,16 @@ func (hs *Service) directConnect(rp peer.ID) error {
 		}
 	}
 
-	if len(hs.ids.OwnObservedAddrs()) == 0 {
+	log.Debugw("got inbound proxy conn", "peer", rp)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	select {
+	case <-hs.ctx.Done():
+		return hs.ctx.Err()
+	case <-ctx.Done():
+		log.Debug("didn't find any public host address")
 		return errors.New("can't initiate hole punch, as we don't have any public addresses")
+	case <-hs.hasPublicAddrsChan:
 	}
 
 	// hole punch
@@ -341,11 +387,6 @@ func (hs *Service) handleNewStream(s network.Stream) {
 	err = hs.holePunchConnect(pi, false)
 	dt := time.Since(start)
 	hs.tracer.EndHolePunch(rp, dt, err)
-	if err != nil {
-		log.Debugw("hole punching failed", "peer", rp, "time", dt, "error", err)
-	} else {
-		log.Debugw("hole punching succeeded", "peer", rp, "time", dt)
-	}
 }
 
 func (hs *Service) holePunchConnect(pi peer.AddrInfo, isClient bool) error {
@@ -361,6 +402,16 @@ func (hs *Service) holePunchConnect(pi peer.AddrInfo, isClient bool) error {
 	}
 	log.Debugw("hole punch successful", "peer", pi.ID)
 	return nil
+}
+
+func containsPublicAddr(addrs []ma.Multiaddr) bool {
+	for _, addr := range addrs {
+		if isRelayAddress(addr) || !manet.IsPublicAddr(addr) {
+			continue
+		}
+		return true
+	}
+	return false
 }
 
 func removeRelayAddrs(addrs []ma.Multiaddr) []ma.Multiaddr {
@@ -414,6 +465,7 @@ func (nn *netNotifiee) Connected(_ network.Network, conn network.Conn) {
 			// that we can dial to for a hole punch.
 			case <-hs.ids.IdentifyWait(conn):
 			case <-hs.ctx.Done():
+				return
 			}
 
 			_ = hs.DirectConnect(conn.RemotePeer())

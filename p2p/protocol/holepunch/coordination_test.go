@@ -47,6 +47,22 @@ func (m *mockEventTracer) getEvents() []*holepunch.Event {
 
 var _ holepunch.EventTracer = &mockEventTracer{}
 
+type mockIDService struct {
+	identify.IDService
+}
+
+var _ identify.IDService = &mockIDService{}
+
+func newMockIDService(t *testing.T, h host.Host) identify.IDService {
+	ids, err := identify.NewIDService(h)
+	require.NoError(t, err)
+	return &mockIDService{IDService: ids}
+}
+
+func (s *mockIDService) OwnObservedAddrs() []ma.Multiaddr {
+	return append(s.IDService.OwnObservedAddrs(), ma.StringCast("/ip4/1.1.1.1/tcp/1234"))
+}
+
 func TestNoHolePunchIfDirectConnExists(t *testing.T) {
 	tr := &mockEventTracer{}
 	h1, hps := mkHostWithHolePunchSvc(t, holepunch.WithTracer(tr))
@@ -95,7 +111,7 @@ func TestDirectDialWorks(t *testing.T) {
 
 func TestEndToEndSimConnect(t *testing.T) {
 	tr := &mockEventTracer{}
-	h1, h2, relay, _ := makeRelayedHosts(t, holepunch.WithTracer(tr), true)
+	h1, h2, relay, _ := makeRelayedHosts(t, nil, holepunch.WithTracer(tr), true)
 	defer h1.Close()
 	defer h2.Close()
 	defer relay.Close()
@@ -158,11 +174,11 @@ func TestFailuresOnInitiator(t *testing.T) {
 			}
 
 			tr := &mockEventTracer{}
-			h1, h2, relay, _ := makeRelayedHosts(t, holepunch.WithTracer(tr), false)
+			h1, h2, relay, _ := makeRelayedHosts(t, nil, nil, false)
 			defer h1.Close()
 			defer h2.Close()
 			defer relay.Close()
-			hps := addHolePunchService(t, h2)
+			hps := addHolePunchService(t, h2, holepunch.WithTracer(tr))
 
 			if tc.rhandler != nil {
 				h1.SetStreamHandler(holepunch.Protocol, tc.rhandler)
@@ -180,6 +196,14 @@ func TestFailuresOnInitiator(t *testing.T) {
 	}
 }
 
+func addrsToBytes(as []ma.Multiaddr) [][]byte {
+	bzs := make([][]byte, 0, len(as))
+	for _, a := range as {
+		bzs = append(bzs, a.Bytes())
+	}
+	return bzs
+}
+
 func TestFailuresOnResponder(t *testing.T) {
 	tcs := map[string]struct {
 		initiator        func(s network.Stream)
@@ -192,10 +216,13 @@ func TestFailuresOnResponder(t *testing.T) {
 			},
 			errMsg: "expected CONNECT message",
 		},
-		"initiator does NOT send a SYNC message after a Connect message": {
+		"initiator does NOT send a SYNC message after a CONNECT message": {
 			initiator: func(s network.Stream) {
 				w := protoio.NewDelimitedWriter(s)
-				w.WriteMsg(&holepunch_pb.HolePunch{Type: holepunch_pb.HolePunch_CONNECT.Enum()})
+				w.WriteMsg(&holepunch_pb.HolePunch{
+					Type:     holepunch_pb.HolePunch_CONNECT.Enum(),
+					ObsAddrs: addrsToBytes([]ma.Multiaddr{ma.StringCast("/ip4/127.0.0.1/tcp/1234")}),
+				})
 				w.WriteMsg(&holepunch_pb.HolePunch{Type: holepunch_pb.HolePunch_CONNECT.Enum()})
 			},
 			errMsg: "expected SYNC message",
@@ -203,10 +230,21 @@ func TestFailuresOnResponder(t *testing.T) {
 		"initiator does NOT reply within hole punch deadline": {
 			holePunchTimeout: 10 * time.Millisecond,
 			initiator: func(s network.Stream) {
-				protoio.NewDelimitedWriter(s).WriteMsg(&holepunch_pb.HolePunch{Type: holepunch_pb.HolePunch_CONNECT.Enum()})
+				protoio.NewDelimitedWriter(s).WriteMsg(&holepunch_pb.HolePunch{
+					Type:     holepunch_pb.HolePunch_CONNECT.Enum(),
+					ObsAddrs: addrsToBytes([]ma.Multiaddr{ma.StringCast("/ip4/127.0.0.1/tcp/1234")}),
+				})
 				time.Sleep(10 * time.Second)
 			},
 			errMsg: "i/o deadline reached",
+		},
+		"initiator does NOT send any addresses in CONNECT": {
+			holePunchTimeout: 10 * time.Millisecond,
+			initiator: func(s network.Stream) {
+				protoio.NewDelimitedWriter(s).WriteMsg(&holepunch_pb.HolePunch{Type: holepunch_pb.HolePunch_CONNECT.Enum()})
+				time.Sleep(10 * time.Second)
+			},
+			errMsg: "expected CONNECT message to contain at least one address",
 		},
 	}
 
@@ -219,7 +257,7 @@ func TestFailuresOnResponder(t *testing.T) {
 			}
 
 			tr := &mockEventTracer{}
-			h1, h2, relay, _ := makeRelayedHosts(t, holepunch.WithTracer(tr), false)
+			h1, h2, relay, _ := makeRelayedHosts(t, holepunch.WithTracer(tr), nil, false)
 			defer h1.Close()
 			defer h2.Close()
 			defer relay.Close()
@@ -293,7 +331,7 @@ func ensureDirectConn(t *testing.T, h1, h2 host.Host) {
 	}, 5*time.Second, 50*time.Millisecond)
 }
 
-func mkHostWithStaticAutoRelay(t *testing.T, ctx context.Context, relay host.Host) host.Host {
+func mkHostWithStaticAutoRelay(t *testing.T, relay host.Host) host.Host {
 	if race.WithRace() {
 		t.Skip("modifying manet.Private4 is racy")
 	}
@@ -327,9 +365,13 @@ func mkHostWithStaticAutoRelay(t *testing.T, ctx context.Context, relay host.Hos
 	return h
 }
 
-func makeRelayedHosts(t *testing.T, h1Opt holepunch.Option, addHolePuncher bool) (h1, h2, relay host.Host, hps *holepunch.Service) {
+func makeRelayedHosts(t *testing.T, h1opt, h2opt holepunch.Option, addHolePuncher bool) (h1, h2, relay host.Host, hps *holepunch.Service) {
 	t.Helper()
-	h1, _ = mkHostWithHolePunchSvc(t, h1Opt)
+	var h1opts []holepunch.Option
+	if h1opt != nil {
+		h1opts = append(h1opts, h1opt)
+	}
+	h1, _ = mkHostWithHolePunchSvc(t, h1opts...)
 	var err error
 	relay, err = libp2p.New(libp2p.ListenAddrs(ma.StringCast("/ip4/127.0.0.1/tcp/0")), libp2p.DisableRelay())
 	require.NoError(t, err)
@@ -337,9 +379,9 @@ func makeRelayedHosts(t *testing.T, h1Opt holepunch.Option, addHolePuncher bool)
 	_, err = relayv1.NewRelay(relay)
 	require.NoError(t, err)
 
-	h2 = mkHostWithStaticAutoRelay(t, context.Background(), relay)
+	h2 = mkHostWithStaticAutoRelay(t, relay)
 	if addHolePuncher {
-		hps = addHolePunchService(t, h2)
+		hps = addHolePunchService(t, h2, h2opt)
 	}
 
 	// h1 has a relay addr
@@ -359,11 +401,13 @@ func makeRelayedHosts(t *testing.T, h1Opt holepunch.Option, addHolePuncher bool)
 	return
 }
 
-func addHolePunchService(t *testing.T, h host.Host) *holepunch.Service {
+func addHolePunchService(t *testing.T, h host.Host, opt holepunch.Option) *holepunch.Service {
 	t.Helper()
-	ids, err := identify.NewIDService(h)
-	require.NoError(t, err)
-	hps, err := holepunch.NewService(h, ids)
+	var opts []holepunch.Option
+	if opt != nil {
+		opts = append(opts, opt)
+	}
+	hps, err := holepunch.NewService(h, newMockIDService(t, h), opts...)
 	require.NoError(t, err)
 	return hps
 }
@@ -372,9 +416,7 @@ func mkHostWithHolePunchSvc(t *testing.T, opts ...holepunch.Option) (host.Host, 
 	t.Helper()
 	h, err := libp2p.New(libp2p.ListenAddrs(ma.StringCast("/ip4/127.0.0.1/tcp/0"), ma.StringCast("/ip6/::1/tcp/0")))
 	require.NoError(t, err)
-	ids, err := identify.NewIDService(h)
-	require.NoError(t, err)
-	hps, err := holepunch.NewService(h, ids, opts...)
+	hps, err := holepunch.NewService(h, newMockIDService(t, h), opts...)
 	require.NoError(t, err)
 	return h, hps
 }
