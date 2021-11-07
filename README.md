@@ -16,7 +16,6 @@
 
 - [Background](#background)
 - [Usage](#usage)
-  - [API](#api)
   - [Examples](#examples)
 - [Development](#development)
   - [Using the go-libp2p Workspace](#using-the-go-libp2p-workspace)
