@@ -81,7 +81,7 @@ func subtestIDService(t *testing.T) {
 
 	ids1.IdentifyConn(h1t2c[0])
 
-	// the IDService should be opened automatically, by the network.
+	// the idService should be opened automatically, by the network.
 	// what we should see now is that both peers know about each others listen addresses.
 	t.Log("test peer1 has peer2 addrs correctly")
 	testKnowsAddrs(t, h1, h2p, h2.Addrs())                       // has them
@@ -857,7 +857,7 @@ func TestLargeIdentifyMessage(t *testing.T) {
 
 	ids1.IdentifyConn(h1t2c[0])
 
-	// the IDService should be opened automatically, by the network.
+	// the idService should be opened automatically, by the network.
 	// what we should see now is that both peers know about each others listen addresses.
 	t.Log("test peer1 has peer2 addrs correctly")
 	testKnowsAddrs(t, h1, h2p, h2.Addrs())                       // has them

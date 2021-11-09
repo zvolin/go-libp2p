@@ -75,7 +75,7 @@ type BasicHost struct {
 
 	network      network.Network
 	mux          *msmux.MultistreamMuxer
-	ids          *identify.IDService
+	ids          identify.IDService
 	hps          *holepunch.Service
 	pings        *ping.PingService
 	natmgr       NATManager
@@ -542,7 +542,7 @@ func (h *BasicHost) Mux() protocol.Switch {
 }
 
 // IDService returns
-func (h *BasicHost) IDService() *identify.IDService {
+func (h *BasicHost) IDService() identify.IDService {
 	return h.ids
 }
 

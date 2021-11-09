@@ -73,15 +73,33 @@ type rmPeerHandlerReq struct {
 	p peer.ID
 }
 
-// IDService is a structure that implements ProtocolIdentify.
+type IDService interface {
+	// IdentifyConn synchronously triggers an identify request on the connection and
+	// waits for it to complete. If the connection is being identified by another
+	// caller, this call will wait. If the connection has already been identified,
+	// it will return immediately.
+	IdentifyConn(network.Conn)
+	// IdentifyWait triggers an identify (if the connection has not already been
+	// identified) and returns a channel that is closed when the identify protocol
+	// completes.
+	IdentifyWait(network.Conn) <-chan struct{}
+	// OwnObservedAddrs returns the addresses peers have reported we've dialed from
+	OwnObservedAddrs() []ma.Multiaddr
+	// ObservedAddrsFor returns the addresses peers have reported we've dialed from,
+	// for a specific local address.
+	ObservedAddrsFor(local ma.Multiaddr) []ma.Multiaddr
+	io.Closer
+}
+
+// idService is a structure that implements ProtocolIdentify.
 // It is a trivial service that gives the other peer some
 // useful information about the local peer. A sort of hello.
 //
-// The IDService sends:
+// The idService sends:
 //  * Our IPFS Protocol Version
 //  * Our IPFS Agent Version
 //  * Our public Listen Addresses
-type IDService struct {
+type idService struct {
 	Host      host.Host
 	UserAgent string
 
@@ -111,9 +129,9 @@ type IDService struct {
 	rmPeerHandlerCh  chan rmPeerHandlerReq
 }
 
-// NewIDService constructs a new *IDService and activates it by
+// NewIDService constructs a new *idService and activates it by
 // attaching its stream handler to the given host.Host.
-func NewIDService(h host.Host, opts ...Option) (*IDService, error) {
+func NewIDService(h host.Host, opts ...Option) (*idService, error) {
 	var cfg config
 	for _, opt := range opts {
 		opt(&cfg)
@@ -124,7 +142,7 @@ func NewIDService(h host.Host, opts ...Option) (*IDService, error) {
 		userAgent = cfg.userAgent
 	}
 
-	s := &IDService{
+	s := &idService{
 		Host:      h,
 		UserAgent: userAgent,
 
@@ -171,7 +189,7 @@ func NewIDService(h host.Host, opts ...Option) (*IDService, error) {
 	return s, nil
 }
 
-func (ids *IDService) loop() {
+func (ids *idService) loop() {
 	defer ids.refCount.Done()
 
 	phs := make(map[peer.ID]*peerHandler)
@@ -270,35 +288,27 @@ func (ids *IDService) loop() {
 	}
 }
 
-// Close shuts down the IDService
-func (ids *IDService) Close() error {
+// Close shuts down the idService
+func (ids *idService) Close() error {
 	ids.ctxCancel()
 	ids.observedAddrs.Close()
 	ids.refCount.Wait()
 	return nil
 }
 
-// OwnObservedAddrs returns the addresses peers have reported we've dialed from
-func (ids *IDService) OwnObservedAddrs() []ma.Multiaddr {
+func (ids *idService) OwnObservedAddrs() []ma.Multiaddr {
 	return ids.observedAddrs.Addrs()
 }
 
-func (ids *IDService) ObservedAddrsFor(local ma.Multiaddr) []ma.Multiaddr {
+func (ids *idService) ObservedAddrsFor(local ma.Multiaddr) []ma.Multiaddr {
 	return ids.observedAddrs.AddrsFor(local)
 }
 
-// IdentifyConn synchronously triggers an identify request on the connection and
-// waits for it to complete. If the connection is being identified by another
-// caller, this call will wait. If the connection has already been identified,
-// it will return immediately.
-func (ids *IDService) IdentifyConn(c network.Conn) {
+func (ids *idService) IdentifyConn(c network.Conn) {
 	<-ids.IdentifyWait(c)
 }
 
-// IdentifyWait triggers an identify (if the connection has not already been
-// identified) and returns a channel that is closed when the identify protocol
-// completes.
-func (ids *IDService) IdentifyWait(c network.Conn) <-chan struct{} {
+func (ids *idService) IdentifyWait(c network.Conn) <-chan struct{} {
 	ids.connsMu.RLock()
 	wait, found := ids.conns[c]
 	ids.connsMu.RUnlock()
@@ -325,13 +335,13 @@ func (ids *IDService) IdentifyWait(c network.Conn) <-chan struct{} {
 	return wait
 }
 
-func (ids *IDService) removeConn(c network.Conn) {
+func (ids *idService) removeConn(c network.Conn) {
 	ids.connsMu.Lock()
 	delete(ids.conns, c)
 	ids.connsMu.Unlock()
 }
 
-func (ids *IDService) identifyConn(c network.Conn, signal chan struct{}) {
+func (ids *idService) identifyConn(c network.Conn, signal chan struct{}) {
 	var (
 		s   network.Stream
 		err error
@@ -375,7 +385,7 @@ func (ids *IDService) identifyConn(c network.Conn, signal chan struct{}) {
 	err = ids.handleIdentifyResponse(s)
 }
 
-func (ids *IDService) sendIdentifyResp(s network.Stream) {
+func (ids *idService) sendIdentifyResp(s network.Stream) {
 	defer s.Close()
 
 	c := s.Conn()
@@ -407,7 +417,7 @@ func (ids *IDService) sendIdentifyResp(s network.Stream) {
 	log.Debugf("%s sent message to %s %s", ID, c.RemotePeer(), c.RemoteMultiaddr())
 }
 
-func (ids *IDService) handleIdentifyResponse(s network.Stream) error {
+func (ids *idService) handleIdentifyResponse(s network.Stream) error {
 	_ = s.SetReadDeadline(time.Now().Add(StreamReadTimeout))
 
 	c := s.Conn()
@@ -446,7 +456,7 @@ func readAllIDMessages(r protoio.Reader, finalMsg proto.Message) error {
 	return fmt.Errorf("too many parts")
 }
 
-func (ids *IDService) getSnapshot() *identifySnapshot {
+func (ids *idService) getSnapshot() *identifySnapshot {
 	snapshot := new(identifySnapshot)
 	if !ids.disableSignedPeerRecord {
 		if cab, ok := peerstore.GetCertifiedAddrBook(ids.Host.Peerstore()); ok {
@@ -458,7 +468,7 @@ func (ids *IDService) getSnapshot() *identifySnapshot {
 	return snapshot
 }
 
-func (ids *IDService) writeChunkedIdentifyMsg(c network.Conn, snapshot *identifySnapshot, s network.Stream) error {
+func (ids *idService) writeChunkedIdentifyMsg(c network.Conn, snapshot *identifySnapshot, s network.Stream) error {
 	mes := ids.createBaseIdentifyResponse(c, snapshot)
 	sr := ids.getSignedRecord(snapshot)
 	mes.SignedPeerRecord = sr
@@ -479,7 +489,7 @@ func (ids *IDService) writeChunkedIdentifyMsg(c network.Conn, snapshot *identify
 
 }
 
-func (ids *IDService) createBaseIdentifyResponse(
+func (ids *idService) createBaseIdentifyResponse(
 	conn network.Conn,
 	snapshot *identifySnapshot,
 ) *pb.Identify {
@@ -536,7 +546,7 @@ func (ids *IDService) createBaseIdentifyResponse(
 	return mes
 }
 
-func (ids *IDService) getSignedRecord(snapshot *identifySnapshot) []byte {
+func (ids *idService) getSignedRecord(snapshot *identifySnapshot) []byte {
 	if ids.disableSignedPeerRecord || snapshot.record == nil {
 		return nil
 	}
@@ -550,7 +560,7 @@ func (ids *IDService) getSignedRecord(snapshot *identifySnapshot) []byte {
 	return recBytes
 }
 
-func (ids *IDService) consumeMessage(mes *pb.Identify, c network.Conn) {
+func (ids *idService) consumeMessage(mes *pb.Identify, c network.Conn) {
 	p := c.RemotePeer()
 
 	// mes.Protocols
@@ -632,7 +642,7 @@ func (ids *IDService) consumeMessage(mes *pb.Identify, c network.Conn) {
 	ids.consumeReceivedPubKey(c, mes.PublicKey)
 }
 
-func (ids *IDService) consumeReceivedPubKey(c network.Conn, kb []byte) {
+func (ids *idService) consumeReceivedPubKey(c network.Conn, kb []byte) {
 	lp := c.LocalPeer()
 	rp := c.RemotePeer()
 
@@ -735,7 +745,7 @@ func HasConsistentTransport(a ma.Multiaddr, green []ma.Multiaddr) bool {
 	return false
 }
 
-func (ids *IDService) consumeObservedAddress(observed []byte, c network.Conn) {
+func (ids *idService) consumeObservedAddress(observed []byte, c network.Conn) {
 	if observed == nil {
 		return
 	}
@@ -767,10 +777,10 @@ func signedPeerRecordFromMessage(msg *pb.Identify) (*record.Envelope, error) {
 }
 
 // netNotifiee defines methods to be used with the IpfsDHT
-type netNotifiee IDService
+type netNotifiee idService
 
-func (nn *netNotifiee) IDService() *IDService {
-	return (*IDService)(nn)
+func (nn *netNotifiee) IDService() *idService {
+	return (*idService)(nn)
 }
 
 func (nn *netNotifiee) Connected(n network.Network, v network.Conn) {

@@ -47,7 +47,7 @@ type Service struct {
 	ctx       context.Context
 	ctxCancel context.CancelFunc
 
-	ids  *identify.IDService
+	ids  identify.IDService
 	host host.Host
 
 	tracer *tracer
@@ -64,7 +64,7 @@ type Service struct {
 type Option func(*Service) error
 
 // NewService creates a new service that can be used for hole punching
-func NewService(h host.Host, ids *identify.IDService, opts ...Option) (*Service, error) {
+func NewService(h host.Host, ids identify.IDService, opts ...Option) (*Service, error) {
 	if ids == nil {
 		return nil, errors.New("identify service can't be nil")
 	}
