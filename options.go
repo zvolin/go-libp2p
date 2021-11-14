@@ -250,8 +250,14 @@ func EnableRelayService(opts ...relayv2.Option) Option {
 //
 // This subsystem performs automatic address rewriting to advertise relay addresses when it
 // detects that the node is publicly unreachable (e.g. behind a NAT).
-func EnableAutoRelay() Option {
+func EnableAutoRelay(opts ...autorelay.StaticRelayOption) Option {
 	return func(cfg *Config) error {
+		if len(opts) > 0 {
+			if len(opts) > 1 {
+				return errors.New("only expected a single static relay configuration option")
+			}
+			cfg.StaticRelayOpt = opts[0]
+		}
 		cfg.EnableAutoRelay = true
 		return nil
 	}
@@ -260,30 +266,26 @@ func EnableAutoRelay() Option {
 // StaticRelays configures known relays for autorelay; when this option is enabled
 // then the system will use the configured relays instead of querying the DHT to
 // discover relays.
+// Deprecated: pass an autorelay.WithStaticRelays option to EnableAutoRelay.
 func StaticRelays(relays []peer.AddrInfo) Option {
 	return func(cfg *Config) error {
-		cfg.StaticRelays = append(cfg.StaticRelays, relays...)
+		cfg.StaticRelayOpt = autorelay.WithStaticRelays(relays)
 		return nil
 	}
 }
 
 // DefaultStaticRelays configures the static relays to use the known PL-operated relays.
+// Deprecated: pass autorelay.WithDefaultStaticRelays to EnableAutoRelay.
 func DefaultStaticRelays() Option {
-	return func(cfg *Config) error {
-		for _, addr := range autorelay.DefaultRelays {
-			a, err := ma.NewMultiaddr(addr)
-			if err != nil {
-				return err
-			}
-			pi, err := peer.AddrInfoFromP2pAddr(a)
-			if err != nil {
-				return err
-			}
-			cfg.StaticRelays = append(cfg.StaticRelays, *pi)
+	relays := make([]peer.AddrInfo, 0, len(autorelay.DefaultRelays))
+	for _, addr := range autorelay.DefaultRelays {
+		pi, err := peer.AddrInfoFromString(addr)
+		if err != nil {
+			panic(fmt.Sprintf("failed to initialize default static relays: %s", err))
 		}
-
-		return nil
+		relays = append(relays, *pi)
 	}
+	return StaticRelays(relays)
 }
 
 // ForceReachabilityPublic overrides automatic reachability detection in the AutoNAT subsystem,
