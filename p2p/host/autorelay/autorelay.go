@@ -66,8 +66,9 @@ func init() {
 }
 
 type Option func(*AutoRelay) error
+type StaticRelayOption Option
 
-func WithStaticRelays(static []peer.AddrInfo) Option {
+func WithStaticRelays(static []peer.AddrInfo) StaticRelayOption {
 	return func(r *AutoRelay) error {
 		if len(r.static) > 0 {
 			return errors.New("can't set static relays, static relays already configured")
@@ -77,7 +78,7 @@ func WithStaticRelays(static []peer.AddrInfo) Option {
 	}
 }
 
-func WithDefaultStaticRelays() Option {
+func WithDefaultStaticRelays() StaticRelayOption {
 	return WithStaticRelays(defaultStaticRelays)
 }
 

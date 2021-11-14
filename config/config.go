@@ -97,7 +97,7 @@ type Config struct {
 
 	EnableAutoRelay bool
 	AutoNATConfig
-	StaticRelays []peer.AddrInfo
+	StaticRelayOpt autorelay.StaticRelayOption
 
 	EnableHolePunching  bool
 	HolePunchingOptions []holepunch.Option
@@ -251,12 +251,9 @@ func (cfg *Config) NewNode() (host.Host, error) {
 			return nil, fmt.Errorf("cannot enable autorelay; relay is not enabled")
 		}
 
-		if len(cfg.StaticRelays) > 0 {
-			var err error
-			ar, err = autorelay.NewAutoRelay(h, router, autorelay.WithStaticRelays(cfg.StaticRelays))
-			if err != nil {
-				return nil, err
-			}
+		var opts []autorelay.Option
+		if cfg.StaticRelayOpt != nil {
+			opts = append(opts, autorelay.Option(cfg.StaticRelayOpt))
 		} else {
 			if router == nil {
 				h.Close()
@@ -267,16 +264,11 @@ func (cfg *Config) NewNode() (host.Host, error) {
 				h.Close()
 				return nil, fmt.Errorf("cannot enable autorelay; no suitable routing for discovery")
 			}
-			var err error
-			ar, err = autorelay.NewAutoRelay(
-				h,
-				router,
-				autorelay.WithDiscoverer(discovery.NewRoutingDiscovery(crouter)),
-				autorelay.WithStaticRelays(cfg.StaticRelays),
-			)
-			if err != nil {
-				return nil, err
-			}
+			opts = append(opts, autorelay.WithDiscoverer(discovery.NewRoutingDiscovery(crouter)))
+		}
+		ar, err = autorelay.NewAutoRelay(h, router, opts...)
+		if err != nil {
+			return nil, err
 		}
 	}
 
