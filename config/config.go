@@ -252,7 +252,11 @@ func (cfg *Config) NewNode() (host.Host, error) {
 		}
 
 		if len(cfg.StaticRelays) > 0 {
-			ar = autorelay.NewAutoRelay(h, nil, router, cfg.StaticRelays)
+			var err error
+			ar, err = autorelay.NewAutoRelay(h, router, autorelay.WithStaticRelays(cfg.StaticRelays))
+			if err != nil {
+				return nil, err
+			}
 		} else {
 			if router == nil {
 				h.Close()
@@ -263,9 +267,16 @@ func (cfg *Config) NewNode() (host.Host, error) {
 				h.Close()
 				return nil, fmt.Errorf("cannot enable autorelay; no suitable routing for discovery")
 			}
-
-			discovery := discovery.NewRoutingDiscovery(crouter)
-			ar = autorelay.NewAutoRelay(h, discovery, router, cfg.StaticRelays)
+			var err error
+			ar, err = autorelay.NewAutoRelay(
+				h,
+				router,
+				autorelay.WithDiscoverer(discovery.NewRoutingDiscovery(crouter)),
+				autorelay.WithStaticRelays(cfg.StaticRelays),
+			)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 

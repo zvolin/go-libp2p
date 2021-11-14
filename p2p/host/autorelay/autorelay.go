@@ -2,6 +2,7 @@ package autorelay
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"sync"
@@ -42,7 +43,7 @@ var (
 	BootDelay = 20 * time.Second
 )
 
-// These are the known PL-operated v1 relays; will be decommissioned in 2022.
+// DefaultRelays are the known PL-operated v1 relays; will be decommissioned in 2022.
 var DefaultRelays = []string{
 	"/ip4/147.75.80.110/tcp/4001/p2p/QmbFgm5zan8P6eWWmeyfncR5feYEMPbht5b1FW1C37aQ7y",
 	"/ip4/147.75.80.110/udp/4001/quic/p2p/QmbFgm5zan8P6eWWmeyfncR5feYEMPbht5b1FW1C37aQ7y",
@@ -50,6 +51,25 @@ var DefaultRelays = []string{
 	"/ip4/147.75.195.153/udp/4001/quic/p2p/QmW9m57aiBDHAkKj9nmFSEn7ZqrcF1fZS4bipsTCHburei",
 	"/ip4/147.75.70.221/tcp/4001/p2p/Qme8g49gm3q4Acp7xWBKg3nAa9fxZ1YmyDJdyGgoG6LsXh",
 	"/ip4/147.75.70.221/udp/4001/quic/p2p/Qme8g49gm3q4Acp7xWBKg3nAa9fxZ1YmyDJdyGgoG6LsXh",
+}
+
+type Option func(*AutoRelay) error
+
+func WithStaticRelays(static []peer.AddrInfo) Option {
+	return func(r *AutoRelay) error {
+		if len(r.static) > 0 {
+			return errors.New("can't set static relays, static relays already configured")
+		}
+		r.static = static
+		return nil
+	}
+}
+
+func WithDiscoverer(discover discovery.Discoverer) Option {
+	return func(r *AutoRelay) error {
+		r.discover = discover
+		return nil
+	}
 }
 
 // AutoRelay is a Host that uses relays for connectivity when a NAT is detected.
@@ -74,24 +94,27 @@ type AutoRelay struct {
 	cachedAddrsExpiry time.Time
 }
 
-func NewAutoRelay(bhost *basic.BasicHost, discover discovery.Discoverer, router routing.PeerRouting, static []peer.AddrInfo) *AutoRelay {
+func NewAutoRelay(bhost *basic.BasicHost, router routing.PeerRouting, opts ...Option) (*AutoRelay, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	ar := &AutoRelay{
 		ctxCancel:  cancel,
 		host:       bhost,
-		discover:   discover,
 		router:     router,
 		addrsF:     bhost.AddrsFactory,
-		static:     static,
 		relays:     make(map[peer.ID]*circuitv2.Reservation),
 		disconnect: make(chan struct{}, 1),
 		status:     network.ReachabilityUnknown,
+	}
+	for _, opt := range opts {
+		if err := opt(ar); err != nil {
+			return nil, err
+		}
 	}
 	bhost.AddrsFactory = ar.hostAddrs
 	bhost.Network().Notify(ar)
 	ar.refCount.Add(1)
 	go ar.background(ctx)
-	return ar
+	return ar, nil
 }
 
 func (ar *AutoRelay) hostAddrs(addrs []ma.Multiaddr) []ma.Multiaddr {
