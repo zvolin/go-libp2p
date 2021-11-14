@@ -271,11 +271,7 @@ func StaticRelays(relays []peer.AddrInfo) Option {
 func DefaultStaticRelays() Option {
 	return func(cfg *Config) error {
 		for _, addr := range autorelay.DefaultRelays {
-			a, err := ma.NewMultiaddr(addr)
-			if err != nil {
-				return err
-			}
-			pi, err := peer.AddrInfoFromP2pAddr(a)
+			pi, err := peer.AddrInfoFromString(addr)
 			if err != nil {
 				return err
 			}

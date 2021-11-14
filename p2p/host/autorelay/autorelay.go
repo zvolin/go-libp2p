@@ -53,6 +53,18 @@ var DefaultRelays = []string{
 	"/ip4/147.75.70.221/udp/4001/quic/p2p/Qme8g49gm3q4Acp7xWBKg3nAa9fxZ1YmyDJdyGgoG6LsXh",
 }
 
+var defaultStaticRelays []peer.AddrInfo
+
+func init() {
+	for _, s := range DefaultRelays {
+		pi, err := peer.AddrInfoFromString(s)
+		if err != nil {
+			panic(fmt.Sprintf("failed to initialize default static relays: %s", err))
+		}
+		defaultStaticRelays = append(defaultStaticRelays, *pi)
+	}
+}
+
 type Option func(*AutoRelay) error
 
 func WithStaticRelays(static []peer.AddrInfo) Option {
@@ -63,6 +75,10 @@ func WithStaticRelays(static []peer.AddrInfo) Option {
 		r.static = static
 		return nil
 	}
+}
+
+func WithDefaultStaticRelays() Option {
+	return WithStaticRelays(defaultStaticRelays)
 }
 
 func WithDiscoverer(discover discovery.Discoverer) Option {
