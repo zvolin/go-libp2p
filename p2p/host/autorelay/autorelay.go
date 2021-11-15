@@ -168,16 +168,29 @@ func (ar *AutoRelay) background(ctx context.Context) {
 				return
 			}
 			evt := ev.(event.EvtPeerConnectednessChanged)
-			if evt.Connectedness != network.NotConnected {
-				continue
+			switch evt.Connectedness {
+			case network.Connected:
+				// If we just connect to one of our static relays, get a reservation immediately.
+				for _, pi := range ar.static {
+					if pi.ID == evt.Peer {
+						rsvp, ok := ar.tryRelay(ctx, pi)
+						if ok {
+							ar.mx.Lock()
+							ar.relays[pi.ID] = rsvp
+							ar.mx.Unlock()
+						}
+						push = true
+						break
+					}
+				}
+			case network.NotConnected:
+				ar.mx.Lock()
+				if ar.usingRelay(evt.Peer) { // we were disconnected from a relay
+					delete(ar.relays, evt.Peer)
+					push = true
+				}
+				ar.mx.Unlock()
 			}
-			ar.mx.Lock()
-			if ar.usingRelay(evt.Peer) { // we were disconnected from a relay
-				delete(ar.relays, evt.Peer)
-				push = true
-				continue
-			}
-			ar.mx.Unlock()
 		case ev, ok := <-subReachability.Out():
 			if !ok {
 				return
