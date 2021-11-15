@@ -103,7 +103,6 @@ type AutoRelay struct {
 	ctxCancel context.CancelFunc
 
 	relayFound        chan struct{}
-	disconnect        chan struct{}
 	findRelaysRunning int32 // to be used as an atomic
 
 	mx     sync.Mutex
@@ -122,7 +121,6 @@ func NewAutoRelay(bhost *basic.BasicHost, router routing.PeerRouting, opts ...Op
 		router:     router,
 		addrsF:     bhost.AddrsFactory,
 		relays:     make(map[peer.ID]*circuitv2.Reservation),
-		disconnect: make(chan struct{}, 1),
 		relayFound: make(chan struct{}, 1),
 		status:     network.ReachabilityUnknown,
 	}
@@ -132,7 +130,6 @@ func NewAutoRelay(bhost *basic.BasicHost, router routing.PeerRouting, opts ...Op
 		}
 	}
 	bhost.AddrsFactory = ar.hostAddrs
-	bhost.Network().Notify(ar)
 	ar.refCount.Add(1)
 	go ar.background(ctx)
 	return ar, nil
@@ -145,8 +142,18 @@ func (ar *AutoRelay) hostAddrs(addrs []ma.Multiaddr) []ma.Multiaddr {
 func (ar *AutoRelay) background(ctx context.Context) {
 	defer ar.refCount.Done()
 
-	subReachability, _ := ar.host.EventBus().Subscribe(new(event.EvtLocalReachabilityChanged))
+	subReachability, err := ar.host.EventBus().Subscribe(new(event.EvtLocalReachabilityChanged))
+	if err != nil {
+		log.Error("failed to subscribe to the EvtLocalReachabilityChanged")
+		return
+	}
 	defer subReachability.Close()
+	subConnectedness, err := ar.host.EventBus().Subscribe(new(event.EvtPeerConnectednessChanged))
+	if err != nil {
+		log.Error("failed to subscribe to the EvtPeerConnectednessChanged")
+		return
+	}
+	defer subConnectedness.Close()
 
 	ticker := time.NewTicker(rsvpRefreshInterval)
 	defer ticker.Stop()
@@ -156,6 +163,22 @@ func (ar *AutoRelay) background(ctx context.Context) {
 		var push bool
 
 		select {
+		case ev, ok := <-subConnectedness.Out():
+			if !ok {
+				return
+			}
+			evt := ev.(event.EvtPeerConnectednessChanged)
+			if evt.Connectedness != network.NotConnected {
+				continue
+			}
+			if !ar.usingRelay(evt.Peer) {
+				continue
+			}
+			// we were disconnected from a relay
+			ar.mx.Lock()
+			delete(ar.relays, evt.Peer)
+			ar.mx.Unlock()
+			push = true
 		case ev, ok := <-subReachability.Out():
 			if !ok {
 				return
@@ -181,8 +204,6 @@ func (ar *AutoRelay) background(ctx context.Context) {
 			ar.status = evt.Reachability
 			ar.mx.Unlock()
 		case <-ar.relayFound:
-			push = true
-		case <-ar.disconnect:
 			push = true
 		case now := <-ticker.C:
 			push = ar.refreshReservations(ctx, now)
@@ -501,31 +522,3 @@ func (ar *AutoRelay) Close() error {
 	ar.refCount.Wait()
 	return nil
 }
-
-// Notifee
-func (ar *AutoRelay) Listen(network.Network, ma.Multiaddr)      {}
-func (ar *AutoRelay) ListenClose(network.Network, ma.Multiaddr) {}
-func (ar *AutoRelay) Connected(network.Network, network.Conn)   {}
-
-func (ar *AutoRelay) Disconnected(net network.Network, c network.Conn) {
-	p := c.RemotePeer()
-
-	ar.mx.Lock()
-	defer ar.mx.Unlock()
-
-	if ar.host.Network().Connectedness(p) == network.Connected {
-		// We have a second connection.
-		return
-	}
-
-	if _, ok := ar.relays[p]; ok {
-		delete(ar.relays, p)
-		select {
-		case ar.disconnect <- struct{}{}:
-		default:
-		}
-	}
-}
-
-func (ar *AutoRelay) OpenedStream(network.Network, network.Stream) {}
-func (ar *AutoRelay) ClosedStream(network.Network, network.Stream) {}
