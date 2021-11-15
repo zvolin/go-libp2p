@@ -261,12 +261,14 @@ func (ar *AutoRelay) findRelays(ctx context.Context) bool {
 		return false
 	}
 
-	update := false
+	var update bool
+	timer := time.NewTimer(30 * time.Second)
+	defer timer.Stop()
 	for retry := 0; retry < 5; retry++ {
 		if retry > 0 {
 			log.Debug("no relays connected; retrying in 30s")
 			select {
-			case <-time.After(30 * time.Second):
+			case <-timer.C:
 			case <-ctx.Done():
 				return update
 			}
