@@ -171,14 +171,13 @@ func (ar *AutoRelay) background(ctx context.Context) {
 			if evt.Connectedness != network.NotConnected {
 				continue
 			}
-			if !ar.usingRelay(evt.Peer) {
+			ar.mx.Lock()
+			if ar.usingRelay(evt.Peer) { // we were disconnected from a relay
+				delete(ar.relays, evt.Peer)
+				push = true
 				continue
 			}
-			// we were disconnected from a relay
-			ar.mx.Lock()
-			delete(ar.relays, evt.Peer)
 			ar.mx.Unlock()
-			push = true
 		case ev, ok := <-subReachability.Out():
 			if !ok {
 				return
@@ -188,7 +187,7 @@ func (ar *AutoRelay) background(ctx context.Context) {
 			if evt.Reachability == network.ReachabilityPrivate {
 				// findRelays is a long-lived task (runs up to 2.5 minutes)
 				// Make sure we only start it once.
-				if ar.numRelays() < DesiredRelays && atomic.CompareAndSwapInt32(&ar.findRelaysRunning, 0, 1) {
+				if atomic.CompareAndSwapInt32(&ar.findRelaysRunning, 0, 1) {
 					go func() {
 						defer atomic.StoreInt32(&ar.findRelaysRunning, 0)
 						ar.findRelays(ctx)
@@ -291,18 +290,17 @@ func (ar *AutoRelay) findRelays(ctx context.Context) {
 			}
 		}
 
-		ar.findRelaysOnce(ctx)
-		if ar.numRelays() > 0 {
+		if foundAtLeastOneRelay := ar.findRelaysOnce(ctx); foundAtLeastOneRelay {
 			return
 		}
 	}
 }
 
-func (ar *AutoRelay) findRelaysOnce(ctx context.Context) {
+func (ar *AutoRelay) findRelaysOnce(ctx context.Context) bool {
 	relays, err := ar.discoverRelays(ctx)
 	if err != nil {
 		log.Debugf("error discovering relays: %s", err)
-		return
+		return false
 	}
 	log.Debugf("discovered %d relays", len(relays))
 	relays = ar.selectRelays(ctx, relays)
@@ -310,6 +308,12 @@ func (ar *AutoRelay) findRelaysOnce(ctx context.Context) {
 
 	var found bool
 	for _, pi := range relays {
+		ar.mx.Lock()
+		relayInUse := ar.usingRelay(pi.ID)
+		ar.mx.Unlock()
+		if relayInUse {
+			continue
+		}
 		rsvp, ok := ar.tryRelay(ctx, pi)
 		if !ok {
 			continue
@@ -323,27 +327,22 @@ func (ar *AutoRelay) findRelaysOnce(ctx context.Context) {
 		ar.relays[pi.ID] = rsvp
 		// protect the connection
 		ar.host.ConnManager().Protect(pi.ID, autorelayTag)
+		numRelays := len(ar.relays)
 		ar.mx.Unlock()
 
-		if ar.numRelays() >= DesiredRelays {
+		if numRelays >= DesiredRelays {
 			break
 		}
 	}
 	if found {
 		ar.relayFound <- struct{}{}
+		return true
 	}
-}
-
-func (ar *AutoRelay) numRelays() int {
-	ar.mx.Lock()
-	defer ar.mx.Unlock()
-	return len(ar.relays)
+	return false
 }
 
 // usingRelay returns if we're currently using the given relay.
 func (ar *AutoRelay) usingRelay(p peer.ID) bool {
-	ar.mx.Lock()
-	defer ar.mx.Unlock()
 	_, ok := ar.relays[p]
 	return ok
 }
@@ -351,9 +350,6 @@ func (ar *AutoRelay) usingRelay(p peer.ID) bool {
 // addRelay adds the given relay to our set of relays.
 // returns true when we add a new relay
 func (ar *AutoRelay) tryRelay(ctx context.Context, pi peer.AddrInfo) (*circuitv2.Reservation, bool) {
-	if ar.usingRelay(pi.ID) {
-		return nil, false
-	}
 	if !ar.connect(ctx, pi) {
 		return nil, false
 	}
