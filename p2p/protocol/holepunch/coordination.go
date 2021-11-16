@@ -47,7 +47,7 @@ type Service struct {
 	ctx       context.Context
 	ctxCancel context.CancelFunc
 
-	ids  *identify.IDService
+	ids  identify.IDService
 	host host.Host
 
 	tracer *tracer
@@ -55,6 +55,8 @@ type Service struct {
 	closeMx  sync.RWMutex
 	closed   bool
 	refCount sync.WaitGroup
+
+	hasPublicAddrsChan chan struct{} // this chan is closed as soon as we have a public address
 
 	// active hole punches for deduplicating
 	activeMx sync.Mutex
@@ -64,18 +66,19 @@ type Service struct {
 type Option func(*Service) error
 
 // NewService creates a new service that can be used for hole punching
-func NewService(h host.Host, ids *identify.IDService, opts ...Option) (*Service, error) {
+func NewService(h host.Host, ids identify.IDService, opts ...Option) (*Service, error) {
 	if ids == nil {
 		return nil, errors.New("identify service can't be nil")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	hs := &Service{
-		ctx:       ctx,
-		ctxCancel: cancel,
-		host:      h,
-		ids:       ids,
-		active:    make(map[peer.ID]struct{}),
+		ctx:                ctx,
+		ctxCancel:          cancel,
+		host:               h,
+		ids:                ids,
+		active:             make(map[peer.ID]struct{}),
+		hasPublicAddrsChan: make(chan struct{}),
 	}
 
 	for _, opt := range opts {
@@ -85,9 +88,45 @@ func NewService(h host.Host, ids *identify.IDService, opts ...Option) (*Service,
 		}
 	}
 
-	h.SetStreamHandler(Protocol, hs.handleNewStream)
+	hs.refCount.Add(1)
+	go hs.watchForPublicAddr()
+
 	h.Network().Notify((*netNotifiee)(hs))
 	return hs, nil
+}
+
+func (hs *Service) watchForPublicAddr() {
+	defer hs.refCount.Done()
+
+	log.Debug("waiting until we have at least one public address", "peer", hs.host.ID())
+
+	// TODO: We should have an event here that fires when identify discovers a new
+	// address (and when autonat confirms that address).
+	// As we currently don't have an event like this, just check our observed addresses
+	// regularly (exponential backoff starting at 250 ms, capped at 5s).
+	duration := 250 * time.Millisecond
+	const maxDuration = 5 * time.Second
+	t := time.NewTimer(duration)
+	defer t.Stop()
+	for {
+		if containsPublicAddr(hs.ids.OwnObservedAddrs()) {
+			log.Debug("Host now has a public address. Starting holepunch protocol.")
+			hs.host.SetStreamHandler(Protocol, hs.handleNewStream)
+			close(hs.hasPublicAddrsChan)
+			return
+		}
+
+		select {
+		case <-hs.ctx.Done():
+			return
+		case <-t.C:
+			duration *= 2
+			if duration > maxDuration {
+				duration = maxDuration
+			}
+			t.Reset(duration)
+		}
+	}
 }
 
 // Close closes the Hole Punch Service.
@@ -119,7 +158,7 @@ func (hs *Service) initiateHolePunch(rp peer.ID) ([]ma.Multiaddr, time.Duration,
 	// send a CONNECT and start RTT measurement.
 	msg := &pb.HolePunch{
 		Type:     pb.HolePunch_CONNECT.Enum(),
-		ObsAddrs: addrsToBytes(hs.ids.OwnObservedAddrs()),
+		ObsAddrs: addrsToBytes(removeRelayAddrs(hs.ids.OwnObservedAddrs())),
 	}
 
 	start := time.Now()
@@ -141,8 +180,10 @@ func (hs *Service) initiateHolePunch(rp peer.ID) ([]ma.Multiaddr, time.Duration,
 		str.Reset()
 		return nil, 0, fmt.Errorf("expect CONNECT message, got %s", t)
 	}
-
-	addrs := addrsFromBytes(msg.ObsAddrs)
+	addrs := removeRelayAddrs(addrsFromBytes(msg.ObsAddrs))
+	if len(addrs) == 0 {
+		str.Reset()
+	}
 
 	msg.Reset()
 	msg.Type = pb.HolePunch_SYNC.Enum()
@@ -174,7 +215,6 @@ func (hs *Service) beginDirectConnect(p peer.ID) error {
 // It first attempts a direct dial (if we have a public address of that peer), and then
 // coordinates a hole punch over the given relay connection.
 func (hs *Service) DirectConnect(p peer.ID) error {
-	log.Debugw("got inbound proxy conn", "peer", p)
 	if err := hs.beginDirectConnect(p); err != nil {
 		return err
 	}
@@ -219,6 +259,18 @@ func (hs *Service) directConnect(rp peer.ID) error {
 		}
 	}
 
+	log.Debugw("got inbound proxy conn", "peer", rp)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	select {
+	case <-hs.ctx.Done():
+		return hs.ctx.Err()
+	case <-ctx.Done():
+		log.Debug("didn't find any public host address")
+		return errors.New("can't initiate hole punch, as we don't have any public addresses")
+	case <-hs.hasPublicAddrsChan:
+	}
+
 	// hole punch
 	for i := 0; i < maxRetries; i++ {
 		addrs, rtt, err := hs.initiateHolePunch(rp)
@@ -260,6 +312,11 @@ func (hs *Service) incomingHolePunch(s network.Stream) (rtt time.Duration, addrs
 	if !isRelayAddress(s.Conn().RemoteMultiaddr()) {
 		return 0, nil, fmt.Errorf("received hole punch stream: %s", s.Conn().RemoteMultiaddr())
 	}
+	ownAddrs := removeRelayAddrs(hs.ids.OwnObservedAddrs())
+	// If we can't tell the peer where to dial us, there's no point in starting the hole punching.
+	if len(ownAddrs) == 0 {
+		return 0, nil, errors.New("rejecting hole punch request, as we don't have any public addresses")
+	}
 
 	s.SetDeadline(time.Now().Add(StreamTimeout))
 	wr := protoio.NewDelimitedWriter(s)
@@ -273,13 +330,16 @@ func (hs *Service) incomingHolePunch(s network.Stream) (rtt time.Duration, addrs
 	if t := msg.GetType(); t != pb.HolePunch_CONNECT {
 		return 0, nil, fmt.Errorf("expected CONNECT message from initiator but got %d", t)
 	}
-	obsDial := addrsFromBytes(msg.ObsAddrs)
+	obsDial := removeRelayAddrs(addrsFromBytes(msg.ObsAddrs))
 	log.Debugw("received hole punch request", "peer", s.Conn().RemotePeer(), "addrs", obsDial)
+	if len(obsDial) == 0 {
+		return 0, nil, errors.New("expected CONNECT message to contain at least one address")
+	}
 
 	// Write CONNECT message
 	msg.Reset()
 	msg.Type = pb.HolePunch_CONNECT.Enum()
-	msg.ObsAddrs = addrsToBytes(hs.ids.OwnObservedAddrs())
+	msg.ObsAddrs = addrsToBytes(ownAddrs)
 	tstart := time.Now()
 	if err := wr.WriteMsg(msg); err != nil {
 		return 0, nil, fmt.Errorf("failed to write CONNECT message to initator: %w", err)
@@ -327,11 +387,6 @@ func (hs *Service) handleNewStream(s network.Stream) {
 	err = hs.holePunchConnect(pi, false)
 	dt := time.Since(start)
 	hs.tracer.EndHolePunch(rp, dt, err)
-	if err != nil {
-		log.Debugw("hole punching failed", "peer", rp, "time", dt, "error", err)
-	} else {
-		log.Debugw("hole punching succeeded", "peer", rp, "time", dt)
-	}
 }
 
 func (hs *Service) holePunchConnect(pi peer.AddrInfo, isClient bool) error {
@@ -347,6 +402,26 @@ func (hs *Service) holePunchConnect(pi peer.AddrInfo, isClient bool) error {
 	}
 	log.Debugw("hole punch successful", "peer", pi.ID)
 	return nil
+}
+
+func containsPublicAddr(addrs []ma.Multiaddr) bool {
+	for _, addr := range addrs {
+		if isRelayAddress(addr) || !manet.IsPublicAddr(addr) {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
+func removeRelayAddrs(addrs []ma.Multiaddr) []ma.Multiaddr {
+	result := make([]ma.Multiaddr, 0, len(addrs))
+	for _, addr := range addrs {
+		if !isRelayAddress(addr) {
+			result = append(result, addr)
+		}
+	}
+	return result
 }
 
 func isRelayAddress(a ma.Multiaddr) bool {
@@ -390,6 +465,7 @@ func (nn *netNotifiee) Connected(_ network.Network, conn network.Conn) {
 			// that we can dial to for a hole punch.
 			case <-hs.ids.IdentifyWait(conn):
 			case <-hs.ctx.Done():
+				return
 			}
 
 			_ = hs.DirectConnect(conn.RemotePeer())
