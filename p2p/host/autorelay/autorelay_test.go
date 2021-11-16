@@ -119,10 +119,17 @@ func connect(t *testing.T, a, b host.Host) {
 func TestAutoRelay(t *testing.T) {
 	manet.Private4 = []*net.IPNet{}
 
-	t.Log("testing autorelay with circuitv1 relay")
-	testAutoRelay(t, false)
-	t.Log("testing autorelay with circuitv2 relay")
-	testAutoRelay(t, true)
+	t.Run("with a circuitv1 relay", func(t *testing.T) {
+		testAutoRelay(t, false)
+	})
+	t.Run("testing autorelay with circuitv2 relay", func(t *testing.T) {
+		testAutoRelay(t, true)
+	})
+}
+
+func isRelayAddr(addr ma.Multiaddr) bool {
+	_, err := addr.ValueForProtocol(ma.P_CIRCUIT)
+	return err == nil
 }
 
 func testAutoRelay(t *testing.T, useRelayv2 bool) {
@@ -197,8 +204,7 @@ func testAutoRelay(t *testing.T, useRelayv2 bool) {
 
 	// verify that we don't advertise relay addrs initially
 	for _, addr := range h2.Addrs() {
-		_, err := addr.ValueForProtocol(ma.P_CIRCUIT)
-		if err == nil {
+		if isRelayAddr(addr) {
 			t.Fatal("relay addr advertised before auto detection")
 		}
 	}
@@ -212,23 +218,16 @@ func testAutoRelay(t *testing.T, useRelayv2 bool) {
 	time.Sleep(3000 * time.Millisecond)
 
 	// verify that we now advertise relay addrs (but not unspecific relay addrs)
-	unspecificRelay, err := ma.NewMultiaddr("/p2p-circuit")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	haveRelay := false
+	unspecificRelay := ma.StringCast("/p2p-circuit")
+	var haveRelay bool
 	for _, addr := range h2.Addrs() {
 		if addr.Equal(unspecificRelay) {
 			t.Fatal("unspecific relay addr advertised")
 		}
-
-		_, err := addr.ValueForProtocol(ma.P_CIRCUIT)
-		if err == nil {
+		if isRelayAddr(addr) {
 			haveRelay = true
 		}
 	}
-
 	if !haveRelay {
 		t.Fatal("No relay addrs advertised")
 	}
@@ -236,8 +235,7 @@ func testAutoRelay(t *testing.T, useRelayv2 bool) {
 	// verify that we can connect through the relay
 	var raddrs []ma.Multiaddr
 	for _, addr := range h2.Addrs() {
-		_, err := addr.ValueForProtocol(ma.P_CIRCUIT)
-		if err == nil {
+		if isRelayAddr(addr) {
 			raddrs = append(raddrs, addr)
 		}
 	}
