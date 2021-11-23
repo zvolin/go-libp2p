@@ -84,7 +84,7 @@ func (ps *PingService) Ping(ctx context.Context, p peer.ID) <-chan Result {
 // Ping pings the remote peer until the context is canceled, returning a stream
 // of RTTs or errors.
 func Ping(ctx context.Context, h host.Host, p peer.ID) <-chan Result {
-	s, err := h.NewStream(ctx, p, ID)
+	s, err := h.NewStream(network.WithUseTransient(ctx, "ping"), p, ID)
 	if err != nil {
 		ch := make(chan Result, 1)
 		ch <- Result{Error: err}
