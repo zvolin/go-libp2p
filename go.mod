@@ -33,7 +33,7 @@ require (
 	github.com/libp2p/go-libp2p-quic-transport v0.15.0
 	github.com/libp2p/go-libp2p-swarm v0.8.0
 	github.com/libp2p/go-libp2p-testing v0.5.0
-	github.com/libp2p/go-libp2p-tls v0.3.0
+	github.com/libp2p/go-libp2p-tls v0.3.1
 	github.com/libp2p/go-libp2p-transport-upgrader v0.5.0
 	github.com/libp2p/go-libp2p-yamux v0.6.0
 	github.com/libp2p/go-msgio v0.1.0
