@@ -117,6 +117,8 @@ func connect(t *testing.T, a, b host.Host) {
 
 // and the actual test!
 func TestAutoRelay(t *testing.T) {
+	private4 := manet.Private4
+	t.Cleanup(func() { manet.Private4 = private4 })
 	manet.Private4 = []*net.IPNet{}
 
 	t.Run("with a circuitv1 relay", func(t *testing.T) {
@@ -163,6 +165,7 @@ func testAutoRelay(t *testing.T, useRelayv2 bool) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer relayHost.Close()
 
 	// instantiate the relay
 	if useRelayv2 {
@@ -192,15 +195,18 @@ func testAutoRelay(t *testing.T, useRelayv2 bool) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer h1.Close()
 
 	h2, err := libp2p.New(libp2p.EnableRelay(), libp2p.EnableAutoRelay(), libp2p.Routing(makePeerRouting))
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer h2.Close()
 	h3, err := libp2p.New(libp2p.EnableRelay())
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer h3.Close()
 
 	// verify that we don't advertise relay addrs initially
 	for _, addr := range h2.Addrs() {
