@@ -383,7 +383,8 @@ func (oas *ObservedAddrManager) maybeRecordObservation(conn network.Conn, observ
 
 	// We should reject the connection if the observation doesn't match the
 	// transports of one of our advertised addresses.
-	if !HasConsistentTransport(observed, oas.host.Addrs()) {
+	if !HasConsistentTransport(observed, oas.host.Addrs()) &&
+		!HasConsistentTransport(observed, oas.host.Network().ListenAddresses()) {
 		log.Debugw(
 			"observed multiaddr doesn't match the transports of any announced addresses",
 			"from", conn.RemoteMultiaddr(),
@@ -555,7 +556,7 @@ func (oas *ObservedAddrManager) Close() error {
 // Here, we use the root multiaddr address. This is mostly
 // IP addresses. In practice, this is what we want.
 func observerGroup(m ma.Multiaddr) string {
-	//TODO: If IPv6 rolls out we should mark /64 routing zones as one group
+	// TODO: If IPv6 rolls out we should mark /64 routing zones as one group
 	first, _ := ma.SplitFirst(m)
 	return string(first.Bytes())
 }
