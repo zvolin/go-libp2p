@@ -56,6 +56,9 @@ statlog() {
         read _ # empty line
         read changes
     do
+        if [[ $name == "web3-bot" ]]; then
+            continue
+        fi
         changed=0
         insertions=0
         deletions=0
@@ -125,9 +128,16 @@ release_log() {
                 continue
             fi
 
+            if [[ "$subject" =~ "^sync: update CI config files" ]]; then
+                continue
+            fi
+
             if [[ "$subject" =~ '^Merge pull request #([0-9]+) from' ]]; then
                 local prnum="${BASH_REMATCH[2]}"
                 local desc="$(git -C "$dir" show --summary --format='tformat:%b' "$commit" | head -1)"
+                if [[ "$desc" =~ "^sync: update CI config files" ]]; then
+                    continue
+                fi
                 printf -- "- %s (%s)\n" "$desc" "$(pr_link "$repo" "$prnum")"
             elif [[ "$subject" =~ '\(#([0-9]+)\)$' ]]; then
                 local prnum="${BASH_REMATCH[2]}"
