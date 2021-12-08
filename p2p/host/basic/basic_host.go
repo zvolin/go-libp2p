@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/libp2p/go-libp2p/p2p/host/pstoremanager"
 	"github.com/libp2p/go-libp2p/p2p/host/relaysvc"
 	relayv2 "github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/relay"
 	"github.com/libp2p/go-libp2p/p2p/protocol/holepunch"
@@ -74,6 +75,7 @@ type BasicHost struct {
 	refCount sync.WaitGroup
 
 	network      network.Network
+	psManager    *pstoremanager.PeerstoreManager
 	mux          *msmux.MultistreamMuxer
 	ids          identify.IDService
 	hps          *holepunch.Service
@@ -156,6 +158,11 @@ type HostOpts struct {
 
 // NewHost constructs a new *BasicHost and activates it by attaching its stream and connection handlers to the given inet.Network.
 func NewHost(n network.Network, opts *HostOpts) (*BasicHost, error) {
+	eventBus := eventbus.NewBus()
+	psManager, err := pstoremanager.NewPeerstoreManager(n.Peerstore(), eventBus)
+	if err != nil {
+		return nil, err
+	}
 	hostCtx, cancel := context.WithCancel(context.Background())
 	if opts == nil {
 		opts = &HostOpts{}
@@ -163,11 +170,12 @@ func NewHost(n network.Network, opts *HostOpts) (*BasicHost, error) {
 
 	h := &BasicHost{
 		network:                 n,
+		psManager:               psManager,
 		mux:                     msmux.NewMultistreamMuxer(),
 		negtimeout:              DefaultNegotiationTimeout,
 		AddrsFactory:            DefaultAddrsFactory,
 		maResolver:              madns.DefaultResolver,
-		eventbus:                eventbus.NewBus(),
+		eventbus:                eventBus,
 		addrChangeChan:          make(chan struct{}, 1),
 		ctx:                     hostCtx,
 		ctxCancel:               cancel,
@@ -176,7 +184,6 @@ func NewHost(n network.Network, opts *HostOpts) (*BasicHost, error) {
 
 	h.updateLocalIpAddr()
 
-	var err error
 	if h.emitters.evtLocalProtocolsUpdated, err = h.eventbus.Emitter(&event.EvtLocalProtocolsUpdated{}); err != nil {
 		return nil, err
 	}
@@ -352,6 +359,7 @@ func (h *BasicHost) updateLocalIpAddr() {
 
 // Start starts background tasks in the host
 func (h *BasicHost) Start() {
+	h.psManager.Start()
 	h.refCount.Add(1)
 	go h.background()
 }
@@ -1036,6 +1044,7 @@ func (h *BasicHost) Close() error {
 		_ = h.emitters.evtLocalAddrsUpdated.Close()
 		h.Network().Close()
 
+		h.psManager.Close()
 		if h.Peerstore() != nil {
 			h.Peerstore().Close()
 		}
