@@ -26,7 +26,7 @@ var (
 type Conn struct {
 	stream network.Stream
 	remote peer.AddrInfo
-	stat   network.Stat
+	stat   network.ConnStats
 
 	client *Client
 }
@@ -110,7 +110,7 @@ func (c *Conn) RemoteAddr() net.Addr {
 // ConnStat interface
 var _ network.ConnStat = (*Conn)(nil)
 
-func (c *Conn) Stat() network.Stat {
+func (c *Conn) Stat() network.ConnStats {
 	return c.stat
 }
 

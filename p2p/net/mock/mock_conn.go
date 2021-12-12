@@ -38,7 +38,7 @@ type conn struct {
 	link    *link
 	rconn   *conn // counterpart
 	streams list.List
-	stat    network.Stat
+	stat    network.ConnStats
 
 	pairProc, connProc process.Process
 
@@ -49,7 +49,7 @@ func newConn(p process.Process, ln, rn *peernet, l *link, dir network.Direction)
 	c := &conn{net: ln, link: l, pairProc: p}
 	c.local = ln.peer
 	c.remote = rn.peer
-	c.stat = network.Stat{Direction: dir}
+	c.stat.Direction = dir
 	c.id = atomic.AddInt64(&connCounter, 1)
 
 	c.localAddr = ln.ps.Addrs(ln.peer)[0]
@@ -194,6 +194,6 @@ func (c *conn) RemotePublicKey() ic.PubKey {
 }
 
 // Stat returns metadata about the connection
-func (c *conn) Stat() network.Stat {
+func (c *conn) Stat() network.ConnStats {
 	return c.stat
 }
