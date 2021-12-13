@@ -67,7 +67,7 @@ func (c *Client) handleStreamV2(s network.Stream) {
 
 	// check for a limit provided by the relay; if the limit is not nil, then this is a limited
 	// relay connection and we mark the connection as transient.
-	var stat network.Stat
+	var stat network.ConnStats
 	if limit := msg.GetLimit(); limit != nil {
 		stat.Transient = true
 		stat.Extra = make(map[interface{}]interface{})

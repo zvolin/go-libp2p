@@ -12,7 +12,7 @@ import (
 
 	"github.com/libp2p/go-libp2p-core/mux"
 	"github.com/libp2p/go-libp2p-core/network"
-	protocol "github.com/libp2p/go-libp2p-core/protocol"
+	"github.com/libp2p/go-libp2p-core/protocol"
 )
 
 var streamCounter int64
@@ -36,7 +36,7 @@ type stream struct {
 	writeErr error
 
 	protocol atomic.Value
-	stat     network.Stat
+	stat     network.Stats
 }
 
 var ErrClosed error = errors.New("stream closed")
@@ -66,7 +66,7 @@ func newStream(w *io.PipeWriter, r *io.PipeReader, dir network.Direction) *strea
 		close:     make(chan struct{}, 1),
 		closed:    make(chan struct{}),
 		toDeliver: make(chan *transportObject),
-		stat:      network.Stat{Direction: dir},
+		stat:      network.Stats{Direction: dir},
 	}
 
 	go s.transport()
@@ -101,7 +101,7 @@ func (s *stream) Protocol() protocol.ID {
 	return p
 }
 
-func (s *stream) Stat() network.Stat {
+func (s *stream) Stat() network.Stats {
 	return s.stat
 }
 
