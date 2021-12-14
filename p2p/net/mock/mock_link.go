@@ -6,8 +6,6 @@ import (
 
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
-
-	process "github.com/jbenet/goprocess"
 )
 
 // link implements mocknet.Link
@@ -33,13 +31,12 @@ func (l *link) newConnPair(dialer *peernet) (*conn, *conn) {
 	l.RLock()
 	defer l.RUnlock()
 
-	parent := process.WithTeardown(func() error { return nil })
 	target := l.nets[0]
 	if target == dialer {
 		target = l.nets[1]
 	}
-	dc := newConn(parent, dialer, target, l, network.DirOutbound)
-	tc := newConn(parent, target, dialer, l, network.DirInbound)
+	dc := newConn(dialer, target, l, network.DirOutbound)
+	tc := newConn(target, dialer, l, network.DirInbound)
 	dc.rconn = tc
 	tc.rconn = dc
 	return dc, tc
