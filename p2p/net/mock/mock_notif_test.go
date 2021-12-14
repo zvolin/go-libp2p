@@ -13,15 +13,13 @@ import (
 
 func TestNotifications(t *testing.T) {
 	const swarmSize = 5
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	const timeout = 10 * time.Second
 
-	mn, err := FullMeshLinked(ctx, swarmSize)
+	mn, err := FullMeshLinked(swarmSize)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	timeout := 10 * time.Second
+	defer mn.Close()
 
 	// signup notifs
 	nets := mn.Nets()

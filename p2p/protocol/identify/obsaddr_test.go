@@ -1,7 +1,6 @@
 package identify_test
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -82,14 +81,18 @@ func (h *harness) observeInbound(observed ma.Multiaddr, observer peer.ID) networ
 	return c
 }
 
-func newHarness(ctx context.Context, t *testing.T) harness {
-	mn := mocknet.New(ctx)
+func newHarness(t *testing.T) harness {
+	mn := mocknet.New()
 	sk, err := p2putil.RandTestBogusPrivateKey()
 	require.NoError(t, err)
 	h, err := mn.AddPeer(sk, ma.StringCast("/ip4/127.0.0.1/tcp/10086"))
 	require.NoError(t, err)
 	oas, err := identify.NewObservedAddrManager(h)
 	require.NoError(t, err)
+	t.Cleanup(func() {
+		mn.Close()
+		oas.Close()
+	})
 	return harness{
 		oas:     oas,
 		mocknet: mn,
@@ -131,12 +134,7 @@ func TestObsAddrSet(t *testing.T) {
 	b4 := ma.StringCast("/ip4/1.2.3.9/tcp/1237")
 	b5 := ma.StringCast("/ip4/1.2.3.10/tcp/1237")
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	harness := newHarness(ctx, t)
-	defer harness.oas.Close()
-
+	harness := newHarness(t)
 	if !addrsMatch(harness.oas.Addrs(), nil) {
 		t.Error("addrs should be empty")
 	}
@@ -234,10 +232,7 @@ func TestObsAddrSet(t *testing.T) {
 }
 
 func TestObservedAddrFiltering(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	harness := newHarness(ctx, t)
-	defer harness.oas.Close()
+	harness := newHarness(t)
 	require.Empty(t, harness.oas.Addrs())
 
 	// IP4/TCP
@@ -336,10 +331,7 @@ func TestObservedAddrFiltering(t *testing.T) {
 }
 
 func TestEmitNATDeviceTypeSymmetric(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	harness := newHarness(ctx, t)
-	defer harness.oas.Close()
+	harness := newHarness(t)
 	require.Empty(t, harness.oas.Addrs())
 	emitter, err := harness.host.EventBus().Emitter(new(event.EvtLocalReachabilityChanged), eventbus.Stateful)
 	require.NoError(t, err)
@@ -383,10 +375,7 @@ func TestEmitNATDeviceTypeSymmetric(t *testing.T) {
 }
 
 func TestEmitNATDeviceTypeCone(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	harness := newHarness(ctx, t)
-	defer harness.oas.Close()
+	harness := newHarness(t)
 	require.Empty(t, harness.oas.Addrs())
 	emitter, err := harness.host.EventBus().Emitter(new(event.EvtLocalReachabilityChanged), eventbus.Stateful)
 	require.NoError(t, err)

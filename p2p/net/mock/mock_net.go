@@ -15,9 +15,6 @@ import (
 
 	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
 
-	"github.com/jbenet/goprocess"
-	goprocessctx "github.com/jbenet/goprocess/context"
-
 	p2putil "github.com/libp2p/go-libp2p-netutil"
 	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
 	ma "github.com/multiformats/go-multiaddr"
@@ -30,7 +27,7 @@ var blackholeIP6 = net.ParseIP("100::")
 // mocknet implements mocknet.Mocknet
 type mocknet struct {
 	nets  map[peer.ID]*peernet
-	hosts map[peer.ID]*bhost.BasicHost
+	hosts map[peer.ID]host.Host
 
 	// links make it possible to connect two peers.
 	// think of links as the physical medium.
@@ -40,22 +37,30 @@ type mocknet struct {
 
 	linkDefaults LinkOptions
 
-	proc goprocess.Process // for Context closing
-	ctx  context.Context
+	ctxCancel context.CancelFunc
+	ctx       context.Context
 	sync.Mutex
 }
 
-func New(ctx context.Context) Mocknet {
-	proc := goprocessctx.WithContext(ctx)
-	ctx = goprocessctx.WithProcessClosing(ctx, proc)
-
-	return &mocknet{
+func New() Mocknet {
+	mn := &mocknet{
 		nets:  map[peer.ID]*peernet{},
-		hosts: map[peer.ID]*bhost.BasicHost{},
+		hosts: map[peer.ID]host.Host{},
 		links: map[peer.ID]map[peer.ID]map[*link]struct{}{},
-		proc:  proc,
-		ctx:   ctx,
 	}
+	mn.ctx, mn.ctxCancel = context.WithCancel(context.Background())
+	return mn
+}
+
+func (mn *mocknet) Close() error {
+	mn.ctxCancel()
+	for _, h := range mn.hosts {
+		h.Close()
+	}
+	for _, n := range mn.nets {
+		n.Close()
+	}
+	return nil
 }
 
 func (mn *mocknet) GenPeer() (host.Host, error) {
@@ -104,7 +109,7 @@ func (mn *mocknet) AddPeer(k ic.PrivKey, a ma.Multiaddr) (host.Host, error) {
 }
 
 func (mn *mocknet) AddPeerWithPeerstore(p peer.ID, ps peerstore.Peerstore) (host.Host, error) {
-	n, err := newPeernet(mn.ctx, mn, p, ps)
+	n, err := newPeernet(mn, p, ps)
 	if err != nil {
 		return nil, err
 	}
@@ -118,10 +123,6 @@ func (mn *mocknet) AddPeerWithPeerstore(p peer.ID, ps peerstore.Peerstore) (host
 	if err != nil {
 		return nil, err
 	}
-
-	// Ensure we close the hoset when we close the mock network.
-	// Otherwise, tests leak memory.
-	mn.proc.AddChild(goprocess.WithTeardown(h.Close))
 
 	mn.Lock()
 	mn.nets[n.peer] = n

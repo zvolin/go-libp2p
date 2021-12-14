@@ -20,7 +20,6 @@ import (
 )
 
 type Mocknet interface {
-
 	// GenPeer generates a peer and its network.Network in the Mocknet
 	GenPeer() (host.Host, error)
 
@@ -63,6 +62,8 @@ type Mocknet interface {
 	DisconnectNets(network.Network, network.Network) error
 	LinkAll() error
 	ConnectAllButSelf() error
+
+	io.Closer
 }
 
 // LinkOptions are used to change aspects of the links.

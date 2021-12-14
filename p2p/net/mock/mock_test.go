@@ -24,8 +24,8 @@ func TestNetworkSetup(t *testing.T) {
 	id1 := tnet.RandIdentityOrFatal(t)
 	id2 := tnet.RandIdentityOrFatal(t)
 	id3 := tnet.RandIdentityOrFatal(t)
-	mn := New(ctx)
-	// peers := []peer.ID{p1, p2, p3}
+	mn := New()
+	defer mn.Close()
 
 	// add peers to mock net
 
@@ -267,10 +267,11 @@ func TestNetworkSetup(t *testing.T) {
 func TestStreams(t *testing.T) {
 	ctx := context.Background()
 
-	mn, err := FullMeshConnected(context.Background(), 3)
+	mn, err := FullMeshConnected(3)
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer mn.Close()
 
 	handler := func(s network.Stream) {
 		b := make([]byte, 4)
@@ -362,10 +363,11 @@ func TestStreamsStress(t *testing.T) {
 		nnodes = 30
 	}
 
-	mn, err := FullMeshConnected(context.Background(), nnodes)
+	mn, err := FullMeshConnected(nnodes)
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer mn.Close()
 
 	errs := make(chan error)
 
@@ -411,7 +413,8 @@ func TestStreamsStress(t *testing.T) {
 }
 
 func TestAdding(t *testing.T) {
-	mn := New(context.Background())
+	mn := New()
+	defer mn.Close()
 
 	var peers []peer.ID
 	for i := 0; i < 3; i++ {
@@ -534,10 +537,11 @@ func within(t1 time.Duration, t2 time.Duration, tolerance time.Duration) bool {
 }
 
 func TestLimitedStreams(t *testing.T) {
-	mn, err := FullMeshConnected(context.Background(), 2)
+	mn, err := FullMeshConnected(2)
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer mn.Close()
 
 	var wg sync.WaitGroup
 	messages := 4
@@ -598,22 +602,22 @@ func TestFuzzManyPeers(t *testing.T) {
 		peerCount = 100
 	}
 	for i := 0; i < peerCount; i++ {
-		ctx, cancel := context.WithCancel(context.Background())
-		_, err := FullMeshConnected(ctx, 2)
-		cancel()
+		mn, err := FullMeshConnected(2)
 		if err != nil {
 			t.Fatal(err)
 		}
+		mn.Close()
 	}
 }
 
 func TestStreamsWithLatency(t *testing.T) {
 	latency := time.Millisecond * 500
 
-	mn, err := WithNPeers(context.Background(), 2)
+	mn, err := WithNPeers(2)
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer mn.Close()
 
 	// configure the Mocknet with some latency and link/connect its peers
 	mn.SetLinkDefaults(LinkOptions{Latency: latency})
