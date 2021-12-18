@@ -7,7 +7,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	process "github.com/jbenet/goprocess"
 	ic "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -40,13 +39,13 @@ type conn struct {
 	streams list.List
 	stat    network.ConnStats
 
-	pairProc, connProc process.Process
+	closeOnce sync.Once
 
 	sync.RWMutex
 }
 
-func newConn(p process.Process, ln, rn *peernet, l *link, dir network.Direction) *conn {
-	c := &conn{net: ln, link: l, pairProc: p}
+func newConn(ln, rn *peernet, l *link, dir network.Direction) *conn {
+	c := &conn{net: ln, link: l}
 	c.local = ln.peer
 	c.remote = rn.peer
 	c.stat.Direction = dir
@@ -65,7 +64,6 @@ func newConn(p process.Process, ln, rn *peernet, l *link, dir network.Direction)
 
 	c.localPrivKey = ln.ps.PrivKey(ln.peer)
 	c.remotePubKey = rn.ps.PubKey(rn.peer)
-	c.connProc = process.WithParent(c.pairProc)
 	return c
 }
 
@@ -74,11 +72,11 @@ func (c *conn) ID() string {
 }
 
 func (c *conn) Close() error {
-	return c.pairProc.Close()
-}
-
-func (c *conn) setup() {
-	c.connProc.SetTeardown(c.teardown)
+	c.closeOnce.Do(func() {
+		go c.rconn.Close()
+		c.teardown()
+	})
+	return nil
 }
 
 func (c *conn) teardown() error {

@@ -300,9 +300,8 @@ func TestProtoMatching(t *testing.T) {
 
 func TestLocalhostAddrFiltering(t *testing.T) {
 	t.Skip("need to fix this test")
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	mn := mocknet.New(ctx)
+	mn := mocknet.New()
+	defer mn.Close()
 	id1 := coretest.RandPeerIDFatal(t)
 	ps1, err := pstoremem.NewPeerstore()
 	if err != nil {
@@ -346,11 +345,11 @@ func TestLocalhostAddrFiltering(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	p1.Connect(ctx, peer.AddrInfo{
+	p1.Connect(context.Background(), peer.AddrInfo{
 		ID:    id2,
 		Addrs: p2addrs[0:1],
 	})
-	p3.Connect(ctx, peer.AddrInfo{
+	p3.Connect(context.Background(), peer.AddrInfo{
 		ID:    id2,
 		Addrs: p2addrs[1:],
 	})

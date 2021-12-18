@@ -11,9 +11,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
 
-	"github.com/jbenet/goprocess"
-	goprocessctx "github.com/jbenet/goprocess/context"
-
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -36,12 +33,11 @@ type peernet struct {
 	notifmu sync.Mutex
 	notifs  map[network.Notifiee]struct{}
 
-	proc goprocess.Process
 	sync.RWMutex
 }
 
 // newPeernet constructs a new peernet
-func newPeernet(ctx context.Context, m *mocknet, p peer.ID, ps peerstore.Peerstore) (*peernet, error) {
+func newPeernet(m *mocknet, p peer.ID, ps peerstore.Peerstore) (*peernet, error) {
 	n := &peernet{
 		mocknet: m,
 		peer:    p,
@@ -53,12 +49,10 @@ func newPeernet(ctx context.Context, m *mocknet, p peer.ID, ps peerstore.Peersto
 		notifs: make(map[network.Notifiee]struct{}),
 	}
 
-	n.proc = goprocessctx.WithContextAndTeardown(ctx, n.teardown)
 	return n, nil
 }
 
-func (pn *peernet) teardown() error {
-
+func (pn *peernet) Close() error {
 	// close the connections
 	for _, c := range pn.allConns() {
 		c.Close()
@@ -77,11 +71,6 @@ func (pn *peernet) allConns() []*conn {
 	}
 	pn.RUnlock()
 	return cs
-}
-
-// Close calls the ContextCloser func
-func (pn *peernet) Close() error {
-	return pn.proc.Close()
 }
 
 func (pn *peernet) Peerstore() peerstore.Peerstore {
@@ -199,9 +188,6 @@ func (pn *peernet) remoteOpenedConn(c *conn) {
 // to given remote peer over given link
 func (pn *peernet) addConn(c *conn) {
 	defer c.notifLk.Unlock()
-	// Call this after unlocking as it might cause us to immediately close
-	// the connection and remove it from the swarm.
-	c.setup()
 
 	pn.notifyAll(func(n network.Notifiee) {
 		n.Connected(pn, c)
@@ -224,11 +210,6 @@ func (pn *peernet) removeConn(c *conn) {
 		panic(fmt.Sprintf("attempting to remove a conn that doesnt exist %v", c.remote))
 	}
 	delete(cs, c)
-}
-
-// Process returns the network's Process
-func (pn *peernet) Process() goprocess.Process {
-	return pn.proc
 }
 
 // LocalPeer the network's LocalPeer
