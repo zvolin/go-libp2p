@@ -8,15 +8,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
+	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
 
-	u "github.com/ipfs/go-ipfs-util"
-	logging "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/protocol"
+
 	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
-	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
+
+	u "github.com/ipfs/go-ipfs-util"
+	logging "github.com/ipfs/go-log/v2"
+	"github.com/stretchr/testify/require"
 )
 
 var log = logging.Logger("reconnect")
@@ -102,9 +104,11 @@ func newSender() (chan sendChans, func(s network.Stream)) {
 
 // TestReconnect tests whether hosts are able to disconnect and reconnect.
 func TestReconnect2(t *testing.T) {
-	h1, err := bhost.NewHost(swarmt.GenSwarm(t), nil)
+	// TCP RST handling is flaky in OSX, see https://github.com/golang/go/issues/50254.
+	// We can avoid this by using QUIC in this test.
+	h1, err := bhost.NewHost(swarmt.GenSwarm(t, swarmt.OptDisableTCP), nil)
 	require.NoError(t, err)
-	h2, err := bhost.NewHost(swarmt.GenSwarm(t), nil)
+	h2, err := bhost.NewHost(swarmt.GenSwarm(t, swarmt.OptDisableTCP), nil)
 	require.NoError(t, err)
 	hosts := []host.Host{h1, h2}
 
@@ -117,7 +121,7 @@ func TestReconnect2(t *testing.T) {
 	}
 	for i := 0; i < rounds; i++ {
 		log.Debugf("TestReconnect: %d/%d\n", i, rounds)
-		SubtestConnSendDisc(t, hosts)
+		subtestConnSendDisc(t, hosts)
 	}
 }
 
@@ -126,7 +130,9 @@ func TestReconnect5(t *testing.T) {
 	const num = 5
 	hosts := make([]host.Host, 0, num)
 	for i := 0; i < num; i++ {
-		h, err := bhost.NewHost(swarmt.GenSwarm(t), nil)
+		// TCP RST handling is flaky in OSX, see https://github.com/golang/go/issues/50254.
+		// We can avoid this by using QUIC in this test.
+		h, err := bhost.NewHost(swarmt.GenSwarm(t, swarmt.OptDisableTCP), nil)
 		require.NoError(t, err)
 		h.SetStreamHandler(protocol.TestingID, EchoStreamHandler)
 		hosts = append(hosts, h)
@@ -138,12 +144,11 @@ func TestReconnect5(t *testing.T) {
 	}
 	for i := 0; i < rounds; i++ {
 		log.Debugf("TestReconnect: %d/%d\n", i, rounds)
-		SubtestConnSendDisc(t, hosts)
+		subtestConnSendDisc(t, hosts)
 	}
 }
 
-func SubtestConnSendDisc(t *testing.T, hosts []host.Host) {
-
+func subtestConnSendDisc(t *testing.T, hosts []host.Host) {
 	ctx := context.Background()
 	numStreams := 3 * len(hosts)
 	numMsgs := 10
