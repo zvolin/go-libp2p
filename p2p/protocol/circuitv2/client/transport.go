@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/libp2p/go-libp2p-core/network"
+
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/transport"
 
-	tptu "github.com/libp2p/go-libp2p-transport-upgrader"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -18,7 +19,7 @@ var circuitAddr = ma.Cast(circuitProtocol.VCode)
 
 // AddTransport constructs a new p2p-circuit/v2 client and adds it as a transport to the
 // host network
-func AddTransport(h host.Host, upgrader *tptu.Upgrader) error {
+func AddTransport(h host.Host, upgrader transport.Upgrader) error {
 	n, ok := h.Network().(transport.TransportNetwork)
 	if !ok {
 		return fmt.Errorf("%v is not a transport network", h.Network())
@@ -56,7 +57,7 @@ func (c *Client) Dial(ctx context.Context, a ma.Multiaddr, p peer.ID) (transport
 
 	conn.tagHop()
 
-	return c.upgrader.UpgradeOutbound(ctx, c, conn, p)
+	return c.upgrader.Upgrade(ctx, c, conn, network.DirOutbound, p)
 }
 
 func (c *Client) CanDial(addr ma.Multiaddr) bool {

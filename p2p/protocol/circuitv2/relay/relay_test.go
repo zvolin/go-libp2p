@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/libp2p/go-libp2p-core/transport"
+
 	"github.com/libp2p/go-tcp-transport"
 
 	"github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/client"
@@ -25,11 +27,10 @@ import (
 	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
 	swarm "github.com/libp2p/go-libp2p-swarm"
 	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
-	tptu "github.com/libp2p/go-libp2p-transport-upgrader"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
-func getNetHosts(t *testing.T, ctx context.Context, n int) (hosts []host.Host, upgraders []*tptu.Upgrader) {
+func getNetHosts(t *testing.T, ctx context.Context, n int) (hosts []host.Host, upgraders []transport.Upgrader) {
 	for i := 0; i < n; i++ {
 		privk, pubk, err := crypto.GenerateKeyPair(crypto.Ed25519, 0)
 		if err != nil {
@@ -56,7 +57,7 @@ func getNetHosts(t *testing.T, ctx context.Context, n int) (hosts []host.Host, u
 			t.Fatal(err)
 		}
 
-		upgrader := swarmt.GenUpgrader(netw)
+		upgrader := swarmt.GenUpgrader(t, netw)
 		upgraders = append(upgraders, upgrader)
 
 		tpt, err := tcp.NewTCPTransport(upgrader)
@@ -88,7 +89,7 @@ func connect(t *testing.T, a, b host.Host) {
 	}
 }
 
-func addTransport(t *testing.T, h host.Host, upgrader *tptu.Upgrader) {
+func addTransport(t *testing.T, h host.Host, upgrader transport.Upgrader) {
 	if err := client.AddTransport(h, upgrader); err != nil {
 		t.Fatal(err)
 	}

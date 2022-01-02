@@ -20,8 +20,8 @@ require (
 	github.com/libp2p/go-eventbus v0.2.1
 	github.com/libp2p/go-libp2p-asn-util v0.1.0
 	github.com/libp2p/go-libp2p-blankhost v0.3.0
-	github.com/libp2p/go-libp2p-circuit v0.4.0
-	github.com/libp2p/go-libp2p-core v0.13.0
+	github.com/libp2p/go-libp2p-circuit v0.4.1-0.20220104091935-28fb8d25f785
+	github.com/libp2p/go-libp2p-core v0.13.1-0.20220104083644-a3dd401efe36
 	github.com/libp2p/go-libp2p-discovery v0.6.0
 	github.com/libp2p/go-libp2p-mplex v0.4.1
 	github.com/libp2p/go-libp2p-nat v0.1.0
@@ -29,16 +29,16 @@ require (
 	github.com/libp2p/go-libp2p-noise v0.3.0
 	github.com/libp2p/go-libp2p-peerstore v0.6.0
 	github.com/libp2p/go-libp2p-quic-transport v0.15.2
-	github.com/libp2p/go-libp2p-swarm v0.9.0
+	github.com/libp2p/go-libp2p-swarm v0.9.1-0.20220104091227-f776b7e504b1
 	github.com/libp2p/go-libp2p-testing v0.6.0
 	github.com/libp2p/go-libp2p-tls v0.3.1
-	github.com/libp2p/go-libp2p-transport-upgrader v0.6.0
+	github.com/libp2p/go-libp2p-transport-upgrader v0.6.1-0.20220104084635-5fc0a74b41f0
 	github.com/libp2p/go-libp2p-yamux v0.7.0
 	github.com/libp2p/go-msgio v0.1.0
 	github.com/libp2p/go-netroute v0.1.6
 	github.com/libp2p/go-stream-muxer-multistream v0.3.0
-	github.com/libp2p/go-tcp-transport v0.4.0
-	github.com/libp2p/go-ws-transport v0.5.0
+	github.com/libp2p/go-tcp-transport v0.4.1-0.20220104085503-4ad75e6f32a5
+	github.com/libp2p/go-ws-transport v0.5.1-0.20220104085536-0bac7beec89d
 	github.com/libp2p/zeroconf/v2 v2.1.1
 	github.com/multiformats/go-multiaddr v0.5.0
 	github.com/multiformats/go-multiaddr-dns v0.3.1
