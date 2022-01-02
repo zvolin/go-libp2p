@@ -1,53 +1,40 @@
-//go:build ignore
-// +build ignore
-
 // This separate testing package helps to resolve a circular dependency potentially
 // being created between libp2p and libp2p-autonat
-package autonat_test
+package autonattest
 
 import (
 	"context"
 	"testing"
 	"time"
 
+	"github.com/libp2p/go-libp2p-core/event"
+	"github.com/libp2p/go-libp2p-core/network"
+
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p/p2p/host/autonat"
 
-	"github.com/libp2p/go-libp2p-core/event"
-	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAutonatRoundtrip(t *testing.T) {
 	t.Skip("this test doesn't work")
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	// 3 hosts are used: [client] and [service + dialback dialer]
-	client, err := libp2p.New(ctx, libp2p.ListenAddrStrings("/ip4/127.0.0.1/tcp/0"), libp2p.EnableNATService())
-	if err != nil {
-		t.Fatal(err)
-	}
-	service, err := libp2p.New(ctx, libp2p.ListenAddrStrings("/ip4/127.0.0.1/tcp/0"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	dialback, err := libp2p.New(ctx, libp2p.NoListenAddrs)
-	if err != nil {
-		t.Fatal(err)
-	}
+	client, err := libp2p.New(libp2p.ListenAddrStrings("/ip4/127.0.0.1/tcp/0"), libp2p.EnableNATService())
+	require.NoError(t, err)
+	service, err := libp2p.New(libp2p.ListenAddrStrings("/ip4/127.0.0.1/tcp/0"))
+	require.NoError(t, err)
+	dialback, err := libp2p.New(libp2p.NoListenAddrs)
+	require.NoError(t, err)
 	if _, err := autonat.New(service, autonat.EnableService(dialback.Network())); err != nil {
 		t.Fatal(err)
 	}
 
 	client.Peerstore().AddAddrs(service.ID(), service.Addrs(), time.Hour)
-	if err := client.Connect(ctx, service.Peerstore().PeerInfo(service.ID())); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, client.Connect(context.Background(), service.Peerstore().PeerInfo(service.ID())))
 
 	cSub, err := client.EventBus().Subscribe(new(event.EvtLocalReachabilityChanged))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	defer cSub.Close()
 
 	select {
