@@ -15,7 +15,6 @@ require (
 	github.com/ipfs/go-log/v2 v2.4.0
 	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
 	github.com/koron/go-ssdp v0.0.2 // indirect
-	github.com/libp2p/go-addr-util v0.1.0
 	github.com/libp2p/go-buffer-pool v0.0.2
 	github.com/libp2p/go-conn-security-multistream v0.3.0
 	github.com/libp2p/go-eventbus v0.2.1
@@ -41,7 +40,7 @@ require (
 	github.com/libp2p/go-tcp-transport v0.4.0
 	github.com/libp2p/go-ws-transport v0.5.0
 	github.com/libp2p/zeroconf/v2 v2.1.1
-	github.com/multiformats/go-multiaddr v0.4.0
+	github.com/multiformats/go-multiaddr v0.5.0
 	github.com/multiformats/go-multiaddr-dns v0.3.1
 	github.com/multiformats/go-multistream v0.2.2
 	github.com/multiformats/go-varint v0.0.6
