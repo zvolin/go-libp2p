@@ -9,6 +9,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	ma "github.com/multiformats/go-multiaddr"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestNotifications(t *testing.T) {
@@ -80,14 +82,10 @@ func TestNotifications(t *testing.T) {
 		}
 	}
 
+	acceptedStream := make(chan struct{}, 1000)
 	for _, s := range nets {
 		s.SetStreamHandler(func(s network.Stream) {
-			s.Close()
-		})
-	}
-
-	for _, s := range nets {
-		s.SetStreamHandler(func(s network.Stream) {
+			acceptedStream <- struct{}{}
 			s.Close()
 		})
 	}
@@ -150,9 +148,17 @@ func TestNotifications(t *testing.T) {
 			str2 := StreamComplement(str1)
 			n2 := notifiees[str1.Conn().RemotePeer()]
 
-			n2.streamState.Lock()
-			ch2 := n2.streamState.m[str2]
-			n2.streamState.Unlock()
+			// make sure the OpenedStream notification was processed first
+			var ch2 chan struct{}
+			require.Eventually(t, func() bool {
+				n2.streamState.Lock()
+				defer n2.streamState.Unlock()
+				ch, ok := n2.streamState.m[str2]
+				if ok {
+					ch2 = ch
+				}
+				return ok
+			}, time.Second, 10*time.Millisecond)
 
 			<-ch2
 		}
