@@ -14,7 +14,7 @@ require (
 	github.com/libp2p/go-libp2p-yamux v0.7.0
 	github.com/libp2p/go-tcp-transport v0.4.0
 	github.com/libp2p/go-ws-transport v0.5.0
-	github.com/multiformats/go-multiaddr v0.4.0
+	github.com/multiformats/go-multiaddr v0.5.0
 )
 
 // Ensure that examples always use the go-libp2p version in the same git checkout.

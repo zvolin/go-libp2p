@@ -15,7 +15,7 @@ require (
 	github.com/libp2p/go-libp2p-noise v0.3.0
 	github.com/libp2p/go-libp2p-swarm v0.9.0
 	github.com/libp2p/go-libp2p-tls v0.3.1
-	github.com/multiformats/go-multiaddr v0.4.0
+	github.com/multiformats/go-multiaddr v0.5.0
 )
 
 // Ensure that examples always use the go-libp2p version in the same git checkout.

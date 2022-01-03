@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	autonat "github.com/libp2p/go-libp2p/p2p/host/autonat"
+	"github.com/libp2p/go-libp2p/p2p/host/autonat"
 	"github.com/libp2p/go-libp2p/p2p/host/pstoremanager"
 	"github.com/libp2p/go-libp2p/p2p/host/relaysvc"
 	relayv2 "github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/relay"
@@ -27,7 +27,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/libp2p/go-libp2p-core/record"
 
-	addrutil "github.com/libp2p/go-addr-util"
 	"github.com/libp2p/go-eventbus"
 	inat "github.com/libp2p/go-libp2p-nat"
 	"github.com/libp2p/go-netroute"
@@ -826,7 +825,7 @@ func (h *BasicHost) AllAddrs() []ma.Multiaddr {
 	// Iterate over all _unresolved_ listen addresses, resolving our primary
 	// interface only to avoid advertising too many addresses.
 	var finalAddrs []ma.Multiaddr
-	if resolved, err := addrutil.ResolveUnspecifiedAddresses(listenAddrs, filteredIfaceAddrs); err != nil {
+	if resolved, err := manet.ResolveUnspecifiedAddresses(listenAddrs, filteredIfaceAddrs); err != nil {
 		// This can happen if we're listening on no addrs, or listening
 		// on IPv6 addrs, but only have IPv4 interface addrs.
 		log.Debugw("failed to resolve listen addrs", "error", err)
@@ -959,7 +958,7 @@ func (h *BasicHost) AllAddrs() []ma.Multiaddr {
 			// No.
 			// in case the router gives us a wrong address or we're behind a double-NAT.
 			// also add observed addresses
-			resolved, err := addrutil.ResolveUnspecifiedAddress(listen, allIfaceAddrs)
+			resolved, err := manet.ResolveUnspecifiedAddress(listen, allIfaceAddrs)
 			if err != nil {
 				// This can happen if we try to resolve /ip6/::/...
 				// without any IPv6 interface addresses.
