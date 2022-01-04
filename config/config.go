@@ -14,6 +14,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/pnet"
 	"github.com/libp2p/go-libp2p-core/routing"
+	"github.com/libp2p/go-libp2p-core/sec"
 	"github.com/libp2p/go-libp2p-core/transport"
 	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
 
@@ -139,30 +140,38 @@ func (cfg *Config) makeSwarm() (*swarm.Swarm, error) {
 	return swarm.NewSwarm(pid, cfg.Peerstore, swarm.WithMetrics(cfg.Reporter), swarm.WithConnectionGater(cfg.ConnectionGater))
 }
 
-func (cfg *Config) addTransports(h host.Host) (err error) {
+func (cfg *Config) addTransports(h host.Host) error {
 	swrm, ok := h.Network().(transport.TransportNetwork)
 	if !ok {
 		// Should probably skip this if no transports.
 		return fmt.Errorf("swarm does not support transports")
 	}
-	upgrader := new(tptu.Upgrader)
-	upgrader.PSK = cfg.PSK
-	upgrader.ConnGater = cfg.ConnectionGater
+	var secure sec.SecureMuxer
 	if cfg.Insecure {
-		upgrader.Secure = makeInsecureTransport(h.ID(), cfg.PeerKey)
+		secure = makeInsecureTransport(h.ID(), cfg.PeerKey)
 	} else {
-		upgrader.Secure, err = makeSecurityMuxer(h, cfg.SecurityTransports)
+		var err error
+		secure, err = makeSecurityMuxer(h, cfg.SecurityTransports)
 		if err != nil {
 			return err
 		}
 	}
-
-	upgrader.Muxer, err = makeMuxer(h, cfg.Muxers)
+	muxer, err := makeMuxer(h, cfg.Muxers)
 	if err != nil {
 		return err
 	}
-
-	tpts, err := makeTransports(h, upgrader, cfg.ConnectionGater, cfg.Transports)
+	var opts []tptu.Option
+	if len(cfg.PSK) > 0 {
+		opts = append(opts, tptu.WithPSK(cfg.PSK))
+	}
+	if cfg.ConnectionGater != nil {
+		opts = append(opts, tptu.WithConnectionGater(cfg.ConnectionGater))
+	}
+	upgrader, err := tptu.New(secure, muxer, opts...)
+	if err != nil {
+		return err
+	}
+	tpts, err := makeTransports(h, upgrader, cfg.ConnectionGater, cfg.PSK, cfg.Transports)
 	if err != nil {
 		return err
 	}

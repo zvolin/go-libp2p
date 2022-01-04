@@ -14,7 +14,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/transport"
 	noise "github.com/libp2p/go-libp2p-noise"
-	tptu "github.com/libp2p/go-libp2p-transport-upgrader"
 	"github.com/libp2p/go-tcp-transport"
 	ma "github.com/multiformats/go-multiaddr"
 
@@ -44,7 +43,7 @@ func TestTransportConstructor(t *testing.T) {
 	ctor := func(
 		h host.Host,
 		_ connmgr.ConnectionGater,
-		upgrader *tptu.Upgrader,
+		upgrader transport.Upgrader,
 	) transport.Transport {
 		tpt, err := tcp.NewTCPTransport(upgrader)
 		require.NoError(t, err)
