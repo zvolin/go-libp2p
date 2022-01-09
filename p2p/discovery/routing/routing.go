@@ -1,15 +1,14 @@
-package discovery
+package routing
 
 import (
 	"context"
-	"github.com/libp2p/go-libp2p-core/discovery"
 	"time"
 
-	"github.com/ipfs/go-cid"
-
+	"github.com/libp2p/go-libp2p-core/discovery"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/routing"
 
+	"github.com/ipfs/go-cid"
 	mh "github.com/multiformats/go-multihash"
 )
 

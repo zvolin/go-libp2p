@@ -7,9 +7,12 @@ import (
 	"testing"
 	"time"
 
-	bhost "github.com/libp2p/go-libp2p-blankhost"
+	"github.com/libp2p/go-libp2p/p2p/discovery/mocks"
+
 	"github.com/libp2p/go-libp2p-core/discovery"
 	"github.com/libp2p/go-libp2p-core/peer"
+
+	bhost "github.com/libp2p/go-libp2p-blankhost"
 	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
 )
 
@@ -66,14 +69,14 @@ func TestBackoffDiscoverySingleBackoff(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	discServer := newDiscoveryServer()
+	discServer := mocks.NewDiscoveryServer()
 
 	h1 := bhost.NewBlankHost(swarmt.GenSwarm(t))
 	defer h1.Close()
 	h2 := bhost.NewBlankHost(swarmt.GenSwarm(t))
 	defer h2.Close()
-	d1 := &mockDiscoveryClient{h1, discServer}
-	d2 := &mockDiscoveryClient{h2, discServer}
+	d1 := mocks.NewDiscoveryClient(h1, discServer)
+	d2 := mocks.NewDiscoveryClient(h2, discServer)
 
 	bkf := NewExponentialBackoff(time.Millisecond*100, time.Second*10, NoJitter,
 		time.Millisecond*100, 2.5, 0, rand.NewSource(0))
@@ -108,14 +111,14 @@ func TestBackoffDiscoveryMultipleBackoff(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	discServer := newDiscoveryServer()
+	discServer := mocks.NewDiscoveryServer()
 
 	h1 := bhost.NewBlankHost(swarmt.GenSwarm(t))
 	defer h1.Close()
 	h2 := bhost.NewBlankHost(swarmt.GenSwarm(t))
 	defer h2.Close()
-	d1 := &mockDiscoveryClient{h1, discServer}
-	d2 := &mockDiscoveryClient{h2, discServer}
+	d1 := mocks.NewDiscoveryClient(h1, discServer)
+	d2 := mocks.NewDiscoveryClient(h2, discServer)
 
 	// Startup delay is 0ms. First backoff after finding data is 100ms, second backoff is 250ms.
 	bkf := NewExponentialBackoff(
@@ -164,7 +167,7 @@ func TestBackoffDiscoverySimultaneousQuery(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	discServer := newDiscoveryServer()
+	discServer := mocks.NewDiscoveryServer()
 
 	// Testing with n larger than most internal buffer sizes (32)
 	n := 40
@@ -173,7 +176,7 @@ func TestBackoffDiscoverySimultaneousQuery(t *testing.T) {
 	for i := 0; i < n; i++ {
 		h := bhost.NewBlankHost(swarmt.GenSwarm(t))
 		defer h.Close()
-		advertisers[i] = &mockDiscoveryClient{h, discServer}
+		advertisers[i] = mocks.NewDiscoveryClient(h, discServer)
 	}
 
 	d1 := &delayedDiscovery{advertisers[0], time.Millisecond * 10}
@@ -223,7 +226,7 @@ func TestBackoffDiscoveryCacheCapacity(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	discServer := newDiscoveryServer()
+	discServer := mocks.NewDiscoveryServer()
 
 	// Testing with n larger than most internal buffer sizes (32)
 	n := 40
@@ -232,11 +235,11 @@ func TestBackoffDiscoveryCacheCapacity(t *testing.T) {
 	for i := 0; i < n; i++ {
 		h := bhost.NewBlankHost(swarmt.GenSwarm(t))
 		defer h.Close()
-		advertisers[i] = &mockDiscoveryClient{h, discServer}
+		advertisers[i] = mocks.NewDiscoveryClient(h, discServer)
 	}
 
 	h1 := bhost.NewBlankHost(swarmt.GenSwarm(t))
-	d1 := &mockDiscoveryClient{h1, discServer}
+	d1 := mocks.NewDiscoveryClient(h1, discServer)
 
 	const discoveryInterval = time.Millisecond * 100
 

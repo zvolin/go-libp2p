@@ -1,10 +1,14 @@
-package discovery
+package routing
 
 import (
 	"context"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/libp2p/go-libp2p/p2p/discovery/mocks"
+
+	"github.com/libp2p/go-libp2p/p2p/discovery/util"
 
 	"github.com/ipfs/go-cid"
 	bhost "github.com/libp2p/go-libp2p-blankhost"
@@ -90,7 +94,7 @@ func TestRoutingDiscovery(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pis, err := FindPeers(ctx, d2, "/test", discovery.Limit(20))
+	pis, err := util.FindPeers(ctx, d2, "/test", discovery.Limit(20))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,9 +116,9 @@ func TestDiscoveryRouting(t *testing.T) {
 	h1 := bhost.NewBlankHost(swarmt.GenSwarm(t))
 	h2 := bhost.NewBlankHost(swarmt.GenSwarm(t))
 
-	dserver := newDiscoveryServer()
-	d1 := &mockDiscoveryClient{h1, dserver}
-	d2 := &mockDiscoveryClient{h2, dserver}
+	dserver := mocks.NewDiscoveryServer()
+	d1 := mocks.NewDiscoveryClient(h1, dserver)
+	d2 := mocks.NewDiscoveryClient(h2, dserver)
 
 	r1 := NewDiscoveryRouting(d1, discovery.TTL(time.Hour))
 	r2 := NewDiscoveryRouting(d2, discovery.TTL(time.Hour))

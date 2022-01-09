@@ -1,4 +1,4 @@
-package backoff
+package mocks
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-type mockDiscoveryServer struct {
+type MockDiscoveryServer struct {
 	mx sync.Mutex
 	db map[string]map[peer.ID]*discoveryRegistration
 }
@@ -20,13 +20,13 @@ type discoveryRegistration struct {
 	expiration time.Time
 }
 
-func newDiscoveryServer() *mockDiscoveryServer {
-	return &mockDiscoveryServer{
+func NewDiscoveryServer() *MockDiscoveryServer {
+	return &MockDiscoveryServer{
 		db: make(map[string]map[peer.ID]*discoveryRegistration),
 	}
 }
 
-func (s *mockDiscoveryServer) Advertise(ns string, info peer.AddrInfo, ttl time.Duration) (time.Duration, error) {
+func (s *MockDiscoveryServer) Advertise(ns string, info peer.AddrInfo, ttl time.Duration) (time.Duration, error) {
 	s.mx.Lock()
 	defer s.mx.Unlock()
 
@@ -39,7 +39,7 @@ func (s *mockDiscoveryServer) Advertise(ns string, info peer.AddrInfo, ttl time.
 	return ttl, nil
 }
 
-func (s *mockDiscoveryServer) FindPeers(ns string, limit int) (<-chan peer.AddrInfo, error) {
+func (s *MockDiscoveryServer) FindPeers(ns string, limit int) (<-chan peer.AddrInfo, error) {
 	s.mx.Lock()
 	defer s.mx.Unlock()
 
@@ -75,12 +75,19 @@ func (s *mockDiscoveryServer) FindPeers(ns string, limit int) (<-chan peer.AddrI
 	return ch, nil
 }
 
-type mockDiscoveryClient struct {
+type MockDiscoveryClient struct {
 	host   host.Host
-	server *mockDiscoveryServer
+	server *MockDiscoveryServer
 }
 
-func (d *mockDiscoveryClient) Advertise(ctx context.Context, ns string, opts ...discovery.Option) (time.Duration, error) {
+func NewDiscoveryClient(h host.Host, server *MockDiscoveryServer) *MockDiscoveryClient {
+	return &MockDiscoveryClient{
+		host:   h,
+		server: server,
+	}
+}
+
+func (d *MockDiscoveryClient) Advertise(ctx context.Context, ns string, opts ...discovery.Option) (time.Duration, error) {
 	var options discovery.Options
 	err := options.Apply(opts...)
 	if err != nil {
@@ -90,7 +97,7 @@ func (d *mockDiscoveryClient) Advertise(ctx context.Context, ns string, opts ...
 	return d.server.Advertise(ns, *host.InfoFromHost(d.host), options.Ttl)
 }
 
-func (d *mockDiscoveryClient) FindPeers(ctx context.Context, ns string, opts ...discovery.Option) (<-chan peer.AddrInfo, error) {
+func (d *MockDiscoveryClient) FindPeers(ctx context.Context, ns string, opts ...discovery.Option) (<-chan peer.AddrInfo, error) {
 	var options discovery.Options
 	err := options.Apply(opts...)
 	if err != nil {
