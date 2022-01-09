@@ -1,4 +1,4 @@
-package discovery
+package util
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 )
 
-var log = logging.Logger("discovery")
+var log = logging.Logger("discovery-util")
 
 // FindPeers is a utility function that synchronously collects peers from a Discoverer.
 func FindPeers(ctx context.Context, d discovery.Discoverer, ns string, opts ...discovery.Option) ([]peer.AddrInfo, error) {
