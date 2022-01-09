@@ -1,11 +1,15 @@
-package discovery
+package backoff
 
 import (
 	"math"
 	"math/rand"
 	"sync"
 	"time"
+
+	logging "github.com/ipfs/go-log/v2"
 )
+
+var log = logging.Logger("discovery-backoff")
 
 type BackoffFactory func() BackoffStrategy
 

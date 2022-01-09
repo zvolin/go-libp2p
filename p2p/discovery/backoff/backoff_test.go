@@ -1,11 +1,12 @@
-package discovery
+package backoff
 
 import (
 	"fmt"
-	"golang.org/x/sync/errgroup"
 	"math/rand"
 	"testing"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 )
 
 func checkDelay(bkf BackoffStrategy, expected time.Duration, t *testing.T) {
