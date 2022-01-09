@@ -23,7 +23,6 @@ require (
 	github.com/libp2p/go-libp2p-blankhost v0.3.0
 	github.com/libp2p/go-libp2p-circuit v0.4.1-0.20220104091935-28fb8d25f785
 	github.com/libp2p/go-libp2p-core v0.13.1-0.20220104083644-a3dd401efe36
-	github.com/libp2p/go-libp2p-discovery v0.6.0
 	github.com/libp2p/go-libp2p-mplex v0.4.1
 	github.com/libp2p/go-libp2p-nat v0.1.0
 	github.com/libp2p/go-libp2p-netutil v0.1.0
