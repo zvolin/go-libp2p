@@ -25,12 +25,11 @@ require (
 	github.com/libp2p/go-libp2p-discovery v0.6.0
 	github.com/libp2p/go-libp2p-mplex v0.4.1
 	github.com/libp2p/go-libp2p-nat v0.1.0
-	github.com/libp2p/go-libp2p-netutil v0.1.0
 	github.com/libp2p/go-libp2p-noise v0.3.0
 	github.com/libp2p/go-libp2p-peerstore v0.6.0
 	github.com/libp2p/go-libp2p-quic-transport v0.15.2
 	github.com/libp2p/go-libp2p-swarm v0.9.1-0.20220104091227-f776b7e504b1
-	github.com/libp2p/go-libp2p-testing v0.6.0
+	github.com/libp2p/go-libp2p-testing v0.6.1-0.20211214061856-c642a397cccd
 	github.com/libp2p/go-libp2p-tls v0.3.1
 	github.com/libp2p/go-libp2p-transport-upgrader v0.6.1-0.20220104084635-5fc0a74b41f0
 	github.com/libp2p/go-libp2p-yamux v0.7.0
