@@ -46,6 +46,7 @@ about: 'Start a new libp2p release.'
   - [ ] Publish the release through the GitHub UI, adding the release notes. Some users rely on this to receive notifications of new releases.
   - [ ] Announce the release on the [discuss.libp2p.io](https://discuss.libp2p.io).
 - [ ] **Stage 4 - Update Upstream**
+  - [ ] Update the examples to the final release
   - [ ] Update the upstream testing branches to the final release and create PRs.
     - [ ] [filecoin-project/lotus](https://github.com/filecoin-project/lotus)
     - [ ] [ipfs/go-bitswap](https://github.com/ipfs/go-bitswap)
