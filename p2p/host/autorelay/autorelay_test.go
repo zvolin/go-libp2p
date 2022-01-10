@@ -40,6 +40,12 @@ type mockRoutingTable struct {
 	peers     map[peer.ID]peer.AddrInfo
 }
 
+func (t *mockRoutingTable) NumPeers() int {
+	t.mx.Lock()
+	defer t.mx.Unlock()
+	return len(t.peers)
+}
+
 type mockRouting struct {
 	h   host.Host
 	tab *mockRoutingTable
@@ -175,6 +181,7 @@ func testAutoRelay(t *testing.T, useRelayv2 bool) {
 	require.NoError(t, err)
 	relayDiscovery := discovery.NewRoutingDiscovery(relayRouting)
 	autorelay.Advertise(context.Background(), relayDiscovery)
+	require.Eventually(t, func() bool { return mtab.NumPeers() > 0 }, time.Second, 10*time.Millisecond)
 
 	// the client hosts
 	h1, err := libp2p.New(libp2p.EnableRelay())
