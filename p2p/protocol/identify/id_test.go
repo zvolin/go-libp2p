@@ -460,7 +460,7 @@ func TestIdentifyDeltaOnProtocolChange(t *testing.T) {
 		_, okfoo := have["foo"]
 		_, okbar := have["bar"]
 		return okfoo && okbar
-	}, 5*time.Second, 500*time.Millisecond)
+	}, time.Second, 10*time.Millisecond)
 
 	// remove one of the newly added protocols from h2, and wait for identify to send the delta.
 	h2.RemoveStreamHandler(protocol.ID("bar"))
@@ -478,7 +478,7 @@ func TestIdentifyDeltaOnProtocolChange(t *testing.T) {
 		_, okfoo := have["foo"]
 		_, okbar := have["bar"]
 		return okfoo && !okbar
-	}, 5*time.Second, 500*time.Millisecond)
+	}, time.Second, 10*time.Millisecond)
 
 	// make sure that h1 emitted events in the eventbus for h2's protocol updates.
 	done := make(chan struct{})
@@ -643,7 +643,7 @@ func TestIdentifyPushOnAddrChange(t *testing.T) {
 			}
 		}
 		return false
-	}, 5*time.Second, 500*time.Millisecond)
+	}, 1*time.Second, 10*time.Millisecond)
 	require.NotNil(t, getSignedRecord(t, h2, h1p))
 
 	// change addr on host2 and ensure host 1 gets a pus
@@ -660,7 +660,7 @@ func TestIdentifyPushOnAddrChange(t *testing.T) {
 			}
 		}
 		return false
-	}, 5*time.Second, 500*time.Millisecond)
+	}, 1*time.Second, 10*time.Millisecond)
 	require.NotNil(t, getSignedRecord(t, h1, h2p))
 
 	// change addr on host2 again
@@ -677,7 +677,7 @@ func TestIdentifyPushOnAddrChange(t *testing.T) {
 			}
 		}
 		return false
-	}, 5*time.Second, 500*time.Millisecond)
+	}, 1*time.Second, 10*time.Millisecond)
 	require.NotNil(t, getSignedRecord(t, h1, h2p))
 }
 
@@ -773,21 +773,21 @@ func TestSendPushIfDeltaNotSupported(t *testing.T) {
 	require.Eventually(t, func() bool {
 		sup, err := h1.Peerstore().SupportsProtocols(h2.ID(), []string{identify.IDDelta}...)
 		return err == nil && len(sup) == 0
-	}, 5*time.Second, 500*time.Millisecond)
+	}, time.Second, 10*time.Millisecond)
 
 	// h1 starts listening on a new protocol and h2 finds out about that through a push
 	h1.SetStreamHandler("rand", func(network.Stream) {})
 	require.Eventually(t, func() bool {
 		sup, err := h2.Peerstore().SupportsProtocols(h1.ID(), []string{"rand"}...)
 		return err == nil && len(sup) == 1 && sup[0] == "rand"
-	}, 5*time.Second, 500*time.Millisecond)
+	}, time.Second, 10*time.Millisecond)
 
 	// h1 stops listening on a protocol and h2 finds out about it via a push
 	h1.RemoveStreamHandler("rand")
 	require.Eventually(t, func() bool {
 		sup, err := h2.Peerstore().SupportsProtocols(h1.ID(), []string{"rand"}...)
 		return err == nil && len(sup) == 0
-	}, 5*time.Second, 500*time.Millisecond)
+	}, time.Second, 10*time.Millisecond)
 }
 
 func TestLargeIdentifyMessage(t *testing.T) {
@@ -973,7 +973,7 @@ func TestLargePushMessage(t *testing.T) {
 			}
 		}
 		return false
-	}, 5*time.Second, 500*time.Millisecond)
+	}, time.Second, 10*time.Millisecond)
 	require.NotNil(t, getSignedRecord(t, h2, h1p))
 
 	// change addr on host2 and ensure host 1 gets a pus
@@ -990,7 +990,7 @@ func TestLargePushMessage(t *testing.T) {
 			}
 		}
 		return false
-	}, 5*time.Second, 500*time.Millisecond)
+	}, time.Second, 10*time.Millisecond)
 	testHasCertifiedAddrs(t, h1, h2p, h2.Addrs())
 
 	// change addr on host2 again
@@ -1007,7 +1007,7 @@ func TestLargePushMessage(t *testing.T) {
 			}
 		}
 		return false
-	}, 5*time.Second, 500*time.Millisecond)
+	}, time.Second, 10*time.Millisecond)
 	testHasCertifiedAddrs(t, h2, h1p, h1.Addrs())
 }
 
