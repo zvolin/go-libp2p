@@ -9,6 +9,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/libp2p/go-libp2p"
+	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
+	"github.com/libp2p/go-libp2p/p2p/protocol/identify"
+	pb "github.com/libp2p/go-libp2p/p2p/protocol/identify/pb"
+
 	ic "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/event"
 	"github.com/libp2p/go-libp2p-core/host"
@@ -18,128 +23,22 @@ import (
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/libp2p/go-libp2p-core/record"
 	coretest "github.com/libp2p/go-libp2p-core/test"
-	"github.com/libp2p/go-libp2p-testing/race"
 
 	"github.com/libp2p/go-eventbus"
-	"github.com/libp2p/go-libp2p"
 	blhost "github.com/libp2p/go-libp2p-blankhost"
 	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
 	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
-	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
-	"github.com/libp2p/go-libp2p/p2p/protocol/identify"
-	pb "github.com/libp2p/go-libp2p/p2p/protocol/identify/pb"
+	"github.com/libp2p/go-libp2p-testing/race"
 
 	"github.com/libp2p/go-msgio/protoio"
 	ma "github.com/multiformats/go-multiaddr"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func subtestIDService(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	h1 := blhost.NewBlankHost(swarmt.GenSwarm(t))
-	h2 := blhost.NewBlankHost(swarmt.GenSwarm(t))
-
-	h1p := h1.ID()
-	h2p := h2.ID()
-
-	ids1, err := identify.NewIDService(h1)
-	require.NoError(t, err)
-
-	ids2, err := identify.NewIDService(h2)
-	require.NoError(t, err)
-
-	defer ids1.Close()
-	defer ids2.Close()
-
-	sub, err := ids1.Host.EventBus().Subscribe(new(event.EvtPeerIdentificationCompleted), eventbus.BufSize(16))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	testKnowsAddrs(t, h1, h2p, []ma.Multiaddr{}) // nothing
-	testKnowsAddrs(t, h2, h1p, []ma.Multiaddr{}) // nothing
-
-	// the forgetMe addr represents an address for h1 that h2 has learned out of band
-	// (not via identify protocol). During the identify exchange, it will be
-	// forgotten and replaced by the addrs h1 sends.
-	forgetMe, _ := ma.NewMultiaddr("/ip4/1.2.3.4/tcp/1234")
-
-	h2.Peerstore().AddAddr(h1p, forgetMe, peerstore.RecentlyConnectedAddrTTL)
-	time.Sleep(500 * time.Millisecond)
-
-	h2pi := h2.Peerstore().PeerInfo(h2p)
-	if err := h1.Connect(ctx, h2pi); err != nil {
-		t.Fatal(err)
-	}
-
-	h1t2c := h1.Network().ConnsToPeer(h2p)
-	if len(h1t2c) == 0 {
-		t.Fatal("should have a conn here")
-	}
-
-	ids1.IdentifyConn(h1t2c[0])
-
-	// the idService should be opened automatically, by the network.
-	// what we should see now is that both peers know about each others listen addresses.
-	t.Log("test peer1 has peer2 addrs correctly")
-	testKnowsAddrs(t, h1, h2p, h2.Addrs())                       // has them
-	testHasCertifiedAddrs(t, h1, h2p, h2.Peerstore().Addrs(h2p)) // should have signed addrs also
-	testHasProtocolVersions(t, h1, h2p)
-	testHasPublicKey(t, h1, h2p, h2.Peerstore().PubKey(h2p)) // h1 should have h2's public key
-
-	// now, this wait we do have to do. it's the wait for the Listening side
-	// to be done identifying the connection.
-	c := h2.Network().ConnsToPeer(h1.ID())
-	if len(c) < 1 {
-		t.Fatal("should have connection by now at least.")
-	}
-	ids2.IdentifyConn(c[0])
-
-	// and the protocol versions.
-	t.Log("test peer2 has peer1 addrs correctly")
-	testKnowsAddrs(t, h2, h1p, h1.Addrs()) // has them
-	testHasCertifiedAddrs(t, h2, h1p, h1.Peerstore().Addrs(h1p))
-	testHasProtocolVersions(t, h2, h1p)
-	testHasPublicKey(t, h2, h1p, h1.Peerstore().PubKey(h1p)) // h1 should have h2's public key
-
-	// Need both sides to actually notice that the connection has been closed.
-	h1.Network().ClosePeer(h2p)
-	h2.Network().ClosePeer(h1p)
-	if len(h2.Network().ConnsToPeer(h1.ID())) != 0 || len(h1.Network().ConnsToPeer(h2.ID())) != 0 {
-		t.Fatal("should have no connections")
-	}
-
-	t.Log("testing addrs just after disconnect")
-	// addresses don't immediately expire on disconnect, so we should still have them
-	testKnowsAddrs(t, h2, h1p, h1.Addrs())
-	testKnowsAddrs(t, h1, h2p, h2.Addrs())
-	testHasCertifiedAddrs(t, h1, h2p, h2.Peerstore().Addrs(h2p))
-	testHasCertifiedAddrs(t, h2, h1p, h1.Peerstore().Addrs(h1p))
-
-	// the addrs had their TTLs reduced on disconnect, and
-	// will be forgotten soon after
-	t.Log("testing addrs after TTL expiration")
-	time.Sleep(2 * time.Second)
-	testKnowsAddrs(t, h1, h2p, []ma.Multiaddr{})
-	testKnowsAddrs(t, h2, h1p, []ma.Multiaddr{})
-	testHasCertifiedAddrs(t, h1, h2p, []ma.Multiaddr{})
-	testHasCertifiedAddrs(t, h2, h1p, []ma.Multiaddr{})
-
-	// test that we received the "identify completed" event.
-	select {
-	case <-sub.Out():
-	case <-time.After(10 * time.Second):
-		t.Fatalf("expected EvtPeerIdentificationCompleted event within 10 seconds; none received")
-	}
-}
-
 func testKnowsAddrs(t *testing.T, h host.Host, p peer.ID, expected []ma.Multiaddr) {
 	t.Helper()
-
-	actual := h.Peerstore().Addrs(p)
-	checkAddrs(t, expected, actual, fmt.Sprintf("%s did not have addr for %s", h.ID(), p))
+	assert.ElementsMatchf(t, expected, h.Peerstore().Addrs(p), fmt.Sprintf("%s did not have addr for %s", h.ID(), p))
 }
 
 func testHasCertifiedAddrs(t *testing.T, h host.Host, p peer.ID, expected []ma.Multiaddr) {
@@ -163,27 +62,7 @@ func testHasCertifiedAddrs(t *testing.T, h host.Host, p peer.ID, expected []ma.M
 	if !ok {
 		t.Error("unexpected record type")
 	}
-
-	checkAddrs(t, expected, rec.Addrs, fmt.Sprintf("%s did not have certified addr for %s", h.ID(), p))
-}
-
-func checkAddrs(t *testing.T, expected, actual []ma.Multiaddr, msg string) {
-	t.Helper()
-	if len(actual) != len(expected) {
-		t.Errorf("expected: %s", expected)
-		t.Errorf("actual: %s", actual)
-		t.Fatal("dont have the same addresses")
-	}
-
-	have := map[string]struct{}{}
-	for _, addr := range actual {
-		have[addr.String()] = struct{}{}
-	}
-	for _, addr := range expected {
-		if _, found := have[addr.String()]; !found {
-			t.Errorf("%s: %s", msg, addr)
-		}
-	}
+	assert.ElementsMatchf(t, expected, rec.Addrs, fmt.Sprintf("%s did not have certified addr for %s", h.ID(), p))
 }
 
 func testHasProtocolVersions(t *testing.T, h host.Host, p peer.ID) {
@@ -272,14 +151,94 @@ func TestIDService(t *testing.T) {
 		t.Skip("skipping highly timing dependent test when race detector is enabled")
 	}
 	oldTTL := peerstore.RecentlyConnectedAddrTTL
-	peerstore.RecentlyConnectedAddrTTL = time.Second
-	defer func() {
-		peerstore.RecentlyConnectedAddrTTL = oldTTL
-	}()
+	peerstore.RecentlyConnectedAddrTTL = 500 * time.Millisecond
+	t.Cleanup(func() { peerstore.RecentlyConnectedAddrTTL = oldTTL })
 
-	N := 3
-	for i := 0; i < N; i++ {
-		subtestIDService(t)
+	h1 := blhost.NewBlankHost(swarmt.GenSwarm(t))
+	h2 := blhost.NewBlankHost(swarmt.GenSwarm(t))
+
+	h1p := h1.ID()
+	h2p := h2.ID()
+
+	ids1, err := identify.NewIDService(h1)
+	require.NoError(t, err)
+	defer ids1.Close()
+
+	ids2, err := identify.NewIDService(h2)
+	require.NoError(t, err)
+	defer ids2.Close()
+
+	sub, err := ids1.Host.EventBus().Subscribe(new(event.EvtPeerIdentificationCompleted), eventbus.BufSize(16))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testKnowsAddrs(t, h1, h2p, []ma.Multiaddr{}) // nothing
+	testKnowsAddrs(t, h2, h1p, []ma.Multiaddr{}) // nothing
+
+	// the forgetMe addr represents an address for h1 that h2 has learned out of band
+	// (not via identify protocol). During the identify exchange, it will be
+	// forgotten and replaced by the addrs h1 sends.
+	forgetMe, _ := ma.NewMultiaddr("/ip4/1.2.3.4/tcp/1234")
+
+	h2.Peerstore().AddAddr(h1p, forgetMe, peerstore.RecentlyConnectedAddrTTL)
+	h2pi := h2.Peerstore().PeerInfo(h2p)
+	require.NoError(t, h1.Connect(context.Background(), h2pi))
+
+	h1t2c := h1.Network().ConnsToPeer(h2p)
+	require.NotEmpty(t, h1t2c, "should have a conn here")
+
+	ids1.IdentifyConn(h1t2c[0])
+
+	// the idService should be opened automatically, by the network.
+	// what we should see now is that both peers know about each others listen addresses.
+	t.Log("test peer1 has peer2 addrs correctly")
+	testKnowsAddrs(t, h1, h2p, h2.Addrs())                       // has them
+	testHasCertifiedAddrs(t, h1, h2p, h2.Peerstore().Addrs(h2p)) // should have signed addrs also
+	testHasProtocolVersions(t, h1, h2p)
+	testHasPublicKey(t, h1, h2p, h2.Peerstore().PubKey(h2p)) // h1 should have h2's public key
+
+	// now, this wait we do have to do. it's the wait for the Listening side
+	// to be done identifying the connection.
+	c := h2.Network().ConnsToPeer(h1.ID())
+	require.NotEmpty(t, c, "should have connection by now at least.")
+	ids2.IdentifyConn(c[0])
+
+	// and the protocol versions.
+	t.Log("test peer2 has peer1 addrs correctly")
+	testKnowsAddrs(t, h2, h1p, h1.Addrs()) // has them
+	testHasCertifiedAddrs(t, h2, h1p, h1.Peerstore().Addrs(h1p))
+	testHasProtocolVersions(t, h2, h1p)
+	testHasPublicKey(t, h2, h1p, h1.Peerstore().PubKey(h1p)) // h1 should have h2's public key
+
+	// Need both sides to actually notice that the connection has been closed.
+	h1.Network().ClosePeer(h2p)
+	h2.Network().ClosePeer(h1p)
+	if len(h2.Network().ConnsToPeer(h1.ID())) != 0 || len(h1.Network().ConnsToPeer(h2.ID())) != 0 {
+		t.Fatal("should have no connections")
+	}
+
+	t.Log("testing addrs just after disconnect")
+	// addresses don't immediately expire on disconnect, so we should still have them
+	testKnowsAddrs(t, h2, h1p, h1.Addrs())
+	testKnowsAddrs(t, h1, h2p, h2.Addrs())
+	testHasCertifiedAddrs(t, h1, h2p, h2.Peerstore().Addrs(h2p))
+	testHasCertifiedAddrs(t, h2, h1p, h1.Peerstore().Addrs(h1p))
+
+	// the addrs had their TTLs reduced on disconnect, and
+	// will be forgotten soon after
+	t.Log("testing addrs after TTL expiration")
+	time.Sleep(time.Second)
+	testKnowsAddrs(t, h1, h2p, []ma.Multiaddr{})
+	testKnowsAddrs(t, h2, h1p, []ma.Multiaddr{})
+	testHasCertifiedAddrs(t, h1, h2p, []ma.Multiaddr{})
+	testHasCertifiedAddrs(t, h2, h1p, []ma.Multiaddr{})
+
+	// test that we received the "identify completed" event.
+	select {
+	case <-sub.Out():
+	case <-time.After(3 * time.Second):
+		t.Fatalf("expected EvtPeerIdentificationCompleted event within 10 seconds; none received")
 	}
 }
 
@@ -460,7 +419,7 @@ func TestIdentifyDeltaOnProtocolChange(t *testing.T) {
 		_, okfoo := have["foo"]
 		_, okbar := have["bar"]
 		return okfoo && okbar
-	}, 5*time.Second, 500*time.Millisecond)
+	}, time.Second, 10*time.Millisecond)
 
 	// remove one of the newly added protocols from h2, and wait for identify to send the delta.
 	h2.RemoveStreamHandler(protocol.ID("bar"))
@@ -478,7 +437,7 @@ func TestIdentifyDeltaOnProtocolChange(t *testing.T) {
 		_, okfoo := have["foo"]
 		_, okbar := have["bar"]
 		return okfoo && !okbar
-	}, 5*time.Second, 500*time.Millisecond)
+	}, time.Second, 10*time.Millisecond)
 
 	// make sure that h1 emitted events in the eventbus for h2's protocol updates.
 	done := make(chan struct{})
@@ -615,8 +574,7 @@ func TestIdentifyPushOnAddrChange(t *testing.T) {
 	testKnowsAddrs(t, h1, h2p, []ma.Multiaddr{}) // nothing
 	testKnowsAddrs(t, h2, h1p, []ma.Multiaddr{}) // nothing
 
-	h2pi := h2.Peerstore().PeerInfo(h2p)
-	require.NoError(t, h1.Connect(ctx, h2pi))
+	require.NoError(t, h1.Connect(ctx, h2.Peerstore().PeerInfo(h2p)))
 	// h1 should immediately see a connection from h2
 	require.NotEmpty(t, h1.Network().ConnsToPeer(h2p))
 	// wait for h2 to Identify itself so we are sure h2 has seen the connection.
@@ -643,7 +601,7 @@ func TestIdentifyPushOnAddrChange(t *testing.T) {
 			}
 		}
 		return false
-	}, 5*time.Second, 500*time.Millisecond)
+	}, 1*time.Second, 10*time.Millisecond)
 	require.NotNil(t, getSignedRecord(t, h2, h1p))
 
 	// change addr on host2 and ensure host 1 gets a pus
@@ -660,7 +618,7 @@ func TestIdentifyPushOnAddrChange(t *testing.T) {
 			}
 		}
 		return false
-	}, 5*time.Second, 500*time.Millisecond)
+	}, 1*time.Second, 10*time.Millisecond)
 	require.NotNil(t, getSignedRecord(t, h1, h2p))
 
 	// change addr on host2 again
@@ -677,7 +635,7 @@ func TestIdentifyPushOnAddrChange(t *testing.T) {
 			}
 		}
 		return false
-	}, 5*time.Second, 500*time.Millisecond)
+	}, 1*time.Second, 10*time.Millisecond)
 	require.NotNil(t, getSignedRecord(t, h1, h2p))
 }
 
@@ -773,32 +731,27 @@ func TestSendPushIfDeltaNotSupported(t *testing.T) {
 	require.Eventually(t, func() bool {
 		sup, err := h1.Peerstore().SupportsProtocols(h2.ID(), []string{identify.IDDelta}...)
 		return err == nil && len(sup) == 0
-	}, 5*time.Second, 500*time.Millisecond)
+	}, time.Second, 10*time.Millisecond)
 
 	// h1 starts listening on a new protocol and h2 finds out about that through a push
 	h1.SetStreamHandler("rand", func(network.Stream) {})
 	require.Eventually(t, func() bool {
 		sup, err := h2.Peerstore().SupportsProtocols(h1.ID(), []string{"rand"}...)
 		return err == nil && len(sup) == 1 && sup[0] == "rand"
-	}, 5*time.Second, 500*time.Millisecond)
+	}, time.Second, 10*time.Millisecond)
 
 	// h1 stops listening on a protocol and h2 finds out about it via a push
 	h1.RemoveStreamHandler("rand")
 	require.Eventually(t, func() bool {
 		sup, err := h2.Peerstore().SupportsProtocols(h1.ID(), []string{"rand"}...)
 		return err == nil && len(sup) == 0
-	}, 5*time.Second, 500*time.Millisecond)
+	}, time.Second, 10*time.Millisecond)
 }
 
 func TestLargeIdentifyMessage(t *testing.T) {
 	oldTTL := peerstore.RecentlyConnectedAddrTTL
-	peerstore.RecentlyConnectedAddrTTL = time.Second
-	defer func() {
-		peerstore.RecentlyConnectedAddrTTL = oldTTL
-	}()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	peerstore.RecentlyConnectedAddrTTL = 500 * time.Millisecond
+	t.Cleanup(func() { peerstore.RecentlyConnectedAddrTTL = oldTTL })
 
 	sk1, _, err := coretest.RandTestKeyPair(ic.RSA, 4096)
 	require.NoError(t, err)
@@ -821,17 +774,14 @@ func TestLargeIdentifyMessage(t *testing.T) {
 
 	ids1, err := identify.NewIDService(h1)
 	require.NoError(t, err)
+	defer ids1.Close()
 
 	ids2, err := identify.NewIDService(h2)
 	require.NoError(t, err)
-
-	defer ids1.Close()
 	defer ids2.Close()
 
 	sub, err := ids1.Host.EventBus().Subscribe(new(event.EvtPeerIdentificationCompleted), eventbus.BufSize(16))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	testKnowsAddrs(t, h1, h2p, []ma.Multiaddr{}) // nothing
 	testKnowsAddrs(t, h2, h1p, []ma.Multiaddr{}) // nothing
@@ -840,19 +790,12 @@ func TestLargeIdentifyMessage(t *testing.T) {
 	// (not via identify protocol). During the identify exchange, it will be
 	// forgotten and replaced by the addrs h1 sends.
 	forgetMe, _ := ma.NewMultiaddr("/ip4/1.2.3.4/tcp/1234")
-
 	h2.Peerstore().AddAddr(h1p, forgetMe, peerstore.RecentlyConnectedAddrTTL)
-	time.Sleep(500 * time.Millisecond)
 
-	h2pi := h2.Peerstore().PeerInfo(h2p)
-	if err := h1.Connect(ctx, h2pi); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, h1.Connect(context.Background(), h2.Peerstore().PeerInfo(h2p)))
 
 	h1t2c := h1.Network().ConnsToPeer(h2p)
-	if len(h1t2c) == 0 {
-		t.Fatal("should have a conn here")
-	}
+	require.NotEmpty(t, h1t2c, "should have a conn here")
 
 	ids1.IdentifyConn(h1t2c[0])
 
@@ -896,7 +839,7 @@ func TestLargeIdentifyMessage(t *testing.T) {
 	// the addrs had their TTLs reduced on disconnect, and
 	// will be forgotten soon after
 	t.Log("testing addrs after TTL expiration")
-	time.Sleep(2 * time.Second)
+	time.Sleep(time.Second)
 	testKnowsAddrs(t, h1, h2p, []ma.Multiaddr{})
 	testKnowsAddrs(t, h2, h1p, []ma.Multiaddr{})
 	testHasCertifiedAddrs(t, h1, h2p, []ma.Multiaddr{})
@@ -905,8 +848,8 @@ func TestLargeIdentifyMessage(t *testing.T) {
 	// test that we received the "identify completed" event.
 	select {
 	case <-sub.Out():
-	case <-time.After(10 * time.Second):
-		t.Fatalf("expected EvtPeerIdentificationCompleted event within 10 seconds; none received")
+	case <-time.After(3 * time.Second):
+		t.Fatalf("expected EvtPeerIdentificationCompleted event within 3 seconds; none received")
 	}
 }
 
@@ -973,7 +916,7 @@ func TestLargePushMessage(t *testing.T) {
 			}
 		}
 		return false
-	}, 5*time.Second, 500*time.Millisecond)
+	}, time.Second, 10*time.Millisecond)
 	require.NotNil(t, getSignedRecord(t, h2, h1p))
 
 	// change addr on host2 and ensure host 1 gets a pus
@@ -990,7 +933,7 @@ func TestLargePushMessage(t *testing.T) {
 			}
 		}
 		return false
-	}, 5*time.Second, 500*time.Millisecond)
+	}, time.Second, 10*time.Millisecond)
 	testHasCertifiedAddrs(t, h1, h2p, h2.Addrs())
 
 	// change addr on host2 again
@@ -1007,7 +950,7 @@ func TestLargePushMessage(t *testing.T) {
 			}
 		}
 		return false
-	}, 5*time.Second, 500*time.Millisecond)
+	}, time.Second, 10*time.Millisecond)
 	testHasCertifiedAddrs(t, h2, h1p, h1.Addrs())
 }
 
