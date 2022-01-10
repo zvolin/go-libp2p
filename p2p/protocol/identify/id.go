@@ -321,7 +321,6 @@ func (ids *idService) IdentifyWait(c network.Conn) <-chan struct{} {
 	defer ids.connsMu.Unlock()
 
 	wait, found = ids.conns[c]
-
 	if !found {
 		wait = make(chan struct{})
 		ids.conns[c] = wait
@@ -329,7 +328,14 @@ func (ids *idService) IdentifyWait(c network.Conn) <-chan struct{} {
 		// Spawn an identify. The connection may actually be closed
 		// already, but that doesn't really matter. We'll fail to open a
 		// stream then forget the connection.
-		go ids.identifyConn(c, wait)
+		go func() {
+			defer close(wait)
+			if err := ids.identifyConn(c); err != nil {
+				ids.emitters.evtPeerIdentificationFailed.Emit(event.EvtPeerIdentificationFailed{Peer: c.RemotePeer(), Reason: err})
+				return
+			}
+			ids.emitters.evtPeerIdentificationCompleted.Emit(event.EvtPeerIdentificationCompleted{Peer: c.RemotePeer()})
+		}()
 	}
 
 	return wait
@@ -341,48 +347,26 @@ func (ids *idService) removeConn(c network.Conn) {
 	ids.connsMu.Unlock()
 }
 
-func (ids *idService) identifyConn(c network.Conn, signal chan struct{}) {
-	var (
-		s   network.Stream
-		err error
-	)
-
-	defer func() {
-		close(signal)
-
-		// emit the appropriate event.
-		if p := c.RemotePeer(); err == nil {
-			ids.emitters.evtPeerIdentificationCompleted.Emit(event.EvtPeerIdentificationCompleted{Peer: p})
-		} else {
-			ids.emitters.evtPeerIdentificationFailed.Emit(event.EvtPeerIdentificationFailed{Peer: p, Reason: err})
-		}
-	}()
-
-	s, err = c.NewStream(network.WithUseTransient(context.TODO(), "identify"))
+func (ids *idService) identifyConn(c network.Conn) error {
+	s, err := c.NewStream(network.WithUseTransient(context.TODO(), "identify"))
 	if err != nil {
 		log.Debugw("error opening identify stream", "error", err)
-		// the connection is probably already closed if we hit this.
-		// TODO: Remove this?
-		c.Close()
 
 		// We usually do this on disconnect, but we may have already
 		// processed the disconnect event.
 		ids.removeConn(c)
-		return
+		return err
 	}
 	s.SetProtocol(ID)
 
 	// ok give the response to our handler.
-	if err = msmux.SelectProtoOrFail(ID, s); err != nil {
-		log.Infow("failed negotiate identify protocol with peer",
-			"peer", c.RemotePeer(),
-			"error", err,
-		)
+	if err := msmux.SelectProtoOrFail(ID, s); err != nil {
+		log.Infow("failed negotiate identify protocol with peer", "peer", c.RemotePeer(), "error", err)
 		s.Reset()
-		return
+		return err
 	}
 
-	err = ids.handleIdentifyResponse(s)
+	return ids.handleIdentifyResponse(s)
 }
 
 func (ids *idService) sendIdentifyResp(s network.Stream) {
