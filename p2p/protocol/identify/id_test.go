@@ -750,13 +750,8 @@ func TestSendPushIfDeltaNotSupported(t *testing.T) {
 
 func TestLargeIdentifyMessage(t *testing.T) {
 	oldTTL := peerstore.RecentlyConnectedAddrTTL
-	peerstore.RecentlyConnectedAddrTTL = time.Second
-	defer func() {
-		peerstore.RecentlyConnectedAddrTTL = oldTTL
-	}()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	peerstore.RecentlyConnectedAddrTTL = 500 * time.Millisecond
+	t.Cleanup(func() { peerstore.RecentlyConnectedAddrTTL = oldTTL })
 
 	sk1, _, err := coretest.RandTestKeyPair(ic.RSA, 4096)
 	require.NoError(t, err)
@@ -779,17 +774,14 @@ func TestLargeIdentifyMessage(t *testing.T) {
 
 	ids1, err := identify.NewIDService(h1)
 	require.NoError(t, err)
+	defer ids1.Close()
 
 	ids2, err := identify.NewIDService(h2)
 	require.NoError(t, err)
-
-	defer ids1.Close()
 	defer ids2.Close()
 
 	sub, err := ids1.Host.EventBus().Subscribe(new(event.EvtPeerIdentificationCompleted), eventbus.BufSize(16))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	testKnowsAddrs(t, h1, h2p, []ma.Multiaddr{}) // nothing
 	testKnowsAddrs(t, h2, h1p, []ma.Multiaddr{}) // nothing
@@ -798,19 +790,12 @@ func TestLargeIdentifyMessage(t *testing.T) {
 	// (not via identify protocol). During the identify exchange, it will be
 	// forgotten and replaced by the addrs h1 sends.
 	forgetMe, _ := ma.NewMultiaddr("/ip4/1.2.3.4/tcp/1234")
-
 	h2.Peerstore().AddAddr(h1p, forgetMe, peerstore.RecentlyConnectedAddrTTL)
-	time.Sleep(500 * time.Millisecond)
 
-	h2pi := h2.Peerstore().PeerInfo(h2p)
-	if err := h1.Connect(ctx, h2pi); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, h1.Connect(context.Background(), h2.Peerstore().PeerInfo(h2p)))
 
 	h1t2c := h1.Network().ConnsToPeer(h2p)
-	if len(h1t2c) == 0 {
-		t.Fatal("should have a conn here")
-	}
+	require.NotEmpty(t, h1t2c, "should have a conn here")
 
 	ids1.IdentifyConn(h1t2c[0])
 
@@ -854,7 +839,7 @@ func TestLargeIdentifyMessage(t *testing.T) {
 	// the addrs had their TTLs reduced on disconnect, and
 	// will be forgotten soon after
 	t.Log("testing addrs after TTL expiration")
-	time.Sleep(2 * time.Second)
+	time.Sleep(time.Second)
 	testKnowsAddrs(t, h1, h2p, []ma.Multiaddr{})
 	testKnowsAddrs(t, h2, h1p, []ma.Multiaddr{})
 	testHasCertifiedAddrs(t, h1, h2p, []ma.Multiaddr{})
@@ -863,8 +848,8 @@ func TestLargeIdentifyMessage(t *testing.T) {
 	// test that we received the "identify completed" event.
 	select {
 	case <-sub.Out():
-	case <-time.After(10 * time.Second):
-		t.Fatalf("expected EvtPeerIdentificationCompleted event within 10 seconds; none received")
+	case <-time.After(3 * time.Second):
+		t.Fatalf("expected EvtPeerIdentificationCompleted event within 3 seconds; none received")
 	}
 }
 
