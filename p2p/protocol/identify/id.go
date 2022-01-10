@@ -351,9 +351,6 @@ func (ids *idService) identifyConn(c network.Conn) error {
 	s, err := c.NewStream(network.WithUseTransient(context.TODO(), "identify"))
 	if err != nil {
 		log.Debugw("error opening identify stream", "error", err)
-		// the connection is probably already closed if we hit this.
-		// TODO: Remove this?
-		c.Close()
 
 		// We usually do this on disconnect, but we may have already
 		// processed the disconnect event.
