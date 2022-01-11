@@ -26,10 +26,10 @@ var (
 type Echo struct {
 	Host host.Host
 
-	WaitBeforeRead, WaitBeforeWrite func() error
-
 	mx     sync.Mutex
 	status EchoStatus
+
+	beforeReserve, beforeRead, beforeWrite, beforeDone func() error
 }
 
 type EchoStatus struct {
@@ -53,12 +53,77 @@ func (e *Echo) Status() EchoStatus {
 	return e.status
 }
 
+func (e *Echo) BeforeReserve(f func() error) {
+	e.mx.Lock()
+	defer e.mx.Unlock()
+
+	e.beforeReserve = f
+}
+
+func (e *Echo) BeforeRead(f func() error) {
+	e.mx.Lock()
+	defer e.mx.Unlock()
+
+	e.beforeRead = f
+}
+
+func (e *Echo) BeforeWrite(f func() error) {
+	e.mx.Lock()
+	defer e.mx.Unlock()
+
+	e.beforeWrite = f
+}
+
+func (e *Echo) BeforeDone(f func() error) {
+	e.mx.Lock()
+	defer e.mx.Unlock()
+
+	e.beforeDone = f
+}
+
+func (e *Echo) getBeforeReserve() func() error {
+	e.mx.Lock()
+	defer e.mx.Unlock()
+
+	return e.beforeReserve
+}
+
+func (e *Echo) getBeforeRead() func() error {
+	e.mx.Lock()
+	defer e.mx.Unlock()
+
+	return e.beforeRead
+}
+
+func (e *Echo) getBeforeWrite() func() error {
+	e.mx.Lock()
+	defer e.mx.Unlock()
+
+	return e.beforeWrite
+}
+
+func (e *Echo) getBeforeDone() func() error {
+	e.mx.Lock()
+	defer e.mx.Unlock()
+
+	return e.beforeDone
+}
+
 func (e *Echo) handleStream(s network.Stream) {
 	defer s.Close()
 
 	e.mx.Lock()
 	e.status.StreamsIn++
 	e.mx.Unlock()
+
+	if beforeReserve := e.getBeforeReserve(); beforeReserve != nil {
+		if err := beforeReserve(); err != nil {
+			echoLog.Debugf("error syncing before reserve: %s", err)
+
+			s.Reset()
+			return
+		}
+	}
 
 	if err := s.Scope().SetService(EchoService); err != nil {
 		echoLog.Debugf("error attaching stream to echo service: %s", err)
@@ -82,9 +147,9 @@ func (e *Echo) handleStream(s network.Stream) {
 		return
 	}
 
-	if e.WaitBeforeRead != nil {
-		if err := e.WaitBeforeRead(); err != nil {
-			echoLog.Debugf("error waiting before read: %s", err)
+	if beforeRead := e.getBeforeRead(); beforeRead != nil {
+		if err := beforeRead(); err != nil {
+			echoLog.Debugf("error syncing before read: %s", err)
 
 			s.Reset()
 			return
@@ -116,9 +181,9 @@ func (e *Echo) handleStream(s network.Stream) {
 	e.status.EchosIn++
 	e.mx.Unlock()
 
-	if e.WaitBeforeWrite != nil {
-		if err := e.WaitBeforeWrite(); err != nil {
-			echoLog.Debugf("error waiting before write: %s", err)
+	if beforeWrite := e.getBeforeWrite(); beforeWrite != nil {
+		if err := beforeWrite(); err != nil {
+			echoLog.Debugf("error syncing before write: %s", err)
 
 			s.Reset()
 			return
@@ -143,6 +208,14 @@ func (e *Echo) handleStream(s network.Stream) {
 	e.mx.Unlock()
 
 	s.CloseWrite()
+
+	if beforeDone := e.getBeforeDone(); beforeDone != nil {
+		if err := beforeDone(); err != nil {
+			echoLog.Debugf("error syncing before done: %s", err)
+
+			s.Reset()
+		}
+	}
 }
 
 func (e *Echo) Echo(p peer.ID, what string) error {
