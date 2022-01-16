@@ -64,13 +64,13 @@ func SetDefaultServiceLimits(limiter *rcmgr.BasicLimiter) {
 		limiter.ServiceLimits[circuitv1.ServiceName] = limiter.DefaultServiceLimits.
 			WithMemoryLimit(1, 4<<20, 64<<20). // max 64MB service memory
 			WithStreamLimit(1024, 1024, 1024)  // max 1024 streams - asymmetric
-		limiter.ServicePeerLimits[circuitv1.ServiceName] = peerSvcLimit(128, 128, 128)
+		limiter.ServicePeerLimits[circuitv1.ServiceName] = peerSvcLimit(64, 64, 64)
 	}
 	// relay/v2
 	if _, ok := limiter.ServiceLimits[circuitv2.ServiceName]; !ok {
 		limiter.ServiceLimits[circuitv2.ServiceName] = limiter.DefaultServiceLimits.
 			WithMemoryLimit(1, 4<<20, 64<<20). // max 64MB service memory
 			WithStreamLimit(1024, 1024, 1024)  // max 1024 streams - asymmetric
-		limiter.ServicePeerLimits[circuitv2.ServiceName] = peerSvcLimit(128, 128, 128)
+		limiter.ServicePeerLimits[circuitv2.ServiceName] = peerSvcLimit(64, 64, 64)
 	}
 }
