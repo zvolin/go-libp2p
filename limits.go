@@ -111,17 +111,17 @@ func SetDefaultServiceLimits(limiter *rcmgr.BasicLimiter) {
 	setProtocolLimits(limiter, circuit.ProtoIDv1,
 		limiter.DefaultProtocolLimits.
 			WithMemoryLimit(1, 4<<20, 64<<20).
-			WithStreamLimit(1024, 1024, 1024),
+			WithStreamLimit(1280, 1280, 1280),
 		peerLimit(128, 128, 128))
 	setProtocolLimits(limiter, circuit.ProtoIDv2Hop,
 		limiter.DefaultProtocolLimits.
 			WithMemoryLimit(1, 4<<20, 64<<20).
-			WithStreamLimit(1024, 1024, 1024),
+			WithStreamLimit(1280, 1280, 1280),
 		peerLimit(128, 128, 128))
 	setProtocolLimits(limiter, circuit.ProtoIDv2Stop,
 		limiter.DefaultProtocolLimits.
 			WithMemoryLimit(1, 4<<20, 64<<20).
-			WithStreamLimit(1024, 1024, 1024),
+			WithStreamLimit(1280, 1280, 1280),
 		peerLimit(128, 128, 128))
 
 }
