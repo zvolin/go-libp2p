@@ -12,6 +12,23 @@ import (
 )
 
 // SetDefaultServiceLimits sets the default limits for bundled libp2p services
+//
+// More specifically this sets the following limits:
+// - identify:
+//   128 streams in, 128 streams out, 256 streams total, 4MB min, 64MB max svc memory
+//   16/16/32 streams per peer
+// - ping:
+//   128 streams in, 128 sreams out, 256 streasms total, 4MB min, 64MB max svc memory
+//   2/3/4 streams per peer
+// - autonat
+//   128 streams in, 128 streams out, 128 streams total, 4MB min, 64MB max svc memory
+//   2/2/2 streams per peer
+// - holepunch
+//   128 streams in, 128 streams out, 128 streams total, 4MB min, 64MB max svc memory
+//   2/2/2 streams per peer
+// - relay v1 and v2 (separate services)
+//   1024 streams in, 1024 streams out, 1024 streams total, 4MB min, 64MB max svc memory
+//   64/64/64 streams per peer
 func SetDefaultServiceLimits(limiter *rcmgr.BasicLimiter) {
 	peerSvcLimit := func(numStreamsIn, numStreamsOut, numStreamsTotal int) rcmgr.Limit {
 		return &rcmgr.StaticLimit{
