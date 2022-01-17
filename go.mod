@@ -8,6 +8,7 @@ require (
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.3.0 // indirect
+	github.com/hashicorp/golang-lru v0.5.4
 	github.com/huin/goupnp v1.0.2 // indirect
 	github.com/ipfs/go-cid v0.0.7
 	github.com/ipfs/go-datastore v0.5.0
@@ -22,7 +23,6 @@ require (
 	github.com/libp2p/go-libp2p-blankhost v0.3.0
 	github.com/libp2p/go-libp2p-circuit v0.4.1-0.20220104091935-28fb8d25f785
 	github.com/libp2p/go-libp2p-core v0.13.1-0.20220104083644-a3dd401efe36
-	github.com/libp2p/go-libp2p-discovery v0.6.0
 	github.com/libp2p/go-libp2p-mplex v0.4.1
 	github.com/libp2p/go-libp2p-nat v0.1.0
 	github.com/libp2p/go-libp2p-noise v0.3.0
@@ -41,6 +41,7 @@ require (
 	github.com/libp2p/zeroconf/v2 v2.1.1
 	github.com/multiformats/go-multiaddr v0.5.0
 	github.com/multiformats/go-multiaddr-dns v0.3.1
+	github.com/multiformats/go-multihash v0.0.15
 	github.com/multiformats/go-multistream v0.2.2
 	github.com/multiformats/go-varint v0.0.6
 	github.com/prometheus/common v0.30.0 // indirect
