@@ -3,6 +3,7 @@ module github.com/libp2p/go-libp2p
 go 1.16
 
 require (
+	github.com/benbjohnson/clock v1.1.0
 	github.com/btcsuite/btcd v0.22.0-beta // indirect
 	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c // indirect
 	github.com/gogo/protobuf v1.3.2
@@ -46,6 +47,7 @@ require (
 	github.com/multiformats/go-varint v0.0.6
 	github.com/prometheus/common v0.30.0 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
+	github.com/raulk/go-watchdog v1.2.0
 	github.com/stretchr/testify v1.7.0
 	github.com/whyrusleeping/mdns v0.0.0-20190826153040-b9b60ed33aa9
 	go.uber.org/atomic v1.9.0 // indirect
