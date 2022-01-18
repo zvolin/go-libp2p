@@ -102,7 +102,7 @@ var DefaultResourceManager = func(cfg *Config) error {
 
 // DefaultConnManager creates a default connection manager
 var DefaultConnectionManager = func(cfg *Config) error {
-	mgr, err := connmgr.NewConnManager(192, 256)
+	mgr, err := connmgr.NewConnManager(160, 192)
 	if err != nil {
 		return err
 	}
