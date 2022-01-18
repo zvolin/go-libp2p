@@ -490,8 +490,9 @@ github.com/libp2p/go-ws-transport v0.6.0 h1:326XBL6Q+5CQ2KtjXz32+eGu02W/Kz2+Fm4S
 github.com/libp2p/go-ws-transport v0.6.0/go.mod h1:dXqtI9e2JV9FtF1NOtWVZSKXh5zXvnuwPXfj8GPBbYU=
 github.com/libp2p/go-yamux v1.4.1 h1:P1Fe9vF4th5JOxxgQvfbOHkrGqIZniTLf+ddhZp8YTI=
 github.com/libp2p/go-yamux v1.4.1/go.mod h1:fr7aVgmdNGJK+N1g+b6DW6VxzbRCjCOejR/hkmpooHE=
-github.com/libp2p/go-yamux/v3 v3.0.1 h1:lIdxHGVZ+y/EHgCrqGNt4Q+Mk9qu26MbOWH/yRw+Ihk=
 github.com/libp2p/go-yamux/v3 v3.0.1/go.mod h1:s2LsDhHbh+RfCsQoICSYt58U2f8ijtPANFD8BmE74Bo=
+github.com/libp2p/go-yamux/v3 v3.0.2 h1:LW0q5+A1Wy0npEsPJP9wmare2NH4ohNluN5EWVwv2mE=
+github.com/libp2p/go-yamux/v3 v3.0.2/go.mod h1:s2LsDhHbh+RfCsQoICSYt58U2f8ijtPANFD8BmE74Bo=
 github.com/libp2p/zeroconf/v2 v2.1.1 h1:XAuSczA96MYkVwH+LqqqCUZb2yH3krobMJ1YE+0hG2s=
 github.com/libp2p/zeroconf/v2 v2.1.1/go.mod h1:fuJqLnUwZTshS3U/bMRJ3+ow/v9oid1n0DmyYyNO1Xs=
 github.com/lightstep/lightstep-tracer-common/golang/gogo v0.0.0-20190605223551-bc2310a04743/go.mod h1:qklhhLq1aX+mtWk9cPHPzaBjWImj5ULL6C7HFJtXQMM=
