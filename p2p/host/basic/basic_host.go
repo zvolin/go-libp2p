@@ -405,7 +405,12 @@ func (h *BasicHost) newStreamHandler(s network.Stream) {
 		}
 	}
 
-	s.SetProtocol(protocol.ID(protoID))
+	if err := s.SetProtocol(protocol.ID(protoID)); err != nil {
+		log.Debugf("error setting stream protocol: %s", err)
+		s.Reset()
+		return
+	}
+
 	log.Debugf("protocol negotiation took %s", took)
 
 	go handle(protoID, s)
@@ -1009,7 +1014,7 @@ func (h *BasicHost) SetAutoNat(a autonat.AutoNAT) {
 	}
 }
 
-// Return the host's AutoNAT service, if AutoNAT is enabled.
+// GetAutoNat returns the host's AutoNAT service, if AutoNAT is enabled.
 func (h *BasicHost) GetAutoNat() autonat.AutoNAT {
 	h.addrMu.Lock()
 	defer h.addrMu.Unlock()

@@ -87,10 +87,12 @@ type Config struct {
 	AddrsFactory    bhost.AddrsFactory
 	ConnectionGater connmgr.ConnectionGater
 
-	ConnManager connmgr.ConnManager
-	NATManager  NATManagerC
-	Peerstore   peerstore.Peerstore
-	Reporter    metrics.Reporter
+	ConnManager     connmgr.ConnManager
+	ResourceManager network.ResourceManager
+
+	NATManager NATManagerC
+	Peerstore  peerstore.Peerstore
+	Reporter   metrics.Reporter
 
 	MultiaddrResolver *madns.Resolver
 
@@ -148,6 +150,9 @@ func (cfg *Config) makeSwarm() (*swarm.Swarm, error) {
 	if cfg.DialTimeout != 0 {
 		opts = append(opts, swarm.WithDialTimeout(cfg.DialTimeout))
 	}
+	if cfg.ResourceManager != nil {
+		opts = append(opts, swarm.WithResourceManager(cfg.ResourceManager))
+	}
 	// TODO: Make the swarm implementation configurable.
 	return swarm.NewSwarm(pid, cfg.Peerstore, opts...)
 }
@@ -179,11 +184,14 @@ func (cfg *Config) addTransports(h host.Host) error {
 	if cfg.ConnectionGater != nil {
 		opts = append(opts, tptu.WithConnectionGater(cfg.ConnectionGater))
 	}
+	if cfg.ResourceManager != nil {
+		opts = append(opts, tptu.WithResourceManager(cfg.ResourceManager))
+	}
 	upgrader, err := tptu.New(secure, muxer, opts...)
 	if err != nil {
 		return err
 	}
-	tpts, err := makeTransports(h, upgrader, cfg.ConnectionGater, cfg.PSK, cfg.Transports)
+	tpts, err := makeTransports(h, upgrader, cfg.ConnectionGater, cfg.PSK, cfg.ResourceManager, cfg.Transports)
 	if err != nil {
 		return err
 	}
