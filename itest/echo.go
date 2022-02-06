@@ -30,6 +30,7 @@ type Echo struct {
 	status EchoStatus
 
 	beforeReserve, beforeRead, beforeWrite, beforeDone func() error
+	done                                               func()
 }
 
 type EchoStatus struct {
@@ -81,6 +82,13 @@ func (e *Echo) BeforeDone(f func() error) {
 	e.beforeDone = f
 }
 
+func (e *Echo) Done(f func()) {
+	e.mx.Lock()
+	defer e.mx.Unlock()
+
+	e.done = f
+}
+
 func (e *Echo) getBeforeReserve() func() error {
 	e.mx.Lock()
 	defer e.mx.Unlock()
@@ -109,8 +117,19 @@ func (e *Echo) getBeforeDone() func() error {
 	return e.beforeDone
 }
 
+func (e *Echo) getDone() func() {
+	e.mx.Lock()
+	defer e.mx.Unlock()
+
+	return e.done
+}
+
 func (e *Echo) handleStream(s network.Stream) {
 	defer s.Close()
+
+	if done := e.getDone(); done != nil {
+		defer done()
+	}
 
 	e.mx.Lock()
 	e.status.StreamsIn++
