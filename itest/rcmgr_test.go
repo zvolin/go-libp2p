@@ -12,7 +12,10 @@ import (
 	rcmgr "github.com/libp2p/go-libp2p-resource-manager"
 
 	"github.com/libp2p/go-libp2p"
+	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+
+	"github.com/stretchr/testify/require"
 )
 
 func makeRcmgrOption(t *testing.T, limiter *rcmgr.BasicLimiter, test string) func(int) libp2p.Option {
@@ -37,12 +40,19 @@ func closeRcmgrs(echos []*Echo) {
 	}
 }
 
+func waitForConnection(t *testing.T, src, dest *Echo) {
+	require.Eventually(t, func() bool {
+		return src.Host.Network().Connectedness(dest.Host.ID()) == network.Connected &&
+			dest.Host.Network().Connectedness(src.Host.ID()) == network.Connected
+	}, time.Second, time.Millisecond)
+}
+
 func TestResourceManagerConnInbound(t *testing.T) {
 	// this test checks that we can not exceed the inbound conn limit at system level
 	// we specify: 1 conn per peer, 3 conns total, and we try to create 4 conns
 	limiter := rcmgr.NewDefaultLimiter()
 	limiter.SystemLimits = limiter.SystemLimits.WithConnLimit(3, 1024, 1024)
-	limiter.DefaultPeerLimits = limiter.DefaultPeerLimits.WithConnLimit(1, 16, 16)
+	limiter.DefaultPeerLimits = limiter.DefaultPeerLimits.WithConnLimit(1, 1, 1)
 
 	echos := createEchos(t, 5, makeRcmgrOption(t, limiter, "TestResourceManagerConnInbound"))
 	defer closeEchos(echos)
@@ -53,7 +63,7 @@ func TestResourceManagerConnInbound(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		time.Sleep(10 * time.Millisecond)
+		waitForConnection(t, echos[i], echos[0])
 	}
 
 	for i := 1; i < 4; i++ {
@@ -74,7 +84,7 @@ func TestResourceManagerConnOutbound(t *testing.T) {
 	// we specify: 1 conn per peer, 3 conns total, and we try to create 4 conns
 	limiter := rcmgr.NewDefaultLimiter()
 	limiter.SystemLimits = limiter.SystemLimits.WithConnLimit(1024, 3, 1024)
-	limiter.DefaultPeerLimits = limiter.DefaultPeerLimits.WithConnLimit(16, 1, 16)
+	limiter.DefaultPeerLimits = limiter.DefaultPeerLimits.WithConnLimit(1, 1, 1)
 	echos := createEchos(t, 5, makeRcmgrOption(t, limiter, "TestResourceManagerConnOutbound"))
 	defer closeEchos(echos)
 	defer closeRcmgrs(echos)
@@ -84,7 +94,7 @@ func TestResourceManagerConnOutbound(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		time.Sleep(10 * time.Millisecond)
+		waitForConnection(t, echos[0], echos[i])
 	}
 
 	for i := 1; i < 4; i++ {
@@ -114,7 +124,7 @@ func TestResourceManagerServiceInbound(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		time.Sleep(10 * time.Millisecond)
+		waitForConnection(t, echos[i], echos[0])
 	}
 
 	ready := make(chan struct{})
@@ -167,7 +177,7 @@ func TestResourceManagerServicePeerInbound(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		time.Sleep(10 * time.Millisecond)
+		waitForConnection(t, echos[i], echos[0])
 	}
 
 	echos[0].BeforeDone(waitForBarrier(4, time.Minute))
