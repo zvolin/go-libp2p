@@ -24,14 +24,14 @@ require (
 	github.com/libp2p/go-libp2p-blankhost v0.3.0
 	github.com/libp2p/go-libp2p-circuit v0.6.0
 	github.com/libp2p/go-libp2p-core v0.14.0
-	github.com/libp2p/go-libp2p-mplex v0.5.0
+	github.com/libp2p/go-libp2p-mplex v0.6.0
 	github.com/libp2p/go-libp2p-nat v0.1.0
 	github.com/libp2p/go-libp2p-noise v0.3.0
 	github.com/libp2p/go-libp2p-peerstore v0.6.0
 	github.com/libp2p/go-libp2p-quic-transport v0.16.1
 	github.com/libp2p/go-libp2p-resource-manager v0.1.3
 	github.com/libp2p/go-libp2p-swarm v0.10.2
-	github.com/libp2p/go-libp2p-testing v0.7.0
+	github.com/libp2p/go-libp2p-testing v0.8.0
 	github.com/libp2p/go-libp2p-tls v0.3.1
 	github.com/libp2p/go-libp2p-transport-upgrader v0.7.1
 	github.com/libp2p/go-libp2p-yamux v0.8.2
