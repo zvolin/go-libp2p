@@ -7,12 +7,14 @@ import (
 	"sync"
 	"time"
 
+	pb "github.com/libp2p/go-libp2p/p2p/protocol/holepunch/pb"
+	"github.com/libp2p/go-libp2p/p2p/protocol/identify"
+
+	"github.com/libp2p/go-libp2p-core/event"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
-	pb "github.com/libp2p/go-libp2p/p2p/protocol/holepunch/pb"
-	"github.com/libp2p/go-libp2p/p2p/protocol/identify"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-msgio/protoio"
@@ -103,9 +105,7 @@ func (s *Service) watchForPublicAddr() {
 		if containsPublicAddr(s.ids.OwnObservedAddrs()) {
 			log.Debug("Host now has a public address. Starting holepunch protocol.")
 			s.host.SetStreamHandler(Protocol, s.handleNewStream)
-			s.holePuncher = newHolePuncher(s.host, s.ids, s.tracer)
-			close(s.hasPublicAddrsChan)
-			return
+			break
 		}
 
 		select {
@@ -117,6 +117,30 @@ func (s *Service) watchForPublicAddr() {
 				duration = maxDuration
 			}
 			t.Reset(duration)
+		}
+	}
+
+	// Only start the holePuncher if we're behind a NAT / firewall.
+	sub, err := s.host.EventBus().Subscribe(&event.EvtLocalReachabilityChanged{})
+	if err != nil {
+		log.Debugf("failed to subscripe to Reachability event: %s", err)
+		return
+	}
+	defer sub.Close()
+	for {
+		select {
+		case <-s.ctx.Done():
+			return
+		case e, ok := <-sub.Out():
+			if !ok {
+				return
+			}
+			if e.(event.EvtLocalReachabilityChanged).Reachability != network.ReachabilityPrivate {
+				continue
+			}
+			s.holePuncher = newHolePuncher(s.host, s.ids, s.tracer)
+			close(s.hasPublicAddrsChan)
+			return
 		}
 	}
 }
