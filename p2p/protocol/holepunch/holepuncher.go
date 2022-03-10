@@ -180,16 +180,22 @@ func (hp *holePuncher) initiateHolePunch(rp peer.ID) ([]ma.Multiaddr, time.Durat
 	}
 	defer str.Close()
 
-	if err := str.Scope().SetService(ServiceName); err != nil {
-		log.Debugf("error attaching stream to holepunch service: %s", err)
+	addr, rtt, err := hp.initiateHolePunchImpl(str)
+	if err != nil {
+		log.Debugf("%s", err)
 		str.Reset()
-		return nil, 0, err
+		return addr, rtt, err
+	}
+	return addr, rtt, err
+}
+
+func (hp *holePuncher) initiateHolePunchImpl(str network.Stream) ([]ma.Multiaddr, time.Duration, error) {
+	if err := str.Scope().SetService(ServiceName); err != nil {
+		return nil, 0, fmt.Errorf("error attaching stream to holepunch service: %s", err)
 	}
 
 	if err := str.Scope().ReserveMemory(maxMsgSize, network.ReservationPriorityAlways); err != nil {
-		log.Debugf("error reserving memory for stream: %s, err")
-		str.Reset()
-		return nil, 0, err
+		return nil, 0, fmt.Errorf("error reserving memory for stream: %s", err)
 	}
 	defer str.Scope().ReleaseMemory(maxMsgSize)
 
@@ -197,39 +203,32 @@ func (hp *holePuncher) initiateHolePunch(rp peer.ID) ([]ma.Multiaddr, time.Durat
 	rd := protoio.NewDelimitedReader(str, maxMsgSize)
 
 	str.SetDeadline(time.Now().Add(StreamTimeout))
+
 	// send a CONNECT and start RTT measurement.
-	msg := &pb.HolePunch{
+	start := time.Now()
+	if err := w.WriteMsg(&pb.HolePunch{
 		Type:     pb.HolePunch_CONNECT.Enum(),
 		ObsAddrs: addrsToBytes(removeRelayAddrs(hp.ids.OwnObservedAddrs())),
-	}
-
-	start := time.Now()
-	if err := w.WriteMsg(msg); err != nil {
+	}); err != nil {
 		str.Reset()
 		return nil, 0, err
 	}
 
 	// wait for a CONNECT message from the remote peer
-	msg.Reset()
-	if err := rd.ReadMsg(msg); err != nil {
-		str.Reset()
+	var msg pb.HolePunch
+	if err := rd.ReadMsg(&msg); err != nil {
 		return nil, 0, fmt.Errorf("failed to read CONNECT message from remote peer: %w", err)
 	}
 	rtt := time.Since(start)
-
 	if t := msg.GetType(); t != pb.HolePunch_CONNECT {
-		str.Reset()
 		return nil, 0, fmt.Errorf("expect CONNECT message, got %s", t)
 	}
 	addrs := removeRelayAddrs(addrsFromBytes(msg.ObsAddrs))
 	if len(addrs) == 0 {
-		str.Reset()
+		return nil, 0, errors.New("didn't receive any public addresses in CONNECT")
 	}
 
-	msg.Reset()
-	msg.Type = pb.HolePunch_SYNC.Enum()
-	if err := w.WriteMsg(msg); err != nil {
-		str.Reset()
+	if err := w.WriteMsg(&pb.HolePunch{Type: pb.HolePunch_CONNECT.Enum()}); err != nil {
 		return nil, 0, fmt.Errorf("failed to send SYNC message for hole punching: %w", err)
 	}
 	return addrs, rtt, nil
