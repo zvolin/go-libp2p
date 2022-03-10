@@ -47,11 +47,11 @@ type Service struct {
 	ids         identify.IDService
 	holePuncher *holePuncher
 
+	hasPublicAddrsChan chan struct{}
+
 	tracer *tracer
 
 	refCount sync.WaitGroup
-
-	hasPublicAddrsChan chan struct{} // this chan is closed as soon as we have a public address
 }
 
 // NewService creates a new service that can be used for hole punching
@@ -65,7 +65,7 @@ func NewService(h host.Host, ids identify.IDService, opts ...Option) (*Service, 
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	hs := &Service{
+	s := &Service{
 		ctx:                ctx,
 		ctxCancel:          cancel,
 		host:               h,
@@ -74,17 +74,16 @@ func NewService(h host.Host, ids identify.IDService, opts ...Option) (*Service, 
 	}
 
 	for _, opt := range opts {
-		if err := opt(hs); err != nil {
+		if err := opt(s); err != nil {
 			cancel()
 			return nil, err
 		}
 	}
-	hs.holePuncher = newHolePuncher(h, ids, hs.hasPublicAddrsChan, hs.tracer)
 
-	hs.refCount.Add(1)
-	go hs.watchForPublicAddr()
+	s.refCount.Add(1)
+	go s.watchForPublicAddr()
 
-	return hs, nil
+	return s, nil
 }
 
 func (s *Service) watchForPublicAddr() {
@@ -104,6 +103,7 @@ func (s *Service) watchForPublicAddr() {
 		if containsPublicAddr(s.ids.OwnObservedAddrs()) {
 			log.Debug("Host now has a public address. Starting holepunch protocol.")
 			s.host.SetStreamHandler(Protocol, s.handleNewStream)
+			s.holePuncher = newHolePuncher(s.host, s.ids, s.tracer)
 			close(s.hasPublicAddrsChan)
 			return
 		}
@@ -232,5 +232,6 @@ func (s *Service) handleNewStream(str network.Stream) {
 // DirectConnect is only exposed for testing purposes.
 // TODO: find a solution for this.
 func (s *Service) DirectConnect(p peer.ID) error {
+	<-s.hasPublicAddrsChan
 	return s.holePuncher.DirectConnect(p)
 }

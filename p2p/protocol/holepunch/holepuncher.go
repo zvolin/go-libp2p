@@ -42,8 +42,6 @@ type holePuncher struct {
 
 	ids identify.IDService
 
-	hasPublicAddrsChan <-chan struct{}
-
 	// active hole punches for deduplicating
 	activeMx sync.Mutex
 	active   map[peer.ID]struct{}
@@ -54,13 +52,12 @@ type holePuncher struct {
 	tracer *tracer
 }
 
-func newHolePuncher(h host.Host, ids identify.IDService, hasPublicAddrsChan <-chan struct{}, tracer *tracer) *holePuncher {
+func newHolePuncher(h host.Host, ids identify.IDService, tracer *tracer) *holePuncher {
 	hp := &holePuncher{
-		host:               h,
-		ids:                ids,
-		active:             make(map[peer.ID]struct{}),
-		hasPublicAddrsChan: hasPublicAddrsChan,
-		tracer:             tracer,
+		host:   h,
+		ids:    ids,
+		active: make(map[peer.ID]struct{}),
+		tracer: tracer,
 	}
 	hp.ctx, hp.ctxCancel = context.WithCancel(context.Background())
 	h.Network().Notify((*netNotifiee)(hp))
@@ -133,16 +130,6 @@ func (hp *holePuncher) directConnect(rp peer.ID) error {
 	}
 
 	log.Debugw("got inbound proxy conn", "peer", rp)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	select {
-	case <-hp.ctx.Done():
-		return hp.ctx.Err()
-	case <-ctx.Done():
-		log.Debug("didn't find any public host address")
-		return errors.New("can't initiate hole punch, as we don't have any public addresses")
-	case <-hp.hasPublicAddrsChan:
-	}
 
 	// hole punch
 	for i := 0; i < maxRetries; i++ {
