@@ -7,100 +7,63 @@ import (
 	"github.com/libp2p/go-libp2p-core/connmgr"
 	"github.com/libp2p/go-libp2p-core/peer"
 	tu "github.com/libp2p/go-libp2p-core/test"
-	"github.com/stretchr/testify/require"
 
 	"github.com/benbjohnson/clock"
+	"github.com/stretchr/testify/require"
 )
 
 const TestResolution = 50 * time.Millisecond
 
+func waitForTag(t *testing.T, mgr *BasicConnMgr, id peer.ID) {
+	t.Helper()
+	require.Eventually(t, func() bool { return mgr.GetTagInfo(id) != nil }, 500*time.Millisecond, time.Millisecond)
+}
+
 func TestDecayExpire(t *testing.T) {
-	var (
-		id                    = tu.RandPeerIDFatal(t)
-		mgr, decay, mockClock = testDecayTracker(t)
-	)
+	id := tu.RandPeerIDFatal(t)
+	mgr, decay, mockClock := testDecayTracker(t)
 
 	tag, err := decay.RegisterDecayingTag("pop", 250*time.Millisecond, connmgr.DecayExpireWhenInactive(1*time.Second), connmgr.BumpSumUnbounded())
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+	require.NoError(t, tag.Bump(id, 10))
 
-	err = tag.Bump(id, 10)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// give time for the bump command to process.
-	<-time.After(100 * time.Millisecond)
-
-	if v := mgr.GetTagInfo(id).Value; v != 10 {
-		t.Fatalf("wrong value; expected = %d; got = %d", 10, v)
-	}
+	waitForTag(t, mgr, id)
+	require.Equal(t, 10, mgr.GetTagInfo(id).Value)
 
 	mockClock.Add(250 * time.Millisecond)
 	mockClock.Add(250 * time.Millisecond)
 	mockClock.Add(250 * time.Millisecond)
 	mockClock.Add(250 * time.Millisecond)
 
-	if v := mgr.GetTagInfo(id).Value; v != 0 {
-		t.Fatalf("wrong value; expected = %d; got = %d", 0, v)
-	}
+	require.Zero(t, mgr.GetTagInfo(id).Value)
 }
 
 func TestMultipleBumps(t *testing.T) {
-	var (
-		id            = tu.RandPeerIDFatal(t)
-		mgr, decay, _ = testDecayTracker(t)
-	)
+	id := tu.RandPeerIDFatal(t)
+	mgr, decay, _ := testDecayTracker(t)
 
 	tag, err := decay.RegisterDecayingTag("pop", 250*time.Millisecond, connmgr.DecayExpireWhenInactive(1*time.Second), connmgr.BumpSumBounded(10, 20))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
-	err = tag.Bump(id, 5)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, tag.Bump(id, 5))
 
-	<-time.After(100 * time.Millisecond)
+	waitForTag(t, mgr, id)
+	require.Equal(t, mgr.GetTagInfo(id).Value, 10)
 
-	if v := mgr.GetTagInfo(id).Value; v != 10 {
-		t.Fatalf("wrong value; expected = %d; got = %d", 10, v)
-	}
-
-	err = tag.Bump(id, 100)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	<-time.After(100 * time.Millisecond)
-
-	if v := mgr.GetTagInfo(id).Value; v != 20 {
-		t.Fatalf("wrong value; expected = %d; got = %d", 20, v)
-	}
+	require.NoError(t, tag.Bump(id, 100))
+	require.Eventually(t, func() bool { return mgr.GetTagInfo(id).Value == 20 }, 100*time.Millisecond, time.Millisecond, "expected tag value to decay to 20")
 }
 
 func TestMultipleTagsNoDecay(t *testing.T) {
-	var (
-		id            = tu.RandPeerIDFatal(t)
-		mgr, decay, _ = testDecayTracker(t)
-	)
+	id := tu.RandPeerIDFatal(t)
+	mgr, decay, _ := testDecayTracker(t)
 
 	tag1, err := decay.RegisterDecayingTag("beep", 250*time.Millisecond, connmgr.DecayNone(), connmgr.BumpSumBounded(0, 100))
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	require.NoError(t, err)
 	tag2, err := decay.RegisterDecayingTag("bop", 250*time.Millisecond, connmgr.DecayNone(), connmgr.BumpSumBounded(0, 100))
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	require.NoError(t, err)
 	tag3, err := decay.RegisterDecayingTag("foo", 250*time.Millisecond, connmgr.DecayNone(), connmgr.BumpSumBounded(0, 100))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	_ = tag1.Bump(id, 100)
 	_ = tag2.Bump(id, 100)
@@ -109,13 +72,11 @@ func TestMultipleTagsNoDecay(t *testing.T) {
 	_ = tag2.Bump(id, 100)
 	_ = tag3.Bump(id, 100)
 
-	<-time.After(500 * time.Millisecond)
+	waitForTag(t, mgr, id)
 
 	// all tags are upper-bounded, so the score must be 300
 	ti := mgr.GetTagInfo(id)
-	if v := ti.Value; v != 300 {
-		t.Fatalf("wrong value; expected = %d; got = %d", 300, v)
-	}
+	require.Equal(t, ti.Value, 300)
 
 	for _, s := range []string{"beep", "bop", "foo"} {
 		if v, ok := ti.Tags[s]; !ok || v != 100 {
@@ -125,76 +86,48 @@ func TestMultipleTagsNoDecay(t *testing.T) {
 }
 
 func TestCustomFunctions(t *testing.T) {
-	var (
-		id                    = tu.RandPeerIDFatal(t)
-		mgr, decay, mockClock = testDecayTracker(t)
-	)
+	id := tu.RandPeerIDFatal(t)
+	mgr, decay, mockClock := testDecayTracker(t)
 
 	tag1, err := decay.RegisterDecayingTag("beep", 250*time.Millisecond, connmgr.DecayFixed(10), connmgr.BumpSumUnbounded())
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	require.NoError(t, err)
 	tag2, err := decay.RegisterDecayingTag("bop", 100*time.Millisecond, connmgr.DecayFixed(5), connmgr.BumpSumUnbounded())
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	require.NoError(t, err)
 	tag3, err := decay.RegisterDecayingTag("foo", 50*time.Millisecond, connmgr.DecayFixed(1), connmgr.BumpSumUnbounded())
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	_ = tag1.Bump(id, 1000)
 	_ = tag2.Bump(id, 1000)
 	_ = tag3.Bump(id, 1000)
 
-	<-time.After(500 * time.Millisecond)
+	waitForTag(t, mgr, id)
 
 	// no decay has occurred yet, so score must be 3000.
-	if v := mgr.GetTagInfo(id).Value; v != 3000 {
-		t.Fatalf("wrong value; expected = %d; got = %d", 3000, v)
-	}
+	require.Equal(t, 3000, mgr.GetTagInfo(id).Value)
 
 	// only tag3 should tick.
 	mockClock.Add(50 * time.Millisecond)
-	if v := mgr.GetTagInfo(id).Value; v != 2999 {
-		t.Fatalf("wrong value; expected = %d; got = %d", 2999, v)
-	}
+	require.Equal(t, 2999, mgr.GetTagInfo(id).Value)
 
 	// tag3 will tick thrice, tag2 will tick twice.
 	mockClock.Add(150 * time.Millisecond)
-	if v := mgr.GetTagInfo(id).Value; v != 2986 {
-		t.Fatalf("wrong value; expected = %d; got = %d", 2986, v)
-	}
+	require.Equal(t, 2986, mgr.GetTagInfo(id).Value)
 
 	// tag3 will tick once, tag1 will tick once.
 	mockClock.Add(50 * time.Millisecond)
-	if v := mgr.GetTagInfo(id).Value; v != 2975 {
-		t.Fatalf("wrong value; expected = %d; got = %d", 2975, v)
-	}
+	require.Equal(t, 2975, mgr.GetTagInfo(id).Value)
 }
 
 func TestMultiplePeers(t *testing.T) {
-	var (
-		ids                   = []peer.ID{tu.RandPeerIDFatal(t), tu.RandPeerIDFatal(t), tu.RandPeerIDFatal(t)}
-		mgr, decay, mockClock = testDecayTracker(t)
-	)
+	ids := []peer.ID{tu.RandPeerIDFatal(t), tu.RandPeerIDFatal(t), tu.RandPeerIDFatal(t)}
+	mgr, decay, mockClock := testDecayTracker(t)
 
 	tag1, err := decay.RegisterDecayingTag("beep", 250*time.Millisecond, connmgr.DecayFixed(10), connmgr.BumpSumUnbounded())
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	require.NoError(t, err)
 	tag2, err := decay.RegisterDecayingTag("bop", 100*time.Millisecond, connmgr.DecayFixed(5), connmgr.BumpSumUnbounded())
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	require.NoError(t, err)
 	tag3, err := decay.RegisterDecayingTag("foo", 50*time.Millisecond, connmgr.DecayFixed(1), connmgr.BumpSumUnbounded())
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	_ = tag1.Bump(ids[0], 1000)
 	_ = tag2.Bump(ids[0], 1000)
@@ -209,60 +142,35 @@ func TestMultiplePeers(t *testing.T) {
 	_ = tag3.Bump(ids[2], 100)
 
 	// allow the background goroutine to process bumps.
-	<-time.After(500 * time.Millisecond)
+	require.Eventually(t, func() bool {
+		return mgr.GetTagInfo(ids[0]) != nil && mgr.GetTagInfo(ids[1]) != nil && mgr.GetTagInfo(ids[2]) != nil
+	}, 100*time.Millisecond, time.Millisecond)
 
 	mockClock.Add(3 * time.Second)
 
-	// allow the background goroutine to process ticks.
-	<-time.After(500 * time.Millisecond)
-
-	if v := mgr.GetTagInfo(ids[0]).Value; v != 2670 {
-		t.Fatalf("wrong value; expected = %d; got = %d", 2670, v)
-	}
-
-	if v := mgr.GetTagInfo(ids[1]).Value; v != 1170 {
-		t.Fatalf("wrong value; expected = %d; got = %d", 1170, v)
-	}
-
-	if v := mgr.GetTagInfo(ids[2]).Value; v != 40 {
-		t.Fatalf("wrong value; expected = %d; got = %d", 40, v)
-	}
+	require.Eventually(t, func() bool { return mgr.GetTagInfo(ids[0]).Value == 2670 }, 500*time.Millisecond, 10*time.Millisecond)
+	require.Equal(t, 1170, mgr.GetTagInfo(ids[1]).Value)
+	require.Equal(t, 40, mgr.GetTagInfo(ids[2]).Value)
 }
 
 func TestLinearDecayOverwrite(t *testing.T) {
-	var (
-		id                    = tu.RandPeerIDFatal(t)
-		mgr, decay, mockClock = testDecayTracker(t)
-	)
+	id := tu.RandPeerIDFatal(t)
+	mgr, decay, mockClock := testDecayTracker(t)
 
 	tag1, err := decay.RegisterDecayingTag("beep", 250*time.Millisecond, connmgr.DecayLinear(0.5), connmgr.BumpOverwrite())
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	_ = tag1.Bump(id, 1000)
-	// allow the background goroutine to process bumps.
-	<-time.After(500 * time.Millisecond)
+	waitForTag(t, mgr, id)
 
 	mockClock.Add(250 * time.Millisecond)
-
-	if v := mgr.GetTagInfo(id).Value; v != 500 {
-		t.Fatalf("value should be half; got = %d", v)
-	}
+	require.Equal(t, 500, mgr.GetTagInfo(id).Value)
 
 	mockClock.Add(250 * time.Millisecond)
-
-	if v := mgr.GetTagInfo(id).Value; v != 250 {
-		t.Fatalf("value should be half; got = %d", v)
-	}
+	require.Equal(t, 250, mgr.GetTagInfo(id).Value)
 
 	_ = tag1.Bump(id, 1000)
-	// allow the background goroutine to process bumps.
-	<-time.After(500 * time.Millisecond)
-
-	if v := mgr.GetTagInfo(id).Value; v != 1000 {
-		t.Fatalf("value should 1000; got = %d", v)
-	}
+	require.Eventually(t, func() bool { return mgr.GetTagInfo(id).Value == 1000 }, 500*time.Millisecond, time.Millisecond, "expected value to be 1000")
 }
 
 func TestResolutionMisaligned(t *testing.T) {
@@ -302,101 +210,84 @@ func TestResolutionMisaligned(t *testing.T) {
 }
 
 func TestTagRemoval(t *testing.T) {
-	var (
-		id1, id2              = tu.RandPeerIDFatal(t), tu.RandPeerIDFatal(t)
-		mgr, decay, mockClock = testDecayTracker(t)
-		require               = require.New(t)
-	)
+	id1, id2 := tu.RandPeerIDFatal(t), tu.RandPeerIDFatal(t)
+	mgr, decay, mockClock := testDecayTracker(t)
 
 	tag1, err := decay.RegisterDecayingTag("beep", TestResolution, connmgr.DecayFixed(1), connmgr.BumpOverwrite())
-	require.NoError(err)
+	require.NoError(t, err)
 
 	tag2, err := decay.RegisterDecayingTag("bop", TestResolution, connmgr.DecayFixed(1), connmgr.BumpOverwrite())
-	require.NoError(err)
+	require.NoError(t, err)
 
 	// id1 has both tags; id2 only has the first tag.
 	_ = tag1.Bump(id1, 1000)
 	_ = tag2.Bump(id1, 1000)
 	_ = tag1.Bump(id2, 1000)
 
-	// allow the background goroutine to process bumps.
-	<-time.After(500 * time.Millisecond)
+	waitForTag(t, mgr, id1)
+	waitForTag(t, mgr, id2)
 
 	// first tick.
 	mockClock.Add(TestResolution)
-	require.Equal(999, mgr.GetTagInfo(id1).Tags["beep"])
-	require.Equal(999, mgr.GetTagInfo(id1).Tags["bop"])
-	require.Equal(999, mgr.GetTagInfo(id2).Tags["beep"])
+	require.Equal(t, 999, mgr.GetTagInfo(id1).Tags["beep"])
+	require.Equal(t, 999, mgr.GetTagInfo(id1).Tags["bop"])
+	require.Equal(t, 999, mgr.GetTagInfo(id2).Tags["beep"])
 
-	require.Equal(999*2, mgr.GetTagInfo(id1).Value)
-	require.Equal(999, mgr.GetTagInfo(id2).Value)
+	require.Equal(t, 999*2, mgr.GetTagInfo(id1).Value)
+	require.Equal(t, 999, mgr.GetTagInfo(id2).Value)
 
 	// remove tag1 from p1.
-	err = tag1.Remove(id1)
-
-	// allow the background goroutine to process the removal.
-	<-time.After(500 * time.Millisecond)
-	require.NoError(err)
+	require.NoError(t, tag1.Remove(id1))
 
 	// next tick. both peers only have 1 tag, both at 998 value.
 	mockClock.Add(TestResolution)
-	require.Zero(mgr.GetTagInfo(id1).Tags["beep"])
-	require.Equal(998, mgr.GetTagInfo(id1).Tags["bop"])
-	require.Equal(998, mgr.GetTagInfo(id2).Tags["beep"])
+	require.Eventually(t, func() bool { return mgr.GetTagInfo(id1).Tags["beep"] == 0 }, 500*time.Millisecond, time.Millisecond)
+	require.Equal(t, 998, mgr.GetTagInfo(id1).Tags["bop"])
+	require.Equal(t, 998, mgr.GetTagInfo(id2).Tags["beep"])
 
-	require.Equal(998, mgr.GetTagInfo(id1).Value)
-	require.Equal(998, mgr.GetTagInfo(id2).Value)
+	require.Equal(t, 998, mgr.GetTagInfo(id1).Value)
+	require.Equal(t, 998, mgr.GetTagInfo(id2).Value)
 
 	// remove tag1 from p1 again; no error.
-	err = tag1.Remove(id1)
-	require.NoError(err)
+	require.NoError(t, tag1.Remove(id1))
 }
 
 func TestTagClosure(t *testing.T) {
-	var (
-		id                    = tu.RandPeerIDFatal(t)
-		mgr, decay, mockClock = testDecayTracker(t)
-		require               = require.New(t)
-	)
+	id := tu.RandPeerIDFatal(t)
+	mgr, decay, mockClock := testDecayTracker(t)
 
 	tag1, err := decay.RegisterDecayingTag("beep", TestResolution, connmgr.DecayFixed(1), connmgr.BumpOverwrite())
-	require.NoError(err)
-
+	require.NoError(t, err)
 	tag2, err := decay.RegisterDecayingTag("bop", TestResolution, connmgr.DecayFixed(1), connmgr.BumpOverwrite())
-	require.NoError(err)
+	require.NoError(t, err)
 
 	_ = tag1.Bump(id, 1000)
 	_ = tag2.Bump(id, 1000)
-	// allow the background goroutine to process bumps.
-	<-time.After(500 * time.Millisecond)
+	waitForTag(t, mgr, id)
 
 	// nothing has happened.
 	mockClock.Add(TestResolution)
-	require.Equal(999, mgr.GetTagInfo(id).Tags["beep"])
-	require.Equal(999, mgr.GetTagInfo(id).Tags["bop"])
-	require.Equal(999*2, mgr.GetTagInfo(id).Value)
+	require.Equal(t, 999, mgr.GetTagInfo(id).Tags["beep"])
+	require.Equal(t, 999, mgr.GetTagInfo(id).Tags["bop"])
+	require.Equal(t, 999*2, mgr.GetTagInfo(id).Value)
 
 	// next tick; tag1 would've ticked.
 	mockClock.Add(TestResolution)
-	require.Equal(998, mgr.GetTagInfo(id).Tags["beep"])
-	require.Equal(998, mgr.GetTagInfo(id).Tags["bop"])
-	require.Equal(998*2, mgr.GetTagInfo(id).Value)
+	require.Equal(t, 998, mgr.GetTagInfo(id).Tags["beep"])
+	require.Equal(t, 998, mgr.GetTagInfo(id).Tags["bop"])
+	require.Equal(t, 998*2, mgr.GetTagInfo(id).Value)
 
 	// close the tag.
-	err = tag1.Close()
-	require.NoError(err)
+	require.NoError(t, tag1.Close())
 
 	// allow the background goroutine to process the closure.
-	<-time.After(500 * time.Millisecond)
-	require.Equal(998, mgr.GetTagInfo(id).Value)
+	require.Eventually(t, func() bool { return mgr.GetTagInfo(id).Value == 998 }, 500*time.Millisecond, time.Millisecond)
 
 	// a second closure should not error.
-	err = tag1.Close()
-	require.NoError(err)
+	require.NoError(t, tag1.Close())
 
 	// bumping a tag after it's been closed should error.
-	err = tag1.Bump(id, 5)
-	require.Error(err)
+	require.Error(t, tag1.Bump(id, 5))
 }
 
 func testDecayTracker(tb testing.TB) (*BasicConnMgr, connmgr.Decayer, *clock.Mock) {
