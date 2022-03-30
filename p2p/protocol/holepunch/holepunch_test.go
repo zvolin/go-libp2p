@@ -414,7 +414,10 @@ func addHolePunchService(t *testing.T, h host.Host, opt holepunch.Option) *holep
 
 func mkHostWithHolePunchSvc(t *testing.T, opts ...holepunch.Option) (host.Host, *holepunch.Service) {
 	t.Helper()
-	h, err := libp2p.New(libp2p.ListenAddrs(ma.StringCast("/ip4/127.0.0.1/tcp/0"), ma.StringCast("/ip6/::1/tcp/0")))
+	h, err := libp2p.New(
+		libp2p.ListenAddrs(ma.StringCast("/ip4/127.0.0.1/tcp/0"), ma.StringCast("/ip6/::1/tcp/0")),
+		libp2p.ForceReachabilityPrivate(),
+	)
 	require.NoError(t, err)
 	hps, err := holepunch.NewService(h, newMockIDService(t, h), opts...)
 	require.NoError(t, err)
