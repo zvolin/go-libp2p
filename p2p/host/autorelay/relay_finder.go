@@ -6,157 +6,116 @@ import (
 	"fmt"
 	"math/rand"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"golang.org/x/sync/errgroup"
-
-	"github.com/libp2p/go-libp2p-core/discovery"
-	"github.com/libp2p/go-libp2p-core/event"
-	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/routing"
 
 	basic "github.com/libp2p/go-libp2p/p2p/host/basic"
 	relayv1 "github.com/libp2p/go-libp2p/p2p/protocol/circuitv1/relay"
 	circuitv2 "github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/client"
 	circuitv2_proto "github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/proto"
 
+	"github.com/libp2p/go-libp2p-core/event"
+	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
+
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 )
 
 const (
-	RelayRendezvous = "/libp2p/relay"
-
-	rsvpRefreshInterval = time.Minute
-	rsvpExpirationSlack = 2 * time.Minute
-
-	autorelayTag = "autorelay"
-
 	protoIDv1 = string(relayv1.ProtoID)
 	protoIDv2 = string(circuitv2_proto.ProtoIDv2Hop)
 )
 
-var (
-	DesiredRelays = 1
+// Terminology:
+// Candidate: Once we connect to a node and it supports (v1 / v2) relay protocol,
+// we call it a candidate, and consider using it as a relay.
+// Relay: Out of the list of candidates, we select a relay to connect to.
+// Currently, we just randomly select a candidate, but we can employ more sophisticated
+// selection strategies here (e.g. by facotring in the RTT).
 
-	BootDelay = 20 * time.Second
+const (
+	rsvpRefreshInterval = time.Minute
+	rsvpExpirationSlack = 2 * time.Minute
+
+	autorelayTag = "autorelay"
 )
 
-// DefaultRelays are the known PL-operated v1 relays; will be decommissioned in 2022.
-var DefaultRelays = []string{
-	"/ip4/147.75.80.110/tcp/4001/p2p/QmbFgm5zan8P6eWWmeyfncR5feYEMPbht5b1FW1C37aQ7y",
-	"/ip4/147.75.80.110/udp/4001/quic/p2p/QmbFgm5zan8P6eWWmeyfncR5feYEMPbht5b1FW1C37aQ7y",
-	"/ip4/147.75.195.153/tcp/4001/p2p/QmW9m57aiBDHAkKj9nmFSEn7ZqrcF1fZS4bipsTCHburei",
-	"/ip4/147.75.195.153/udp/4001/quic/p2p/QmW9m57aiBDHAkKj9nmFSEn7ZqrcF1fZS4bipsTCHburei",
-	"/ip4/147.75.70.221/tcp/4001/p2p/Qme8g49gm3q4Acp7xWBKg3nAa9fxZ1YmyDJdyGgoG6LsXh",
-	"/ip4/147.75.70.221/udp/4001/quic/p2p/Qme8g49gm3q4Acp7xWBKg3nAa9fxZ1YmyDJdyGgoG6LsXh",
+type candidate struct {
+	added       time.Time
+	isRelayV1   bool
+	ai          peer.AddrInfo
+	numAttempts int
 }
 
-var defaultStaticRelays []peer.AddrInfo
-
-func init() {
-	for _, s := range DefaultRelays {
-		pi, err := peer.AddrInfoFromString(s)
-		if err != nil {
-			panic(fmt.Sprintf("failed to initialize default static relays: %s", err))
-		}
-		defaultStaticRelays = append(defaultStaticRelays, *pi)
-	}
+type candidateOnBackoff struct {
+	candidate
+	nextConnAttempt time.Time
 }
 
-type Option func(*AutoRelay) error
-type StaticRelayOption Option
-
-func WithStaticRelays(static []peer.AddrInfo) StaticRelayOption {
-	return func(r *AutoRelay) error {
-		if len(r.static) > 0 {
-			return errors.New("can't set static relays, static relays already configured")
-		}
-		r.static = static
-		return nil
-	}
-}
-
-func WithDefaultStaticRelays() StaticRelayOption {
-	return WithStaticRelays(defaultStaticRelays)
-}
-
-func WithDiscoverer(discover discovery.Discoverer) Option {
-	return func(r *AutoRelay) error {
-		r.discover = discover
-		return nil
-	}
-}
-
-// AutoRelay is a Host that uses relays for connectivity when a NAT is detected.
-type AutoRelay struct {
+// relayFinder is a Host that uses relays for connectivity when a NAT is detected.
+type relayFinder struct {
+	bootTime time.Time
 	host     *basic.BasicHost
-	discover discovery.Discoverer
-	router   routing.PeerRouting
-	addrsF   basic.AddrsFactory
 
-	static []peer.AddrInfo
+	conf *config
 
 	refCount  sync.WaitGroup
 	ctxCancel context.CancelFunc
 
-	relayFound        chan struct{}
-	findRelaysRunning int32 // to be used as an atomic
+	peerChan <-chan peer.AddrInfo
 
-	mx     sync.Mutex
-	relays map[peer.ID]*circuitv2.Reservation // rsvp will be nil if it is a v1 relay
-	status network.Reachability
+	candidateFound      chan struct{} // receives every time we find a new relay candidate
+	candidateMx         sync.Mutex
+	candidates          map[peer.ID]*candidate
+	candidatesOnBackoff []*candidateOnBackoff // this slice is always sorted by the nextConnAttempt time
+
+	relayUpdated chan struct{}
+
+	relayMx sync.Mutex
+	relays  map[peer.ID]*circuitv2.Reservation // rsvp will be nil if it is a v1 relay
 
 	cachedAddrs       []ma.Multiaddr
 	cachedAddrsExpiry time.Time
 }
 
-func NewAutoRelay(bhost *basic.BasicHost, router routing.PeerRouting, opts ...Option) (*AutoRelay, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-	ar := &AutoRelay{
-		ctxCancel:  cancel,
-		host:       bhost,
-		router:     router,
-		addrsF:     bhost.AddrsFactory,
-		relays:     make(map[peer.ID]*circuitv2.Reservation),
-		relayFound: make(chan struct{}, 1),
-		status:     network.ReachabilityUnknown,
+func newRelayFinder(host *basic.BasicHost, peerChan <-chan peer.AddrInfo, conf *config) *relayFinder {
+	r := &relayFinder{
+		bootTime:       time.Now(),
+		host:           host,
+		conf:           conf,
+		peerChan:       peerChan,
+		candidates:     make(map[peer.ID]*candidate),
+		candidateFound: make(chan struct{}, 1),
+		relays:         make(map[peer.ID]*circuitv2.Reservation),
+		relayUpdated:   make(chan struct{}, 1),
 	}
-	for _, opt := range opts {
-		if err := opt(ar); err != nil {
-			return nil, err
-		}
-	}
-	bhost.AddrsFactory = ar.hostAddrs
-	ar.refCount.Add(1)
-	go ar.background(ctx)
-	return ar, nil
+	return r
 }
 
-func (ar *AutoRelay) hostAddrs(addrs []ma.Multiaddr) []ma.Multiaddr {
-	return ar.relayAddrs(ar.addrsF(addrs))
-}
-
-func (ar *AutoRelay) background(ctx context.Context) {
-	defer ar.refCount.Done()
-
-	subReachability, err := ar.host.EventBus().Subscribe(new(event.EvtLocalReachabilityChanged))
-	if err != nil {
-		log.Error("failed to subscribe to the EvtLocalReachabilityChanged")
-		return
+func (rf *relayFinder) background(ctx context.Context) {
+	if len(rf.conf.staticRelays) == 0 {
+		rf.refCount.Add(1)
+		go func() {
+			defer rf.refCount.Done()
+			rf.findNodes(ctx)
+		}()
 	}
-	defer subReachability.Close()
-	subConnectedness, err := ar.host.EventBus().Subscribe(new(event.EvtPeerConnectednessChanged))
+
+	subConnectedness, err := rf.host.EventBus().Subscribe(new(event.EvtPeerConnectednessChanged))
 	if err != nil {
 		log.Error("failed to subscribe to the EvtPeerConnectednessChanged")
 		return
 	}
 	defer subConnectedness.Close()
 
-	ticker := time.NewTicker(rsvpRefreshInterval)
-	defer ticker.Stop()
+	bootDelayTimer := time.NewTimer(rf.conf.bootDelay)
+	defer bootDelayTimer.Stop()
+	refreshTicker := time.NewTicker(rsvpRefreshInterval)
+	defer refreshTicker.Stop()
+	backoffTicker := time.NewTicker(rf.conf.backoff / 5)
+	defer backoffTicker.Stop()
 
 	for {
 		// when true, we need to identify push
@@ -168,274 +127,130 @@ func (ar *AutoRelay) background(ctx context.Context) {
 				return
 			}
 			evt := ev.(event.EvtPeerConnectednessChanged)
-			switch evt.Connectedness {
-			case network.Connected:
-				// If we just connect to one of our static relays, get a reservation immediately.
-				for _, pi := range ar.static {
-					if pi.ID == evt.Peer {
-						rsvp, ok := ar.tryRelay(ctx, pi)
-						if ok {
-							ar.mx.Lock()
-							ar.relays[pi.ID] = rsvp
-							ar.mx.Unlock()
-						}
-						push = true
-						break
-					}
-				}
-			case network.NotConnected:
-				ar.mx.Lock()
-				if ar.usingRelay(evt.Peer) { // we were disconnected from a relay
-					delete(ar.relays, evt.Peer)
-					push = true
-				}
-				ar.mx.Unlock()
+			if evt.Connectedness != network.NotConnected {
+				continue
 			}
-		case ev, ok := <-subReachability.Out():
-			if !ok {
-				return
-			}
-			evt := ev.(event.EvtLocalReachabilityChanged)
-
-			if evt.Reachability == network.ReachabilityPrivate {
-				// findRelays is a long-lived task (runs up to 2.5 minutes)
-				// Make sure we only start it once.
-				if atomic.CompareAndSwapInt32(&ar.findRelaysRunning, 0, 1) {
-					go func() {
-						defer atomic.StoreInt32(&ar.findRelaysRunning, 0)
-						ar.findRelays(ctx)
-					}()
-				}
-			}
-
-			ar.mx.Lock()
-			// if our reachability changed
-			if ar.status != evt.Reachability && evt.Reachability != network.ReachabilityUnknown {
+			rf.relayMx.Lock()
+			if rf.usingRelay(evt.Peer) { // we were disconnected from a relay
+				log.Debugw("disconnected from relay", "id", evt.Peer)
+				delete(rf.relays, evt.Peer)
 				push = true
 			}
-			ar.status = evt.Reachability
-			ar.mx.Unlock()
-		case <-ar.relayFound:
+			rf.relayMx.Unlock()
+		case <-rf.candidateFound:
+			log.Debugf("candidate found")
+			rf.handleNewCandidate(ctx)
+		case <-bootDelayTimer.C:
+			log.Debugf("boot delay timer")
+			rf.handleNewCandidate(ctx)
+		case <-rf.relayUpdated:
 			push = true
-		case now := <-ticker.C:
-			push = ar.refreshReservations(ctx, now)
+		case now := <-refreshTicker.C:
+			push = rf.refreshReservations(ctx, now)
+		case now := <-backoffTicker.C:
+			rf.checkForCandidatesOnBackoff(now)
 		case <-ctx.Done():
 			return
 		}
 
 		if push {
-			ar.mx.Lock()
-			ar.cachedAddrs = nil
-			ar.mx.Unlock()
-			ar.host.SignalAddressChange()
+			rf.relayMx.Lock()
+			rf.cachedAddrs = nil
+			rf.relayMx.Unlock()
+			rf.host.SignalAddressChange()
 		}
 	}
 }
 
-func (ar *AutoRelay) refreshReservations(ctx context.Context, now time.Time) bool {
-	ar.mx.Lock()
-	if ar.status == network.ReachabilityPublic {
-		// we are public, forget about the relays, unprotect peers
-		for p := range ar.relays {
-			ar.host.ConnManager().Unprotect(p, autorelayTag)
-			delete(ar.relays, p)
-		}
-
-		ar.mx.Unlock()
-		return true
-	}
-
-	if len(ar.relays) == 0 {
-		ar.mx.Unlock()
-		return false
-	}
-
-	// find reservations about to expire and refresh them in parallel
-	g := new(errgroup.Group)
-	for p, rsvp := range ar.relays {
-		if rsvp == nil {
-			// this is a circuitv1 relay, there is no reservation
-			continue
-		}
-		if now.Add(rsvpExpirationSlack).Before(rsvp.Expiration) {
-			continue
-		}
-
-		p := p
-		g.Go(func() error { return ar.refreshRelayReservation(ctx, p) })
-	}
-	ar.mx.Unlock()
-
-	err := g.Wait()
-	return err != nil
-}
-
-func (ar *AutoRelay) refreshRelayReservation(ctx context.Context, p peer.ID) error {
-	rsvp, err := circuitv2.Reserve(ctx, ar.host, peer.AddrInfo{ID: p})
-
-	ar.mx.Lock()
-	defer ar.mx.Unlock()
-
-	if err != nil {
-		log.Debugf("failed to refresh relay slot reservation with %s: %s", p, err)
-
-		delete(ar.relays, p)
-		// unprotect the connection
-		ar.host.ConnManager().Unprotect(p, autorelayTag)
-	} else {
-		log.Debugf("refreshed relay slot reservation with %s", p)
-		ar.relays[p] = rsvp
-	}
-
-	return err
-}
-
-func (ar *AutoRelay) findRelays(ctx context.Context) {
-	timer := time.NewTimer(30 * time.Second)
-	defer timer.Stop()
-	for retry := 0; retry < 5; retry++ {
-		if retry > 0 {
-			log.Debug("no relays connected; retrying in 30s")
-			select {
-			case <-timer.C:
-			case <-ctx.Done():
-				return
+// findNodes accepts nodes from the channel and tests if they support relaying.
+// It is run on both public and private nodes (but not when static relays are set).
+// It garbage collects old entries, so that nodes doesn't overflow.
+// This makes sure that as soon as we need to find relay candidates, we have them available.
+func (rf *relayFinder) findNodes(ctx context.Context) {
+	for {
+		select {
+		case pi := <-rf.peerChan:
+			log.Debugw("found node", "id", pi.ID)
+			rf.candidateMx.Lock()
+			numCandidates := len(rf.candidates)
+			rf.candidateMx.Unlock()
+			if numCandidates >= rf.conf.maxCandidates {
+				log.Debugw("skipping node. Already have enough candidates", "id", pi.ID, "num", numCandidates, "max", rf.conf.maxCandidates)
+				continue
 			}
-		}
-
-		if foundAtLeastOneRelay := ar.findRelaysOnce(ctx); foundAtLeastOneRelay {
+			rf.refCount.Add(1)
+			go func() {
+				defer rf.refCount.Done()
+				rf.handleNewNode(ctx, pi)
+			}()
+		case <-ctx.Done():
 			return
 		}
 	}
 }
 
-func (ar *AutoRelay) findRelaysOnce(ctx context.Context) bool {
-	relays, err := ar.discoverRelays(ctx)
-	if err != nil {
-		log.Debugf("error discovering relays: %s", err)
-		return false
-	}
-	log.Debugf("discovered %d relays", len(relays))
-	relays = ar.selectRelays(ctx, relays)
-	log.Debugf("selected %d relays", len(relays))
-
-	var found bool
-	for _, pi := range relays {
-		ar.mx.Lock()
-		relayInUse := ar.usingRelay(pi.ID)
-		ar.mx.Unlock()
-		if relayInUse {
-			continue
-		}
-		rsvp, ok := ar.tryRelay(ctx, pi)
-		if !ok {
-			continue
-		}
-		// make sure we're still connected.
-		if ar.host.Network().Connectedness(pi.ID) != network.Connected {
-			continue
-		}
-		found = true
-		ar.mx.Lock()
-		ar.relays[pi.ID] = rsvp
-		// protect the connection
-		ar.host.ConnManager().Protect(pi.ID, autorelayTag)
-		numRelays := len(ar.relays)
-		ar.mx.Unlock()
-
-		if numRelays >= DesiredRelays {
-			break
-		}
-	}
-	if found {
-		ar.relayFound <- struct{}{}
-		return true
-	}
-	return false
-}
-
-// usingRelay returns if we're currently using the given relay.
-func (ar *AutoRelay) usingRelay(p peer.ID) bool {
-	_, ok := ar.relays[p]
-	return ok
-}
-
-// addRelay adds the given relay to our set of relays.
-// returns true when we add a new relay
-func (ar *AutoRelay) tryRelay(ctx context.Context, pi peer.AddrInfo) (*circuitv2.Reservation, bool) {
-	if !ar.connect(ctx, pi) {
-		return nil, false
+// handleNewNode tests if a peer supports circuit v1 or v2.
+// This method is only run on private nodes.
+// If a peer does, it is added to the candidates map.
+// Note that just supporting the protocol doesn't guarantee that we can also obtain a reservation.
+func (rf *relayFinder) handleNewNode(ctx context.Context, pi peer.AddrInfo) {
+	rf.relayMx.Lock()
+	relayInUse := rf.usingRelay(pi.ID)
+	rf.relayMx.Unlock()
+	if relayInUse {
+		return
 	}
 
-	protos, err := ar.host.Peerstore().SupportsProtocols(pi.ID, protoIDv1, protoIDv2)
-	if err != nil {
-		log.Debugf("error checking relay protocol support for peer %s: %s", pi.ID, err)
-		return nil, false
-	}
-
-	var supportsv1, supportsv2 bool
-protoLoop:
-	for _, proto := range protos {
-		switch proto {
-		case protoIDv1:
-			supportsv1 = true
-		case protoIDv2:
-			supportsv2 = true
-			break protoLoop
-		}
-	}
-
-	switch {
-	case supportsv2:
-		rsvp, err := circuitv2.Reserve(ctx, ar.host, pi)
-		if err != nil {
-			log.Debugf("error reserving slot with %s: %s", pi.ID, err)
-			return nil, false
-		}
-		return rsvp, true
-	case supportsv1:
-		ok, err := relayv1.CanHop(ctx, ar.host, pi.ID)
-		if err != nil {
-			log.Debugf("error querying relay %s for v1 hop: %s", pi.ID, err)
-			return nil, false
-		}
-		return nil, ok
-	default: // supports neither, unusable relay.
-		return nil, false
-	}
-}
-
-func (ar *AutoRelay) connect(ctx context.Context, pi peer.AddrInfo) bool {
-	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
+	supportsV1, err := rf.tryNode(ctx, pi)
+	if err != nil {
+		log.Debugf("node %s not accepted as a candidate: %s", pi.ID, err)
+		return
+	}
+	rf.candidateMx.Lock()
+	if len(rf.candidates) > rf.conf.maxCandidates {
+		rf.candidateMx.Unlock()
+		return
+	}
+	log.Debugw("node supports relay protocol", "peer", pi.ID, "supports circuitv2", !supportsV1)
+	rf.candidates[pi.ID] = &candidate{ai: pi, isRelayV1: supportsV1}
+	rf.candidateMx.Unlock()
 
-	if len(pi.Addrs) == 0 {
-		var err error
-		pi, err = ar.router.FindPeer(ctx, pi.ID)
-		if err != nil {
-			log.Debugf("error finding relay peer %s: %s", pi.ID, err.Error())
-			return false
-		}
+	rf.notifyNewCandidate()
+}
+
+func (rf *relayFinder) notifyNewCandidate() {
+	select {
+	case rf.candidateFound <- struct{}{}:
+	default:
+	}
+}
+
+// tryNode checks if a peer actually supports either circuit v1 or circuit v2.
+// It does not modify any internal state.
+func (rf *relayFinder) tryNode(ctx context.Context, pi peer.AddrInfo) (supportsRelayV1 bool, err error) {
+	if err := rf.host.Connect(ctx, pi); err != nil {
+		return false, fmt.Errorf("error connecting to relay %s: %w", pi.ID, err)
 	}
 
-	err := ar.host.Connect(ctx, pi)
-	if err != nil {
-		log.Debugf("error connecting to relay %s: %s", pi.ID, err.Error())
-		return false
+	conns := rf.host.Network().ConnsToPeer(pi.ID)
+	for _, conn := range conns {
+		if isRelayAddr(conn.RemoteMultiaddr()) {
+			return false, errors.New("not a public node")
+		}
 	}
 
 	// wait for identify to complete in at least one conn so that we can check the supported protocols
-	conns := ar.host.Network().ConnsToPeer(pi.ID)
-	if len(conns) == 0 {
-		return false
-	}
-
-	ready := make(chan struct{}, len(conns))
+	ready := make(chan struct{}, 1)
 	for _, conn := range conns {
 		go func(conn network.Conn) {
 			select {
-			case <-ar.host.IDService().IdentifyWait(conn):
-				ready <- struct{}{}
+			case <-rf.host.IDService().IdentifyWait(conn):
+				select {
+				case ready <- struct{}{}:
+				default:
+				}
 			case <-ctx.Done():
 			}
 		}(conn)
@@ -444,37 +259,223 @@ func (ar *AutoRelay) connect(ctx context.Context, pi peer.AddrInfo) bool {
 	select {
 	case <-ready:
 	case <-ctx.Done():
-		return false
+		return false, ctx.Err()
 	}
 
-	return true
-}
-
-func (ar *AutoRelay) discoverRelays(ctx context.Context) ([]peer.AddrInfo, error) {
-	if len(ar.static) > 0 {
-		return ar.static, nil
-	}
-
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-	var ret []peer.AddrInfo
-	ch, err := ar.discover.FindPeers(ctx, RelayRendezvous, discovery.Limit(1000))
+	protos, err := rf.host.Peerstore().SupportsProtocols(pi.ID, protoIDv1, protoIDv2)
 	if err != nil {
-		return nil, err
+		return false, fmt.Errorf("error checking relay protocol support for peer %s: %w", pi.ID, err)
 	}
-	for p := range ch {
-		ret = append(ret, p)
+
+	// If the node speaks both, prefer circuit v2
+	var supportsV1, supportsV2 bool
+	for _, proto := range protos {
+		switch proto {
+		case protoIDv1:
+			supportsV1 = true
+		case protoIDv2:
+			supportsV2 = true
+		}
 	}
-	return ret, nil
+	if !supportsV1 && !supportsV2 {
+		return false, errors.New("doesn't speak circuit v1 or v2")
+	}
+	return supportsV1, nil
 }
 
-func (ar *AutoRelay) selectRelays(ctx context.Context, pis []peer.AddrInfo) []peer.AddrInfo {
+func (rf *relayFinder) handleNewCandidate(ctx context.Context) {
+	rf.relayMx.Lock()
+	defer rf.relayMx.Unlock()
+	if len(rf.candidates) == 0 {
+		return
+	}
+	// We're already connected to our desired number of relays. Nothing to do here.
+	if len(rf.relays) == rf.conf.desiredRelays {
+		return
+	}
+	// During the startup phase, we don't want to connect to the first candidate that we find.
+	// Instead, we wait until we've found at least minCandidates, and then select the best of those.
+	// However, if that takes too long (longer than bootDelay),
+	if len(rf.relays) == 0 && len(rf.candidates) < rf.conf.minCandidates && time.Since(rf.bootTime) < rf.conf.bootDelay {
+		return
+	}
+
+	candidates := rf.selectCandidates()
+
+	// We now iterate over the candidates, attempting (sequentially) to get reservations with them, until
+	// we reach the desired number of relays.
+	rf.refCount.Add(1)
+	go func() {
+		defer rf.refCount.Done()
+
+		for _, cand := range candidates {
+			id := cand.ai.ID
+			var failed bool
+			var rsvp *circuitv2.Reservation
+
+			// make sure we're still connected.
+			if rf.host.Network().Connectedness(id) != network.Connected {
+				if err := rf.host.Connect(ctx, cand.ai); err != nil {
+					log.Debugw("failed to reconnect", "peer", cand.ai, "error", err)
+					rf.candidateMx.Lock()
+					delete(rf.candidates, cand.ai.ID)
+					rf.candidateMx.Unlock()
+					continue
+				}
+			}
+			if !cand.isRelayV1 {
+				var err error
+				rsvp, err = circuitv2.Reserve(ctx, rf.host, cand.ai)
+				if err != nil {
+					failed = true
+					log.Debugw("failed to reserve slot", "id", id, "error", err)
+				}
+			} else {
+				ok, err := relayv1.CanHop(ctx, rf.host, id)
+				if err != nil {
+					failed = true
+					log.Debugw("error querying relay for v1 hop", "id", id, "error", err)
+				}
+				if !ok {
+					failed = true
+					log.Debugw("relay can't hop", "id", id)
+				}
+			}
+			rf.candidateMx.Lock()
+			if failed {
+				cand.numAttempts++
+				delete(rf.candidates, id)
+				// We failed to obtain a reservation for too many times. We give up.
+				if cand.numAttempts >= rf.conf.maxAttempts {
+					log.Debugw("failed to obtain a reservation with. Giving up.", "id", id, "num attempts", cand.numAttempts)
+				} else {
+					rf.moveCandidateToBackoff(cand)
+				}
+				rf.candidateMx.Unlock()
+				continue
+			}
+			rf.candidateMx.Unlock()
+			log.Debugw("adding new relay", "id", id)
+			rf.relayMx.Lock()
+			rf.relays[id] = rsvp
+			numRelays := len(rf.relays)
+			rf.relayMx.Unlock()
+
+			rf.host.ConnManager().Protect(id, autorelayTag) // protect the connection
+
+			select {
+			case rf.relayUpdated <- struct{}{}:
+			default:
+			}
+			if numRelays >= rf.conf.desiredRelays {
+				break
+			}
+		}
+	}()
+}
+
+// must be called with mutex locked
+func (rf *relayFinder) moveCandidateToBackoff(cand *candidate) {
+	if len(rf.candidatesOnBackoff) >= rf.conf.maxCandidates {
+		log.Debugw("already have enough candidates on backoff. Dropping.", "id", cand.ai.ID)
+		return
+	}
+	log.Debugw("moving candidate to backoff", "id", cand.ai.ID)
+	rf.candidatesOnBackoff = append(rf.candidatesOnBackoff, &candidateOnBackoff{
+		candidate:       *cand,
+		nextConnAttempt: time.Now().Add(rf.conf.backoff),
+	})
+}
+
+func (rf *relayFinder) checkForCandidatesOnBackoff(now time.Time) {
+	rf.candidateMx.Lock()
+	defer rf.candidateMx.Unlock()
+
+	for _, cand := range rf.candidatesOnBackoff {
+		if cand.nextConnAttempt.After(now) {
+			break
+		}
+		if len(rf.candidates) >= rf.conf.maxCandidates {
+			// drop this candidate if we already have enough others
+			log.Debugw("cannot move backoff'ed candidate back. Already have enough candidates.", "id", cand.ai.ID)
+		} else {
+			log.Debugw("moving backoff'ed candidate back", "id", cand.ai.ID)
+			rf.candidates[cand.ai.ID] = &candidate{
+				added:       cand.added,
+				isRelayV1:   cand.isRelayV1,
+				ai:          cand.ai,
+				numAttempts: cand.numAttempts,
+			}
+			rf.notifyNewCandidate()
+		}
+		rf.candidatesOnBackoff = rf.candidatesOnBackoff[1:]
+	}
+}
+
+func (rf *relayFinder) refreshReservations(ctx context.Context, now time.Time) bool {
+	rf.relayMx.Lock()
+
+	// find reservations about to expire and refresh them in parallel
+	g := new(errgroup.Group)
+	for p, rsvp := range rf.relays {
+		if rsvp == nil { // this is a circuit v1 relay, there is no reservation
+			continue
+		}
+		if now.Add(rsvpExpirationSlack).Before(rsvp.Expiration) {
+			continue
+		}
+
+		p := p
+		g.Go(func() error { return rf.refreshRelayReservation(ctx, p) })
+	}
+	rf.relayMx.Unlock()
+
+	err := g.Wait()
+	return err != nil
+}
+
+func (rf *relayFinder) refreshRelayReservation(ctx context.Context, p peer.ID) error {
+	rsvp, err := circuitv2.Reserve(ctx, rf.host, peer.AddrInfo{ID: p})
+
+	rf.relayMx.Lock()
+	defer rf.relayMx.Unlock()
+
+	if err != nil {
+		log.Debugw("failed to refresh relay slot reservation", "relay", p, "error", err)
+
+		delete(rf.relays, p)
+		// unprotect the connection
+		rf.host.ConnManager().Unprotect(p, autorelayTag)
+		return err
+	}
+
+	log.Debugw("refreshed relay slot reservation", "relay", p)
+	rf.relays[p] = rsvp
+	return nil
+}
+
+// usingRelay returns if we're currently using the given relay.
+func (rf *relayFinder) usingRelay(p peer.ID) bool {
+	_, ok := rf.relays[p]
+	return ok
+}
+
+// selectCandidates returns an ordered slice of relay candidates.
+// Callers should attempt to obtain reservations with the candidates in this order.
+func (rf *relayFinder) selectCandidates() []*candidate {
+	rf.candidateMx.Lock()
+	var candidates []*candidate
+	for _, cand := range rf.candidates {
+		candidates = append(candidates, cand)
+	}
+	rf.candidateMx.Unlock()
+
 	// TODO: better relay selection strategy; this just selects random relays,
 	// but we should probably use ping latency as the selection metric
-	rand.Shuffle(len(pis), func(i, j int) {
-		pis[i], pis[j] = pis[j], pis[i]
+	rand.Shuffle(len(candidates), func(i, j int) {
+		candidates[i], candidates[j] = candidates[j], candidates[i]
 	})
-	return pis
+	return candidates
 }
 
 // This function is computes the NATed relay addrs when our status is private:
@@ -484,19 +485,15 @@ func (ar *AutoRelay) selectRelays(ctx context.Context, pis []peer.AddrInfo) []pe
 // - On top of those, we add the relay-specific addrs for the relays to which we are
 //   connected. For each non-private relay addr, we encapsulate the p2p-circuit addr
 //   through which we can be dialed.
-func (ar *AutoRelay) relayAddrs(addrs []ma.Multiaddr) []ma.Multiaddr {
-	ar.mx.Lock()
-	defer ar.mx.Unlock()
+func (rf *relayFinder) relayAddrs(addrs []ma.Multiaddr) []ma.Multiaddr {
+	rf.relayMx.Lock()
+	defer rf.relayMx.Unlock()
 
-	if ar.status != network.ReachabilityPrivate {
-		return addrs
+	if rf.cachedAddrs != nil && time.Now().Before(rf.cachedAddrsExpiry) {
+		return rf.cachedAddrs
 	}
 
-	if ar.cachedAddrs != nil && time.Now().Before(ar.cachedAddrsExpiry) {
-		return ar.cachedAddrs
-	}
-
-	raddrs := make([]ma.Multiaddr, 0, 4*len(ar.relays)+4)
+	raddrs := make([]ma.Multiaddr, 0, 4*len(rf.relays)+4)
 
 	// only keep private addrs from the original addr set
 	for _, addr := range addrs {
@@ -506,28 +503,41 @@ func (ar *AutoRelay) relayAddrs(addrs []ma.Multiaddr) []ma.Multiaddr {
 	}
 
 	// add relay specific addrs to the list
-	for p := range ar.relays {
-		addrs := cleanupAddressSet(ar.host.Peerstore().Addrs(p))
+	for p := range rf.relays {
+		addrs := cleanupAddressSet(rf.host.Peerstore().Addrs(p))
 
-		circuit, err := ma.NewMultiaddr(fmt.Sprintf("/p2p/%s/p2p-circuit", p.Pretty()))
-		if err != nil {
-			panic(err)
-		}
-
+		circuit := ma.StringCast(fmt.Sprintf("/p2p/%s/p2p-circuit", p.Pretty()))
 		for _, addr := range addrs {
 			pub := addr.Encapsulate(circuit)
 			raddrs = append(raddrs, pub)
 		}
 	}
 
-	ar.cachedAddrs = raddrs
-	ar.cachedAddrsExpiry = time.Now().Add(30 * time.Second)
+	rf.cachedAddrs = raddrs
+	rf.cachedAddrsExpiry = time.Now().Add(30 * time.Second)
 
 	return raddrs
 }
 
-func (ar *AutoRelay) Close() error {
-	ar.ctxCancel()
-	ar.refCount.Wait()
+func (rf *relayFinder) Start() error {
+	if rf.ctxCancel != nil {
+		return errors.New("relayFinder already running")
+	}
+	log.Debug("starting relay finder")
+	ctx, cancel := context.WithCancel(context.Background())
+	rf.ctxCancel = cancel
+	rf.refCount.Add(1)
+	go func() {
+		defer rf.refCount.Done()
+		rf.background(ctx)
+	}()
+	return nil
+}
+
+func (rf *relayFinder) Stop() error {
+	log.Debug("stopping relay finder")
+	rf.ctxCancel()
+	rf.refCount.Wait()
+	rf.ctxCancel = nil
 	return nil
 }

@@ -18,7 +18,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/transport"
 	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
 
-	drouting "github.com/libp2p/go-libp2p/p2p/discovery/routing"
 	"github.com/libp2p/go-libp2p/p2p/host/autonat"
 	"github.com/libp2p/go-libp2p/p2p/host/autorelay"
 	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
@@ -102,7 +101,7 @@ type Config struct {
 
 	EnableAutoRelay bool
 	AutoNATConfig
-	StaticRelayOpt autorelay.StaticRelayOption
+	AutoRelayOpts []autorelay.Option
 
 	EnableHolePunching  bool
 	HolePunchingOptions []holepunch.Option
@@ -270,7 +269,7 @@ func (cfg *Config) NewNode() (host.Host, error) {
 		}
 	}
 
-	// Note: h.AddrsFactory may be changed by AutoRelay, but non-relay version is
+	// Note: h.AddrsFactory may be changed by relayFinder, but non-relay version is
 	// used by AutoNAT below.
 	var ar *autorelay.AutoRelay
 	addrF := h.AddrsFactory
@@ -280,22 +279,7 @@ func (cfg *Config) NewNode() (host.Host, error) {
 			return nil, fmt.Errorf("cannot enable autorelay; relay is not enabled")
 		}
 
-		var opts []autorelay.Option
-		if cfg.StaticRelayOpt != nil {
-			opts = append(opts, autorelay.Option(cfg.StaticRelayOpt))
-		} else {
-			if router == nil {
-				h.Close()
-				return nil, fmt.Errorf("cannot enable autorelay; no routing for discovery")
-			}
-			crouter, ok := router.(routing.ContentRouting)
-			if !ok {
-				h.Close()
-				return nil, fmt.Errorf("cannot enable autorelay; no suitable routing for discovery")
-			}
-			opts = append(opts, autorelay.WithDiscoverer(drouting.NewRoutingDiscovery(crouter)))
-		}
-		ar, err = autorelay.NewAutoRelay(h, router, opts...)
+		ar, err = autorelay.NewAutoRelay(h, cfg.AutoRelayOpts...)
 		if err != nil {
 			return nil, err
 		}

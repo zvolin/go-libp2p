@@ -1,132 +1,72 @@
 package autorelay_test
 
 import (
-	"context"
-	"net"
 	"strings"
-	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/libp2p/go-libp2p"
-	discovery "github.com/libp2p/go-libp2p/p2p/discovery/routing"
 	"github.com/libp2p/go-libp2p/p2p/host/autorelay"
-	relayv1 "github.com/libp2p/go-libp2p/p2p/protocol/circuitv1/relay"
+	circuitv2_proto "github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/proto"
 	relayv2 "github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/relay"
 
-	"github.com/libp2p/go-libp2p-core/event"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/routing"
 
-	"github.com/ipfs/go-cid"
 	ma "github.com/multiformats/go-multiaddr"
-	manet "github.com/multiformats/go-multiaddr/net"
 	"github.com/stretchr/testify/require"
 )
 
-// test specific parameters
-func init() {
-	autorelay.BootDelay = 1 * time.Second
-	autorelay.AdvertiseBootDelay = 100 * time.Millisecond
-}
-
-// mock routing
-type mockRoutingTable struct {
-	mx        sync.Mutex
-	providers map[string]map[peer.ID]peer.AddrInfo
-	peers     map[peer.ID]peer.AddrInfo
-}
-
-func (t *mockRoutingTable) NumPeers() int {
-	t.mx.Lock()
-	defer t.mx.Unlock()
-	return len(t.peers)
-}
-
-type mockRouting struct {
-	h   host.Host
-	tab *mockRoutingTable
-}
-
-func newMockRoutingTable() *mockRoutingTable {
-	return &mockRoutingTable{providers: make(map[string]map[peer.ID]peer.AddrInfo)}
-}
-
-func newMockRouting(h host.Host, tab *mockRoutingTable) *mockRouting {
-	return &mockRouting{h: h, tab: tab}
-}
-
-func (m *mockRouting) FindPeer(ctx context.Context, p peer.ID) (peer.AddrInfo, error) {
-	m.tab.mx.Lock()
-	defer m.tab.mx.Unlock()
-	pi, ok := m.tab.peers[p]
-	if !ok {
-		return peer.AddrInfo{}, routing.ErrNotFound
-	}
-	return pi, nil
-}
-
-func (m *mockRouting) Provide(ctx context.Context, cid cid.Cid, bcast bool) error {
-	m.tab.mx.Lock()
-	defer m.tab.mx.Unlock()
-
-	pmap, ok := m.tab.providers[cid.String()]
-	if !ok {
-		pmap = make(map[peer.ID]peer.AddrInfo)
-		m.tab.providers[cid.String()] = pmap
-	}
-
-	pi := peer.AddrInfo{ID: m.h.ID(), Addrs: m.h.Addrs()}
-	pmap[m.h.ID()] = pi
-	if m.tab.peers == nil {
-		m.tab.peers = make(map[peer.ID]peer.AddrInfo)
-	}
-	m.tab.peers[m.h.ID()] = pi
-
-	return nil
-}
-
-func (m *mockRouting) FindProvidersAsync(ctx context.Context, cid cid.Cid, limit int) <-chan peer.AddrInfo {
-	ch := make(chan peer.AddrInfo)
-	go func() {
-		defer close(ch)
-		m.tab.mx.Lock()
-		defer m.tab.mx.Unlock()
-
-		pmap, ok := m.tab.providers[cid.String()]
-		if !ok {
-			return
+func isRelayAddr(a ma.Multiaddr) (isRelay bool) {
+	ma.ForEach(a, func(c ma.Component) bool {
+		switch c.Protocol().Code {
+		case ma.P_CIRCUIT:
+			isRelay = true
+			return false
+		default:
+			return true
 		}
+	})
+	return isRelay
+}
 
-		for _, pi := range pmap {
-			select {
-			case ch <- pi:
-			case <-ctx.Done():
-				return
+func newPrivateNode(t *testing.T, opts ...autorelay.Option) host.Host {
+	t.Helper()
+	h, err := libp2p.New(
+		libp2p.ForceReachabilityPrivate(),
+		libp2p.EnableAutoRelay(opts...),
+	)
+	require.NoError(t, err)
+	return h
+}
+
+func newRelay(t *testing.T) host.Host {
+	t.Helper()
+	h, err := libp2p.New(
+		libp2p.DisableRelay(),
+		libp2p.EnableRelayService(),
+		libp2p.ForceReachabilityPublic(),
+		libp2p.AddrsFactory(func(addrs []ma.Multiaddr) []ma.Multiaddr {
+			for i, addr := range addrs {
+				saddr := addr.String()
+				if strings.HasPrefix(saddr, "/ip4/127.0.0.1/") {
+					addrNoIP := strings.TrimPrefix(saddr, "/ip4/127.0.0.1")
+					addrs[i] = ma.StringCast("/dns4/localhost" + addrNoIP)
+				}
 			}
-		}
-	}()
-
-	return ch
+			return addrs
+		}),
+	)
+	require.NoError(t, err)
+	return h
 }
 
-func connect(t *testing.T, a, b host.Host) {
-	pinfo := peer.AddrInfo{ID: a.ID(), Addrs: a.Addrs()}
-	require.NoError(t, b.Connect(context.Background(), pinfo))
-}
-
-// and the actual test!
-func TestAutoRelay(t *testing.T) {
-	private4 := manet.Private4
-	t.Cleanup(func() { manet.Private4 = private4 })
-	manet.Private4 = []*net.IPNet{}
-
-	// this is the relay host
-	// announce dns addrs because filter out private addresses from relays,
-	// and we consider dns addresses "public".
-	relayHost, err := libp2p.New(
+// creates a node that speaks the relay v2 protocol, but doesn't accept any reservations for the first workAfter tries
+func newBrokenRelay(t *testing.T, workAfter int) host.Host {
+	t.Helper()
+	h, err := libp2p.New(
 		libp2p.DisableRelay(),
 		libp2p.AddrsFactory(func(addrs []ma.Multiaddr) []ma.Multiaddr {
 			for i, addr := range addrs {
@@ -137,87 +77,124 @@ func TestAutoRelay(t *testing.T) {
 				}
 			}
 			return addrs
-		}))
+		}),
+		libp2p.EnableRelayService(),
+	)
 	require.NoError(t, err)
-	defer relayHost.Close()
-
-	t.Run("with a circuitv1 relay", func(t *testing.T) {
-		r, err := relayv1.NewRelay(relayHost)
-		require.NoError(t, err)
-		defer r.Close()
-		testAutoRelay(t, relayHost)
+	var n int32
+	h.SetStreamHandler(circuitv2_proto.ProtoIDv2Hop, func(str network.Stream) {
+		t.Log("rejecting reservation")
+		str.Reset()
+		num := atomic.AddInt32(&n, 1)
+		if int(num) >= workAfter {
+			h.RemoveStreamHandler(circuitv2_proto.ProtoIDv2Hop)
+			r, err := relayv2.New(h)
+			require.NoError(t, err)
+			t.Cleanup(func() { r.Close() })
+		}
 	})
-	t.Run("testing autorelay with circuitv2 relay", func(t *testing.T) {
-		r, err := relayv2.New(relayHost)
-		require.NoError(t, err)
-		defer r.Close()
-		testAutoRelay(t, relayHost)
-	})
+	return h
 }
 
-func isRelayAddr(addr ma.Multiaddr) bool {
-	_, err := addr.ValueForProtocol(ma.P_CIRCUIT)
-	return err == nil
+func TestSingleRelay(t *testing.T) {
+	const numPeers = 5
+	peerChan := make(chan peer.AddrInfo)
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for i := 0; i < numPeers; i++ {
+			r := newRelay(t)
+			t.Cleanup(func() { r.Close() })
+			peerChan <- peer.AddrInfo{ID: r.ID(), Addrs: r.Addrs()}
+		}
+	}()
+	h := newPrivateNode(t,
+		autorelay.WithPeerSource(peerChan),
+		autorelay.WithNumCandidates(1),
+		autorelay.WithNumRelays(99999),
+		autorelay.WithBootDelay(0),
+	)
+	defer h.Close()
+
+	require.Eventually(t, func() bool {
+		return len(ma.FilterAddrs(h.Addrs(), isRelayAddr)) > 0
+	}, 3*time.Second, 100*time.Millisecond)
+	<-done
+	// test that we don't add any more relays
+	require.Never(t, func() bool {
+		return len(ma.FilterAddrs(h.Addrs(), isRelayAddr)) != 1
+	}, 200*time.Millisecond, 50*time.Millisecond)
 }
 
-func testAutoRelay(t *testing.T, relayHost host.Host) {
-	mtab := newMockRoutingTable()
-	makeRouting := func(h host.Host) (*mockRouting, error) {
-		mr := newMockRouting(h, mtab)
-		return mr, nil
-	}
-	makePeerRouting := func(h host.Host) (routing.PeerRouting, error) {
-		return makeRouting(h)
-	}
+func TestWaitForCandidates(t *testing.T) {
+	peerChan := make(chan peer.AddrInfo)
+	h := newPrivateNode(t,
+		autorelay.WithPeerSource(peerChan),
+		autorelay.WithMinCandidates(2),
+		autorelay.WithNumRelays(1),
+		autorelay.WithBootDelay(time.Hour),
+	)
+	defer h.Close()
 
-	// advertise the relay
-	relayRouting, err := makeRouting(relayHost)
-	require.NoError(t, err)
-	relayDiscovery := discovery.NewRoutingDiscovery(relayRouting)
-	autorelay.Advertise(context.Background(), relayDiscovery)
-	require.Eventually(t, func() bool { return mtab.NumPeers() > 0 }, time.Second, 10*time.Millisecond)
+	r1 := newRelay(t)
+	t.Cleanup(func() { r1.Close() })
+	peerChan <- peer.AddrInfo{ID: r1.ID(), Addrs: r1.Addrs()}
 
-	// the client hosts
-	h1, err := libp2p.New(libp2p.EnableRelay())
-	require.NoError(t, err)
-	defer h1.Close()
+	// make sure we don't add any relays yet
+	// We need to wait until we have at least 2 candidates before we connect.
+	require.Never(t, func() bool {
+		return len(ma.FilterAddrs(h.Addrs(), isRelayAddr)) > 0
+	}, 200*time.Millisecond, 50*time.Millisecond)
 
-	h2, err := libp2p.New(libp2p.EnableRelay(), libp2p.EnableAutoRelay(), libp2p.Routing(makePeerRouting))
-	require.NoError(t, err)
-	defer h2.Close()
+	r2 := newRelay(t)
+	t.Cleanup(func() { r2.Close() })
+	peerChan <- peer.AddrInfo{ID: r2.ID(), Addrs: r2.Addrs()}
+	require.Eventually(t, func() bool {
+		return len(ma.FilterAddrs(h.Addrs(), isRelayAddr)) > 0
+	}, 3*time.Second, 100*time.Millisecond)
+}
 
-	// verify that we don't advertise relay addrs initially
-	for _, addr := range h2.Addrs() {
-		if isRelayAddr(addr) {
-			t.Fatal("relay addr advertised before auto detection")
-		}
-	}
+func TestBackoff(t *testing.T) {
+	peerChan := make(chan peer.AddrInfo)
+	h := newPrivateNode(t,
+		autorelay.WithPeerSource(peerChan),
+		autorelay.WithNumRelays(1),
+		autorelay.WithBootDelay(0),
+		autorelay.WithBackoff(500*time.Millisecond),
+	)
+	defer h.Close()
 
-	// connect to AutoNAT, have it resolve to private.
-	connect(t, h1, h2)
-	privEmitter, _ := h2.EventBus().Emitter(new(event.EvtLocalReachabilityChanged))
-	privEmitter.Emit(event.EvtLocalReachabilityChanged{Reachability: network.ReachabilityPrivate})
+	r1 := newBrokenRelay(t, 1)
+	t.Cleanup(func() { r1.Close() })
+	peerChan <- peer.AddrInfo{ID: r1.ID(), Addrs: r1.Addrs()}
 
-	hasRelayAddrs := func(t *testing.T, addrs []ma.Multiaddr) bool {
-		unspecificRelay := ma.StringCast("/p2p-circuit")
-		for _, addr := range addrs {
-			if addr.Equal(unspecificRelay) {
-				t.Fatal("unspecific relay addr advertised")
-			}
-			if isRelayAddr(addr) {
-				return true
-			}
-		}
-		return false
-	}
-	// Wait for detection to do its magic
-	require.Eventually(t, func() bool { return hasRelayAddrs(t, h2.Addrs()) }, 3*time.Second, 10*time.Millisecond)
-	// verify that we have pushed relay addrs to connected peers
-	require.Eventually(t, func() bool { return hasRelayAddrs(t, h1.Peerstore().Addrs(h2.ID())) }, time.Second, 10*time.Millisecond, "no relay addrs pushed")
+	// make sure we don't add any relays yet
+	require.Never(t, func() bool {
+		return len(ma.FilterAddrs(h.Addrs(), isRelayAddr)) > 0
+	}, 400*time.Millisecond, 50*time.Millisecond)
 
-	// verify that we can connect through the relay
-	h3, err := libp2p.New(libp2p.EnableRelay())
-	require.NoError(t, err)
-	defer h3.Close()
-	require.NoError(t, h3.Connect(context.Background(), peer.AddrInfo{ID: h2.ID(), Addrs: ma.FilterAddrs(h2.Addrs(), isRelayAddr)}))
+	require.Eventually(t, func() bool {
+		return len(ma.FilterAddrs(h.Addrs(), isRelayAddr)) > 0
+	}, 400*time.Millisecond, 50*time.Millisecond)
+}
+
+func TestMaxBackoffs(t *testing.T) {
+	peerChan := make(chan peer.AddrInfo)
+	h := newPrivateNode(t,
+		autorelay.WithPeerSource(peerChan),
+		autorelay.WithNumRelays(1),
+		autorelay.WithBootDelay(0),
+		autorelay.WithBackoff(25*time.Millisecond),
+		autorelay.WithMaxAttempts(3),
+	)
+	defer h.Close()
+
+	r1 := newBrokenRelay(t, 4)
+	t.Cleanup(func() { r1.Close() })
+	peerChan <- peer.AddrInfo{ID: r1.ID(), Addrs: r1.Addrs()}
+
+	// make sure we don't add any relays yet
+	require.Never(t, func() bool {
+		return len(ma.FilterAddrs(h.Addrs(), isRelayAddr)) > 0
+	}, 300*time.Millisecond, 50*time.Millisecond)
 }
