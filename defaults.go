@@ -6,7 +6,6 @@ import (
 	"crypto/rand"
 
 	"github.com/libp2p/go-libp2p-core/crypto"
-	mplex "github.com/libp2p/go-libp2p-mplex"
 	noise "github.com/libp2p/go-libp2p-noise"
 	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
 	quic "github.com/libp2p/go-libp2p-quic-transport"
@@ -32,10 +31,7 @@ var DefaultSecurity = ChainOptions(
 //
 // Use this option when you want to *extend* the set of multiplexers used by
 // libp2p instead of replacing them.
-var DefaultMuxers = ChainOptions(
-	Muxer("/yamux/1.0.0", yamux.DefaultTransport),
-	Muxer("/mplex/6.7.0", mplex.DefaultTransport),
-)
+var DefaultMuxers = Muxer("/yamux/1.0.0", yamux.DefaultTransport)
 
 // DefaultTransports are the default libp2p transports.
 //
