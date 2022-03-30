@@ -100,8 +100,8 @@ type Config struct {
 	Routing RoutingC
 
 	EnableAutoRelay bool
+	AutoRelayOpts   []autorelay.Option
 	AutoNATConfig
-	AutoRelayOpts []autorelay.Option
 
 	EnableHolePunching  bool
 	HolePunchingOptions []holepunch.Option

@@ -83,7 +83,6 @@ func newBrokenRelay(t *testing.T, workAfter int) host.Host {
 	require.NoError(t, err)
 	var n int32
 	h.SetStreamHandler(circuitv2_proto.ProtoIDv2Hop, func(str network.Stream) {
-		t.Log("rejecting reservation")
 		str.Reset()
 		num := atomic.AddInt32(&n, 1)
 		if int(num) >= workAfter {
@@ -189,12 +188,32 @@ func TestMaxBackoffs(t *testing.T) {
 	)
 	defer h.Close()
 
-	r1 := newBrokenRelay(t, 4)
-	t.Cleanup(func() { r1.Close() })
-	peerChan <- peer.AddrInfo{ID: r1.ID(), Addrs: r1.Addrs()}
+	r := newBrokenRelay(t, 4)
+	t.Cleanup(func() { r.Close() })
+	peerChan <- peer.AddrInfo{ID: r.ID(), Addrs: r.Addrs()}
 
 	// make sure we don't add any relays yet
 	require.Never(t, func() bool {
 		return len(ma.FilterAddrs(h.Addrs(), isRelayAddr)) > 0
 	}, 300*time.Millisecond, 50*time.Millisecond)
+}
+
+func TestStaticRelays(t *testing.T) {
+	const numRelays = 3
+	var staticRelays []peer.AddrInfo
+	for i := 0; i < numRelays; i++ {
+		r := newRelay(t)
+		t.Cleanup(func() { r.Close() })
+		staticRelays = append(staticRelays, peer.AddrInfo{ID: r.ID(), Addrs: r.Addrs()})
+	}
+
+	h := newPrivateNode(t,
+		autorelay.WithStaticRelays(staticRelays),
+		autorelay.WithNumRelays(1),
+	)
+	defer h.Close()
+
+	require.Eventually(t, func() bool {
+		return len(ma.FilterAddrs(h.Addrs(), isRelayAddr)) > 0
+	}, 2*time.Second, 50*time.Millisecond)
 }

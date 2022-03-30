@@ -22,13 +22,14 @@ type AutoRelay struct {
 	ctx       context.Context
 	ctxCancel context.CancelFunc
 
+	conf *config
+
 	mx     sync.Mutex
 	status network.Reachability
 
 	relayFinder *relayFinder
 
-	peerChanIn  <-chan peer.AddrInfo // capacity 0
-	peerChanOut chan peer.AddrInfo   // capacity 20
+	peerChanOut chan peer.AddrInfo // capacity 20
 
 	host   host.Host
 	addrsF basic.AddrsFactory
@@ -47,8 +48,8 @@ func NewAutoRelay(bhost *basic.BasicHost, opts ...Option) (*AutoRelay, error) {
 			return nil, err
 		}
 	}
-	r.peerChanIn = conf.peerChan
 	r.peerChanOut = make(chan peer.AddrInfo, conf.maxCandidates)
+	r.conf = &conf
 	r.relayFinder = newRelayFinder(bhost, r.peerChanOut, &conf)
 	bhost.AddrsFactory = r.hostAddrs
 
@@ -67,6 +68,25 @@ func (r *AutoRelay) background() {
 		return
 	}
 	defer subReachability.Close()
+
+	var peerChan <-chan peer.AddrInfo
+	if len(r.conf.staticRelays) == 0 {
+		peerChan = r.conf.peerChan
+	} else {
+		pc := make(chan peer.AddrInfo)
+		peerChan = pc
+		r.refCount.Add(1)
+		go func() {
+			defer r.refCount.Done()
+			for _, sr := range r.conf.staticRelays {
+				select {
+				case pc <- sr:
+				case <-r.ctx.Done():
+					return
+				}
+			}
+		}()
+	}
 
 	for {
 		select {
@@ -89,7 +109,7 @@ func (r *AutoRelay) background() {
 			r.mx.Lock()
 			r.status = evt.Reachability
 			r.mx.Unlock()
-		case pi := <-r.peerChanIn:
+		case pi := <-peerChan:
 			select {
 			case r.peerChanOut <- pi: // if there's space in the channel, great
 			default:

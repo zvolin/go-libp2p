@@ -95,13 +95,11 @@ func newRelayFinder(host *basic.BasicHost, peerChan <-chan peer.AddrInfo, conf *
 }
 
 func (rf *relayFinder) background(ctx context.Context) {
-	if len(rf.conf.staticRelays) == 0 {
-		rf.refCount.Add(1)
-		go func() {
-			defer rf.refCount.Done()
-			rf.findNodes(ctx)
-		}()
-	}
+	rf.refCount.Add(1)
+	go func() {
+		defer rf.refCount.Done()
+		rf.findNodes(ctx)
+	}()
 
 	subConnectedness, err := rf.host.EventBus().Subscribe(new(event.EvtPeerConnectednessChanged))
 	if err != nil {
@@ -138,10 +136,8 @@ func (rf *relayFinder) background(ctx context.Context) {
 			}
 			rf.relayMx.Unlock()
 		case <-rf.candidateFound:
-			log.Debugf("candidate found")
 			rf.handleNewCandidate(ctx)
 		case <-bootDelayTimer.C:
-			log.Debugf("boot delay timer")
 			rf.handleNewCandidate(ctx)
 		case <-rf.relayUpdated:
 			push = true
@@ -163,7 +159,7 @@ func (rf *relayFinder) background(ctx context.Context) {
 }
 
 // findNodes accepts nodes from the channel and tests if they support relaying.
-// It is run on both public and private nodes (but not when static relays are set).
+// It is run on both public and private nodes.
 // It garbage collects old entries, so that nodes doesn't overflow.
 // This makes sure that as soon as we need to find relay candidates, we have them available.
 func (rf *relayFinder) findNodes(ctx context.Context) {
@@ -186,6 +182,13 @@ func (rf *relayFinder) findNodes(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		}
+	}
+}
+
+func (rf *relayFinder) notifyNewCandidate() {
+	select {
+	case rf.candidateFound <- struct{}{}:
+	default:
 	}
 }
 
@@ -218,13 +221,6 @@ func (rf *relayFinder) handleNewNode(ctx context.Context, pi peer.AddrInfo) {
 	rf.candidateMx.Unlock()
 
 	rf.notifyNewCandidate()
-}
-
-func (rf *relayFinder) notifyNewCandidate() {
-	select {
-	case rf.candidateFound <- struct{}{}:
-	default:
-	}
 }
 
 // tryNode checks if a peer actually supports either circuit v1 or circuit v2.
@@ -293,10 +289,16 @@ func (rf *relayFinder) handleNewCandidate(ctx context.Context) {
 	if len(rf.relays) == rf.conf.desiredRelays {
 		return
 	}
-	// During the startup phase, we don't want to connect to the first candidate that we find.
-	// Instead, we wait until we've found at least minCandidates, and then select the best of those.
-	// However, if that takes too long (longer than bootDelay),
-	if len(rf.relays) == 0 && len(rf.candidates) < rf.conf.minCandidates && time.Since(rf.bootTime) < rf.conf.bootDelay {
+
+	if len(rf.conf.staticRelays) != 0 {
+		// make sure we read all static relays before continuing
+		if len(rf.peerChan) > 0 && len(rf.candidates) < rf.conf.minCandidates && time.Since(rf.bootTime) < rf.conf.bootDelay {
+			return
+		}
+	} else if len(rf.relays) == 0 && len(rf.candidates) < rf.conf.minCandidates && time.Since(rf.bootTime) < rf.conf.bootDelay {
+		// During the startup phase, we don't want to connect to the first candidate that we find.
+		// Instead, we wait until we've found at least minCandidates, and then select the best of those.
+		// However, if that takes too long (longer than bootDelay), we still go ahead.
 		return
 	}
 

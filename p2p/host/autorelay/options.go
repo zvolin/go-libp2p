@@ -60,11 +60,11 @@ func init() {
 type Option func(*config) error
 
 func WithStaticRelays(static []peer.AddrInfo) Option {
-	return func(r *config) error {
-		if len(r.staticRelays) > 0 {
+	return func(c *config) error {
+		if len(c.staticRelays) > 0 {
 			return errors.New("can't set static relays, static relays already configured")
 		}
-		r.staticRelays = static
+		c.staticRelays = static
 		return nil
 	}
 }
