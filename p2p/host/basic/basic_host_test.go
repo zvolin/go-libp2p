@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"reflect"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -437,6 +438,51 @@ func TestNewDialOld(t *testing.T) {
 	assertWait(t, connectedOn, "/testing")
 
 	require.Equal(t, s.Protocol(), protocol.ID("/testing"), "should have gotten /testing")
+}
+
+func TestNewStreamResolve(t *testing.T) {
+	h1, err := NewHost(swarmt.GenSwarm(t), nil)
+	require.NoError(t, err)
+	h2, err := NewHost(swarmt.GenSwarm(t), nil)
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	// Get the tcp port that h2 is listening on.
+	h2pi := h2.Peerstore().PeerInfo(h2.ID())
+	var dialAddr string
+	const tcpPrefix = "/ip4/127.0.0.1/tcp/"
+	for _, addr := range h2pi.Addrs {
+		addrStr := addr.String()
+		if strings.HasPrefix(addrStr, tcpPrefix) {
+			port := addrStr[len(tcpPrefix):]
+			dialAddr = "/dns4/localhost/tcp/" + port
+			break
+		}
+	}
+	assert.NotEqual(t, dialAddr, "")
+
+	// Add the DNS multiaddr to h1's peerstore.
+	maddr, err := ma.NewMultiaddr(dialAddr)
+	require.NoError(t, err)
+	h1.Peerstore().AddAddr(h2.ID(), maddr, time.Second)
+
+	connectedOn := make(chan protocol.ID)
+	h2.SetStreamHandler("/testing", func(s network.Stream) {
+		connectedOn <- s.Protocol()
+		s.Close()
+	})
+
+	// NewStream will make a new connection using the DNS address in h1's
+	// peerstore.
+	s, err := h1.NewStream(ctx, h2.ID(), "/testing/1.0.0", "/testing")
+	require.NoError(t, err)
+
+	// force the lazy negotiation to complete
+	_, err = s.Write(nil)
+	require.NoError(t, err)
+	assertWait(t, connectedOn, "/testing")
 }
 
 func TestProtoDowngrade(t *testing.T) {
