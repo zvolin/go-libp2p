@@ -41,13 +41,13 @@ func NewAutoRelay(bhost *basic.BasicHost, opts ...Option) (*AutoRelay, error) {
 		addrsF: bhost.AddrsFactory,
 		status: network.ReachabilityUnknown,
 	}
-	r.ctx, r.ctxCancel = context.WithCancel(context.Background())
 	conf := defaultConfig
 	for _, opt := range opts {
 		if err := opt(&conf); err != nil {
 			return nil, err
 		}
 	}
+	r.ctx, r.ctxCancel = context.WithCancel(context.Background())
 	r.peerChanOut = make(chan peer.AddrInfo, conf.maxCandidates)
 	r.conf = &conf
 	r.relayFinder = newRelayFinder(bhost, r.peerChanOut, &conf)
