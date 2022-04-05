@@ -13,7 +13,7 @@ type config struct {
 	staticRelays []peer.AddrInfo
 	// see WithMinCandidates
 	minCandidates int
-	// see WithNumCandidates
+	// see WithMaxCandidates
 	maxCandidates int
 	// Delay until we obtain reservations with relays, if we have less than minCandidates candidates.
 	// See WithBootDelay.
@@ -88,8 +88,8 @@ func WithNumRelays(n int) Option {
 	}
 }
 
-// WithNumCandidates sets the number of relay candidates that we buffer.
-func WithNumCandidates(n int) Option {
+// WithMaxCandidates sets the number of relay candidates that we buffer.
+func WithMaxCandidates(n int) Option {
 	return func(c *config) error {
 		c.maxCandidates = n
 		return nil

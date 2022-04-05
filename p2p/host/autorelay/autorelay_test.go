@@ -109,7 +109,7 @@ func TestSingleRelay(t *testing.T) {
 	}()
 	h := newPrivateNode(t,
 		autorelay.WithPeerSource(peerChan),
-		autorelay.WithNumCandidates(1),
+		autorelay.WithMaxCandidates(1),
 		autorelay.WithNumRelays(99999),
 		autorelay.WithBootDelay(0),
 	)
