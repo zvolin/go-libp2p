@@ -8,6 +8,7 @@ import (
 
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p/p2p/host/autorelay"
+	relayv1 "github.com/libp2p/go-libp2p/p2p/protocol/circuitv1/relay"
 	circuitv2_proto "github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/proto"
 	relayv2 "github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/relay"
 
@@ -123,6 +124,30 @@ func TestSingleRelay(t *testing.T) {
 	require.Never(t, func() bool {
 		return len(ma.FilterAddrs(h.Addrs(), isRelayAddr)) != 1
 	}, 200*time.Millisecond, 50*time.Millisecond)
+}
+
+func TestPreferRelayV2(t *testing.T) {
+	r := newRelay(t)
+	defer r.Close()
+	// The relay supports both v1 and v2. The v1 stream handler should never be called,
+	// if we prefer v2 relays.
+	r.SetStreamHandler(relayv1.ProtoID, func(str network.Stream) {
+		str.Reset()
+		t.Fatal("used relay v1")
+	})
+	peerChan := make(chan peer.AddrInfo, 1)
+	peerChan <- peer.AddrInfo{ID: r.ID(), Addrs: r.Addrs()}
+	h := newPrivateNode(t,
+		autorelay.WithPeerSource(peerChan),
+		autorelay.WithMaxCandidates(1),
+		autorelay.WithNumRelays(99999),
+		autorelay.WithBootDelay(0),
+	)
+	defer h.Close()
+
+	require.Eventually(t, func() bool {
+		return len(ma.FilterAddrs(h.Addrs(), isRelayAddr)) > 0
+	}, 3*time.Second, 100*time.Millisecond)
 }
 
 func TestWaitForCandidates(t *testing.T) {

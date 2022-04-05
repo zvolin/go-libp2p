@@ -43,10 +43,10 @@ const (
 )
 
 type candidate struct {
-	added       time.Time
-	isRelayV1   bool
-	ai          peer.AddrInfo
-	numAttempts int
+	added           time.Time
+	supportsRelayV2 bool
+	ai              peer.AddrInfo
+	numAttempts     int
 }
 
 type candidateOnBackoff struct {
@@ -206,7 +206,7 @@ func (rf *relayFinder) handleNewNode(ctx context.Context, pi peer.AddrInfo) {
 
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
-	supportsV1, err := rf.tryNode(ctx, pi)
+	supportsV2, err := rf.tryNode(ctx, pi)
 	if err != nil {
 		log.Debugf("node %s not accepted as a candidate: %s", pi.ID, err)
 		return
@@ -216,8 +216,8 @@ func (rf *relayFinder) handleNewNode(ctx context.Context, pi peer.AddrInfo) {
 		rf.candidateMx.Unlock()
 		return
 	}
-	log.Debugw("node supports relay protocol", "peer", pi.ID, "supports circuitv2", !supportsV1)
-	rf.candidates[pi.ID] = &candidate{ai: pi, isRelayV1: supportsV1}
+	log.Debugw("node supports relay protocol", "peer", pi.ID, "supports circuit v2", supportsV2)
+	rf.candidates[pi.ID] = &candidate{ai: pi, supportsRelayV2: supportsV2}
 	rf.candidateMx.Unlock()
 
 	rf.notifyNewCandidate()
@@ -225,7 +225,7 @@ func (rf *relayFinder) handleNewNode(ctx context.Context, pi peer.AddrInfo) {
 
 // tryNode checks if a peer actually supports either circuit v1 or circuit v2.
 // It does not modify any internal state.
-func (rf *relayFinder) tryNode(ctx context.Context, pi peer.AddrInfo) (supportsRelayV1 bool, err error) {
+func (rf *relayFinder) tryNode(ctx context.Context, pi peer.AddrInfo) (supportsRelayV2 bool, err error) {
 	if err := rf.host.Connect(ctx, pi); err != nil {
 		return false, fmt.Errorf("error connecting to relay %s: %w", pi.ID, err)
 	}
@@ -276,7 +276,7 @@ func (rf *relayFinder) tryNode(ctx context.Context, pi peer.AddrInfo) (supportsR
 	if !supportsV1 && !supportsV2 {
 		return false, errors.New("doesn't speak circuit v1 or v2")
 	}
-	return supportsV1, nil
+	return supportsV2, nil
 }
 
 func (rf *relayFinder) handleNewCandidate(ctx context.Context) {
@@ -325,7 +325,7 @@ func (rf *relayFinder) handleNewCandidate(ctx context.Context) {
 					continue
 				}
 			}
-			if !cand.isRelayV1 {
+			if cand.supportsRelayV2 {
 				var err error
 				rsvp, err = circuitv2.Reserve(ctx, rf.host, cand.ai)
 				if err != nil {
@@ -403,10 +403,10 @@ func (rf *relayFinder) checkForCandidatesOnBackoff(now time.Time) {
 		} else {
 			log.Debugw("moving backoff'ed candidate back", "id", cand.ai.ID)
 			rf.candidates[cand.ai.ID] = &candidate{
-				added:       cand.added,
-				isRelayV1:   cand.isRelayV1,
-				ai:          cand.ai,
-				numAttempts: cand.numAttempts,
+				added:           cand.added,
+				supportsRelayV2: cand.supportsRelayV2,
+				ai:              cand.ai,
+				numAttempts:     cand.numAttempts,
 			}
 			rf.notifyNewCandidate()
 		}

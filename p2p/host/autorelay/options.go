@@ -126,7 +126,7 @@ func WithBackoff(d time.Duration) Option {
 }
 
 // WithMaxAttempts sets the number of times we attempt to obtain a reservation with a candidate.
-// If we fail still fail to obtain a reservation, this candidate is dropped.
+// If we still fail to obtain a reservation, this candidate is dropped.
 func WithMaxAttempts(n int) Option {
 	return func(c *config) error {
 		c.maxAttempts = n
