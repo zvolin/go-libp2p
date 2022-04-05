@@ -23,7 +23,8 @@ type config struct {
 	// If we fail to obtain a reservation more than maxAttempts, we stop trying.
 	maxAttempts int
 	// Number of relays we strive to obtain a reservation with.
-	desiredRelays int
+	desiredRelays    int
+	setMinCandidates bool
 }
 
 var defaultConfig = config{
@@ -34,6 +35,8 @@ var defaultConfig = config{
 	maxAttempts:   3,
 	desiredRelays: 2,
 }
+
+var errStaticRelaysMinCandidates = errors.New("cannot use WithMinCandidates and WithStaticRelays")
 
 // DefaultRelays are the known PL-operated v1 relays; will be decommissioned in 2022.
 var DefaultRelays = []string{
@@ -61,9 +64,13 @@ type Option func(*config) error
 
 func WithStaticRelays(static []peer.AddrInfo) Option {
 	return func(c *config) error {
+		if c.setMinCandidates {
+			return errStaticRelaysMinCandidates
+		}
 		if len(c.staticRelays) > 0 {
 			return errors.New("can't set static relays, static relays already configured")
 		}
+		c.minCandidates = len(static)
 		c.staticRelays = static
 		return nil
 	}
@@ -101,7 +108,11 @@ func WithMaxCandidates(n int) Option {
 // This is to make sure that we don't just randomly connect to the first candidate that we discover.
 func WithMinCandidates(n int) Option {
 	return func(c *config) error {
+		if len(c.staticRelays) > 0 {
+			return errStaticRelaysMinCandidates
+		}
 		c.minCandidates = n
+		c.setMinCandidates = true
 		return nil
 	}
 }
