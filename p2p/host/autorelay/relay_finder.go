@@ -383,9 +383,12 @@ func (rf *relayFinder) moveCandidateToBackoff(cand *candidate) {
 		return
 	}
 	log.Debugw("moving candidate to backoff", "id", cand.ai.ID)
+	backoff := rf.conf.backoff * (1 << (cand.numAttempts - 1))
+	// introduce a bit of jitter
+	backoff = (backoff * time.Duration(16+rand.Intn(8))) / time.Duration(20)
 	rf.candidatesOnBackoff = append(rf.candidatesOnBackoff, &candidateOnBackoff{
 		candidate:       *cand,
-		nextConnAttempt: time.Now().Add(rf.conf.backoff),
+		nextConnAttempt: time.Now().Add(backoff),
 	})
 }
 
