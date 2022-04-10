@@ -30,6 +30,9 @@ func init() {
 		switch bs.Key {
 		case "vcs.revision":
 			revision = bs.Value
+			if len(revision) > 9 {
+				revision = revision[:9]
+			}
 		case "vcs.modified":
 			if bs.Value == "true" {
 				dirty = true
@@ -38,6 +41,6 @@ func init() {
 	}
 	defaultUserAgent = fmt.Sprintf("%s@%s", bi.Main.Path, revision)
 	if dirty {
-		defaultUserAgent += " (dirty)"
+		defaultUserAgent += "-dirty"
 	}
 }
