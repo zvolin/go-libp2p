@@ -114,7 +114,10 @@ func (r *AutoRelay) background() {
 			case r.peerChanOut <- pi: // if there's space in the channel, great
 			default:
 				// no space left in the channel. Drop the oldest entry.
-				<-r.peerChanOut
+				select {
+				case <-r.peerChanOut:
+				default: // The consumer might just have emptied the channel. Make sure we don't block in that case.
+				}
 				r.peerChanOut <- pi
 			}
 		}
