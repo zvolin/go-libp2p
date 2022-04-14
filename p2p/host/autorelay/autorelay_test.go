@@ -267,19 +267,40 @@ func TestStaticRelays(t *testing.T) {
 }
 
 func TestRelayV1(t *testing.T) {
-	peerChan := make(chan peer.AddrInfo)
-	go func() {
-		r := newRelayV1(t)
-		peerChan <- peer.AddrInfo{ID: r.ID(), Addrs: r.Addrs()}
-		t.Cleanup(func() { r.Close() })
-	}()
-	h := newPrivateNode(t,
-		autorelay.WithPeerSource(peerChan),
-		autorelay.WithBootDelay(0),
-	)
-	defer h.Close()
+	t.Run("relay v1 support disabled", func(t *testing.T) {
+		peerChan := make(chan peer.AddrInfo)
+		go func() {
+			r := newRelayV1(t)
+			peerChan <- peer.AddrInfo{ID: r.ID(), Addrs: r.Addrs()}
+			t.Cleanup(func() { r.Close() })
+		}()
+		h := newPrivateNode(t,
+			autorelay.WithPeerSource(peerChan),
+			autorelay.WithBootDelay(0),
+		)
+		defer h.Close()
 
-	require.Eventually(t, func() bool {
-		return len(ma.FilterAddrs(h.Addrs(), isRelayAddr)) > 0
-	}, 3*time.Second, 100*time.Millisecond)
+		require.Never(t, func() bool {
+			return len(ma.FilterAddrs(h.Addrs(), isRelayAddr)) > 0
+		}, 3*time.Second, 100*time.Millisecond)
+	})
+
+	t.Run("relay v1 support enabled", func(t *testing.T) {
+		peerChan := make(chan peer.AddrInfo)
+		go func() {
+			r := newRelayV1(t)
+			peerChan <- peer.AddrInfo{ID: r.ID(), Addrs: r.Addrs()}
+			t.Cleanup(func() { r.Close() })
+		}()
+		h := newPrivateNode(t,
+			autorelay.WithPeerSource(peerChan),
+			autorelay.WithBootDelay(0),
+			autorelay.WithCircuitV1Support(),
+		)
+		defer h.Close()
+
+		require.Eventually(t, func() bool {
+			return len(ma.FilterAddrs(h.Addrs(), isRelayAddr)) > 0
+		}, 3*time.Second, 100*time.Millisecond)
+	})
 }

@@ -273,12 +273,18 @@ func (rf *relayFinder) tryNode(ctx context.Context, pi peer.AddrInfo) (supportsR
 			supportsV2 = true
 		}
 	}
-	if !maybeSupportsV1 && !supportsV2 {
-		return false, errors.New("doesn't speak circuit v1 or v2")
-	}
+
 	if supportsV2 {
 		return true, nil
 	}
+
+	if !rf.conf.enableCircuitV1 && !supportsV2 {
+		return false, errors.New("doesn't speak circuit v2")
+	}
+	if !maybeSupportsV1 && !supportsV2 {
+		return false, errors.New("doesn't speak circuit v1 or v2")
+	}
+
 	// The node *may* support circuit v1.
 	supportsV1, err := relayv1.CanHop(ctx, rf.host, pi.ID)
 	if err != nil {
