@@ -264,19 +264,36 @@ func (rf *relayFinder) tryNode(ctx context.Context, pi peer.AddrInfo) (supportsR
 	}
 
 	// If the node speaks both, prefer circuit v2
-	var supportsV1, supportsV2 bool
+	var maybeSupportsV1, supportsV2 bool
 	for _, proto := range protos {
 		switch proto {
 		case protoIDv1:
-			supportsV1 = true
+			maybeSupportsV1 = true
 		case protoIDv2:
 			supportsV2 = true
 		}
 	}
-	if !supportsV1 && !supportsV2 {
+
+	if supportsV2 {
+		return true, nil
+	}
+
+	if !rf.conf.enableCircuitV1 && !supportsV2 {
+		return false, errors.New("doesn't speak circuit v2")
+	}
+	if !maybeSupportsV1 && !supportsV2 {
 		return false, errors.New("doesn't speak circuit v1 or v2")
 	}
-	return supportsV2, nil
+
+	// The node *may* support circuit v1.
+	supportsV1, err := relayv1.CanHop(ctx, rf.host, pi.ID)
+	if err != nil {
+		return false, fmt.Errorf("CanHop failed: %w", err)
+	}
+	if !supportsV1 {
+		return false, errors.New("doesn't speak circuit v1 or v2")
+	}
+	return false, nil
 }
 
 func (rf *relayFinder) handleNewCandidate(ctx context.Context) {
@@ -335,16 +352,6 @@ func (rf *relayFinder) handleNewCandidate(ctx context.Context) {
 				if err != nil {
 					failed = true
 					log.Debugw("failed to reserve slot", "id", id, "error", err)
-				}
-			} else {
-				ok, err := relayv1.CanHop(ctx, rf.host, id)
-				if err != nil {
-					failed = true
-					log.Debugw("error querying relay for v1 hop", "id", id, "error", err)
-				}
-				if !ok {
-					failed = true
-					log.Debugw("relay can't hop", "id", id)
 				}
 			}
 			rf.candidateMx.Lock()

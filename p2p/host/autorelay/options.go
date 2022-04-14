@@ -25,6 +25,7 @@ type config struct {
 	// Number of relays we strive to obtain a reservation with.
 	desiredRelays    int
 	setMinCandidates bool
+	enableCircuitV1  bool
 }
 
 var defaultConfig = config{
@@ -141,6 +142,14 @@ func WithBackoff(d time.Duration) Option {
 func WithMaxAttempts(n int) Option {
 	return func(c *config) error {
 		c.maxAttempts = n
+		return nil
+	}
+}
+
+// WithCircuitV1Support enables support for circuit v1 relays.
+func WithCircuitV1Support() Option {
+	return func(c *config) error {
+		c.enableCircuitV1 = true
 		return nil
 	}
 }
