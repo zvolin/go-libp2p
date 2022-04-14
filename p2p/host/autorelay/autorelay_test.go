@@ -64,6 +64,29 @@ func newRelay(t *testing.T) host.Host {
 	return h
 }
 
+func newRelayV1(t *testing.T) host.Host {
+	t.Helper()
+	h, err := libp2p.New(
+		libp2p.DisableRelay(),
+		libp2p.ForceReachabilityPublic(),
+		libp2p.AddrsFactory(func(addrs []ma.Multiaddr) []ma.Multiaddr {
+			for i, addr := range addrs {
+				saddr := addr.String()
+				if strings.HasPrefix(saddr, "/ip4/127.0.0.1/") {
+					addrNoIP := strings.TrimPrefix(saddr, "/ip4/127.0.0.1")
+					addrs[i] = ma.StringCast("/dns4/localhost" + addrNoIP)
+				}
+			}
+			return addrs
+		}),
+	)
+	require.NoError(t, err)
+	r, err := relayv1.NewRelay(h)
+	require.NoError(t, err)
+	t.Cleanup(func() { r.Close() })
+	return h
+}
+
 // creates a node that speaks the relay v2 protocol, but doesn't accept any reservations for the first workAfter tries
 func newBrokenRelay(t *testing.T, workAfter int) host.Host {
 	t.Helper()
@@ -241,4 +264,22 @@ func TestStaticRelays(t *testing.T) {
 	require.Eventually(t, func() bool {
 		return len(ma.FilterAddrs(h.Addrs(), isRelayAddr)) > 0
 	}, 2*time.Second, 50*time.Millisecond)
+}
+
+func TestRelayV1(t *testing.T) {
+	peerChan := make(chan peer.AddrInfo)
+	go func() {
+		r := newRelayV1(t)
+		peerChan <- peer.AddrInfo{ID: r.ID(), Addrs: r.Addrs()}
+		t.Cleanup(func() { r.Close() })
+	}()
+	h := newPrivateNode(t,
+		autorelay.WithPeerSource(peerChan),
+		autorelay.WithBootDelay(0),
+	)
+	defer h.Close()
+
+	require.Eventually(t, func() bool {
+		return len(ma.FilterAddrs(h.Addrs(), isRelayAddr)) > 0
+	}, 3*time.Second, 100*time.Millisecond)
 }
