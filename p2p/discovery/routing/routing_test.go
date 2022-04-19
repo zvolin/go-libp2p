@@ -7,11 +7,10 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p/p2p/discovery/mocks"
-
 	"github.com/libp2p/go-libp2p/p2p/discovery/util"
+	bhost "github.com/libp2p/go-libp2p/p2p/host/blank"
 
 	"github.com/ipfs/go-cid"
-	bhost "github.com/libp2p/go-libp2p-blankhost"
 	"github.com/libp2p/go-libp2p-core/discovery"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"

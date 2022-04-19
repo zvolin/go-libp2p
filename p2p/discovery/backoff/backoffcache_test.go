@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p/p2p/discovery/mocks"
+	bhost "github.com/libp2p/go-libp2p/p2p/host/blank"
 
 	"github.com/libp2p/go-libp2p-core/discovery"
 	"github.com/libp2p/go-libp2p-core/peer"
 
-	bhost "github.com/libp2p/go-libp2p-blankhost"
 	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
 )
 
