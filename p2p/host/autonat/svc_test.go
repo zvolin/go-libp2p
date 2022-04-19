@@ -6,11 +6,12 @@ import (
 	"testing"
 	"time"
 
+	bhost "github.com/libp2p/go-libp2p/p2p/host/blank"
+
 	"github.com/libp2p/go-libp2p-core/event"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 
-	bhost "github.com/libp2p/go-libp2p-blankhost"
 	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
 
 	ma "github.com/multiformats/go-multiaddr"
