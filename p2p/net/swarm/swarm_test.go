@@ -13,8 +13,8 @@ import (
 
 	"github.com/libp2p/go-libp2p-core/protocol"
 
-	swarm "github.com/libp2p/go-libp2p-swarm"
-	. "github.com/libp2p/go-libp2p-swarm/testing"
+	"github.com/libp2p/go-libp2p/p2p/net/swarm"
+	. "github.com/libp2p/go-libp2p/p2p/net/swarm/testing"
 
 	"github.com/libp2p/go-libp2p-core/control"
 	"github.com/libp2p/go-libp2p-core/network"

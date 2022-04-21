@@ -4,13 +4,13 @@ import (
 	"context"
 	"testing"
 
+	swarmt "github.com/libp2p/go-libp2p/p2p/net/swarm/testing"
+
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/test"
-	"github.com/stretchr/testify/require"
 
 	ma "github.com/multiformats/go-multiaddr"
-
-	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDialBadAddrs(t *testing.T) {

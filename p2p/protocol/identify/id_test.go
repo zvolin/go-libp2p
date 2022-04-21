@@ -12,6 +12,7 @@ import (
 	"github.com/libp2p/go-libp2p"
 	blhost "github.com/libp2p/go-libp2p/p2p/host/blank"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
+	swarmt "github.com/libp2p/go-libp2p/p2p/net/swarm/testing"
 	"github.com/libp2p/go-libp2p/p2p/protocol/identify"
 	pb "github.com/libp2p/go-libp2p/p2p/protocol/identify/pb"
 
@@ -27,7 +28,6 @@ import (
 
 	"github.com/libp2p/go-eventbus"
 	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
-	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
 	"github.com/libp2p/go-libp2p-testing/race"
 
 	"github.com/libp2p/go-msgio/protoio"

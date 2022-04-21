@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
+	. "github.com/libp2p/go-libp2p/p2p/net/swarm/testing"
 
 	"github.com/libp2p/go-libp2p-core/network"
 
-	. "github.com/libp2p/go-libp2p-swarm/testing"
+	"github.com/stretchr/testify/require"
 )
 
 // TestConnectednessCorrect starts a few networks, connects a few
