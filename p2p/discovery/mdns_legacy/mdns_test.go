@@ -5,12 +5,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
+	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
+	swarmt "github.com/libp2p/go-libp2p/p2p/net/swarm/testing"
 
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
-	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
-	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
+
+	"github.com/stretchr/testify/require"
 )
 
 type DiscoveryNotifee struct {
@@ -22,7 +23,7 @@ func (n *DiscoveryNotifee) HandlePeerFound(pi peer.AddrInfo) {
 }
 
 func TestMdnsDiscovery(t *testing.T) {
-	//TODO: re-enable when the new lib will get integrated
+	// TODO: re-enable when the new lib will get integrated
 	t.Skip("TestMdnsDiscovery fails randomly with current lib")
 
 	ctx, cancel := context.WithCancel(context.Background())

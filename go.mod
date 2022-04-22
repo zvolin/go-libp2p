@@ -22,7 +22,6 @@ require (
 	github.com/libp2p/go-libp2p-peerstore v0.6.0
 	github.com/libp2p/go-libp2p-quic-transport v0.17.0
 	github.com/libp2p/go-libp2p-resource-manager v0.2.1
-	github.com/libp2p/go-libp2p-swarm v0.10.2
 	github.com/libp2p/go-libp2p-testing v0.9.2
 	github.com/libp2p/go-libp2p-tls v0.4.1
 	github.com/libp2p/go-libp2p-transport-upgrader v0.7.1
@@ -35,12 +34,14 @@ require (
 	github.com/libp2p/zeroconf/v2 v2.1.1
 	github.com/multiformats/go-multiaddr v0.5.0
 	github.com/multiformats/go-multiaddr-dns v0.3.1
+	github.com/multiformats/go-multiaddr-fmt v0.1.0
 	github.com/multiformats/go-multihash v0.1.0
 	github.com/multiformats/go-multistream v0.3.0
 	github.com/multiformats/go-varint v0.0.6
 	github.com/raulk/go-watchdog v1.2.0
 	github.com/stretchr/testify v1.7.0
 	github.com/whyrusleeping/mdns v0.0.0-20190826153040-b9b60ed33aa9
+	github.com/whyrusleeping/multiaddr-filter v0.0.0-20160516205228-e903e4adabd7
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 )
 
@@ -76,6 +77,7 @@ require (
 	github.com/libp2p/go-flow-metrics v0.0.3 // indirect
 	github.com/libp2p/go-libp2p-blankhost v0.3.0 // indirect
 	github.com/libp2p/go-libp2p-pnet v0.2.0 // indirect
+	github.com/libp2p/go-libp2p-swarm v0.10.2 // indirect
 	github.com/libp2p/go-nat v0.1.0 // indirect
 	github.com/libp2p/go-openssl v0.0.7 // indirect
 	github.com/libp2p/go-reuseport v0.1.0 // indirect
@@ -96,7 +98,6 @@ require (
 	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/multiformats/go-base32 v0.0.4 // indirect
 	github.com/multiformats/go-base36 v0.1.0 // indirect
-	github.com/multiformats/go-multiaddr-fmt v0.1.0 // indirect
 	github.com/multiformats/go-multibase v0.0.3 // indirect
 	github.com/multiformats/go-multicodec v0.4.1 // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
@@ -112,7 +113,6 @@ require (
 	github.com/raulk/clock v1.1.0 // indirect
 	github.com/spacemonkeygo/spacelog v0.0.0-20180420211403-2296661a0572 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
-	github.com/whyrusleeping/multiaddr-filter v0.0.0-20160516205228-e903e4adabd7 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.21.0 // indirect

@@ -7,10 +7,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/libp2p/go-libp2p-core/peer"
-	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
 	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
+	swarmt "github.com/libp2p/go-libp2p/p2p/net/swarm/testing"
 	"github.com/libp2p/go-libp2p/p2p/protocol/ping"
+
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 func TestPing(t *testing.T) {

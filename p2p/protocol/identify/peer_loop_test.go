@@ -6,11 +6,10 @@ import (
 	"time"
 
 	blhost "github.com/libp2p/go-libp2p/p2p/host/blank"
+	swarmt "github.com/libp2p/go-libp2p/p2p/net/swarm/testing"
 
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
-
-	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
 
 	"github.com/stretchr/testify/require"
 )

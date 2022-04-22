@@ -3,12 +3,12 @@ package config
 import (
 	"testing"
 
-	"github.com/libp2p/go-libp2p-core/network"
+	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
+	swarmt "github.com/libp2p/go-libp2p/p2p/net/swarm/testing"
 
 	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
-	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
-	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
 
 	yamux "github.com/libp2p/go-libp2p-yamux"
 )
