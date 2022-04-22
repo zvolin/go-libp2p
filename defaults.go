@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 
 	"github.com/libp2p/go-libp2p/p2p/net/connmgr"
+	quic "github.com/libp2p/go-libp2p/p2p/transport/quic"
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
 	ws "github.com/libp2p/go-libp2p/p2p/transport/websocket"
 
@@ -13,7 +14,6 @@ import (
 
 	noise "github.com/libp2p/go-libp2p-noise"
 	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
-	quic "github.com/libp2p/go-libp2p-quic-transport"
 	rcmgr "github.com/libp2p/go-libp2p-resource-manager"
 	tls "github.com/libp2p/go-libp2p-tls"
 	yamux "github.com/libp2p/go-libp2p-yamux"
