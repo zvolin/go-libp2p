@@ -28,12 +28,12 @@ require (
 	github.com/libp2p/go-libp2p-testing v0.9.2
 	github.com/libp2p/go-libp2p-tls v0.4.1
 	github.com/libp2p/go-libp2p-transport-upgrader v0.7.1
-	github.com/libp2p/go-libp2p-yamux v0.9.1
 	github.com/libp2p/go-msgio v0.2.0
 	github.com/libp2p/go-netroute v0.2.0
 	github.com/libp2p/go-reuseport v0.1.0
 	github.com/libp2p/go-reuseport-transport v0.1.0
 	github.com/libp2p/go-stream-muxer-multistream v0.4.0
+	github.com/libp2p/go-yamux/v3 v3.1.1
 	github.com/libp2p/zeroconf/v2 v2.1.1
 	github.com/lucas-clemente/quic-go v0.27.0
 	github.com/marten-seemann/tcp v0.0.0-20210406111302-dfbc87cc63fd
@@ -85,11 +85,11 @@ require (
 	github.com/libp2p/go-libp2p-pnet v0.2.0 // indirect
 	github.com/libp2p/go-libp2p-quic-transport v0.17.0 // indirect
 	github.com/libp2p/go-libp2p-swarm v0.10.2 // indirect
+	github.com/libp2p/go-libp2p-yamux v0.9.1 // indirect
 	github.com/libp2p/go-mplex v0.4.0 // indirect
 	github.com/libp2p/go-nat v0.1.0 // indirect
 	github.com/libp2p/go-openssl v0.0.7 // indirect
 	github.com/libp2p/go-tcp-transport v0.5.1 // indirect
-	github.com/libp2p/go-yamux/v3 v3.1.1 // indirect
 	github.com/marten-seemann/qtls-go1-16 v0.1.5 // indirect
 	github.com/marten-seemann/qtls-go1-17 v0.1.1 // indirect
 	github.com/marten-seemann/qtls-go1-18 v0.1.1 // indirect

@@ -4,13 +4,12 @@ import (
 	"testing"
 
 	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
+	yamux "github.com/libp2p/go-libp2p/p2p/muxer/yamux"
 	swarmt "github.com/libp2p/go-libp2p/p2p/net/swarm/testing"
 
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
-
-	yamux "github.com/libp2p/go-libp2p-yamux"
 )
 
 func TestMuxerSimple(t *testing.T) {
