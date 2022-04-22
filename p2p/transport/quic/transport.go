@@ -230,7 +230,7 @@ func (t *transport) Dial(ctx context.Context, raddr ma.Multiaddr, p peer.ID) (tp
 	if remotePubKey == nil {
 		pconn.DecreaseCount()
 		scope.Done()
-		return nil, errors.New("go-libp2p-quic-transport BUG: expected remote pub key to be set")
+		return nil, errors.New("p2p/transport/quic BUG: expected remote pub key to be set")
 	}
 
 	localMultiaddr, err := toQuicMultiaddr(pconn.LocalAddr())

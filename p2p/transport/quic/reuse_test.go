@@ -43,7 +43,7 @@ func platformHasRoutingTables() bool {
 func isGarbageCollectorRunning() bool {
 	var b bytes.Buffer
 	pprof.Lookup("goroutine").WriteTo(&b, 1)
-	return strings.Contains(b.String(), "go-libp2p-quic-transport.(*reuse).gc")
+	return strings.Contains(b.String(), "quic.(*reuse).gc")
 }
 
 func cleanup(t *testing.T, reuse *reuse) {
@@ -56,6 +56,7 @@ func cleanup(t *testing.T, reuse *reuse) {
 
 func TestReuseListenOnAllIPv4(t *testing.T) {
 	reuse := newReuse()
+	require.Eventually(t, isGarbageCollectorRunning, 100*time.Millisecond, time.Millisecond, "expected garbage collector to be running")
 	cleanup(t, reuse)
 
 	addr, err := net.ResolveUDPAddr("udp4", "0.0.0.0:0")
@@ -67,6 +68,7 @@ func TestReuseListenOnAllIPv4(t *testing.T) {
 
 func TestReuseListenOnAllIPv6(t *testing.T) {
 	reuse := newReuse()
+	require.Eventually(t, isGarbageCollectorRunning, 100*time.Millisecond, time.Millisecond, "expected garbage collector to be running")
 	cleanup(t, reuse)
 
 	addr, err := net.ResolveUDPAddr("udp6", "[::]:1234")
