@@ -8,20 +8,22 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
+	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
 
-	csms "github.com/libp2p/go-conn-security-multistream"
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/sec/insecure"
 	"github.com/libp2p/go-libp2p-core/transport"
+
+	csms "github.com/libp2p/go-conn-security-multistream"
 	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
 	quic "github.com/libp2p/go-libp2p-quic-transport"
 	tnet "github.com/libp2p/go-libp2p-testing/net"
 	tptu "github.com/libp2p/go-libp2p-transport-upgrader"
 	yamux "github.com/libp2p/go-libp2p-yamux"
 	msmux "github.com/libp2p/go-stream-muxer-multistream"
-	tcp "github.com/libp2p/go-tcp-transport"
 	ma "github.com/multiformats/go-multiaddr"
+
+	"github.com/stretchr/testify/require"
 )
 
 func makeSwarm(t *testing.T) *Swarm {

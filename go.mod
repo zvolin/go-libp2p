@@ -17,6 +17,7 @@ require (
 	github.com/libp2p/go-libp2p-asn-util v0.1.0
 	github.com/libp2p/go-libp2p-circuit v0.6.0
 	github.com/libp2p/go-libp2p-core v0.15.1
+	github.com/libp2p/go-libp2p-mplex v0.5.0
 	github.com/libp2p/go-libp2p-nat v0.1.0
 	github.com/libp2p/go-libp2p-noise v0.4.0
 	github.com/libp2p/go-libp2p-peerstore v0.6.0
@@ -28,16 +29,20 @@ require (
 	github.com/libp2p/go-libp2p-yamux v0.9.1
 	github.com/libp2p/go-msgio v0.2.0
 	github.com/libp2p/go-netroute v0.2.0
+	github.com/libp2p/go-reuseport v0.1.0
+	github.com/libp2p/go-reuseport-transport v0.1.0
 	github.com/libp2p/go-stream-muxer-multistream v0.4.0
-	github.com/libp2p/go-tcp-transport v0.5.1
 	github.com/libp2p/go-ws-transport v0.6.0
 	github.com/libp2p/zeroconf/v2 v2.1.1
+	github.com/marten-seemann/tcp v0.0.0-20210406111302-dfbc87cc63fd
+	github.com/mikioh/tcpinfo v0.0.0-20190314235526-30a79bb1804b
 	github.com/multiformats/go-multiaddr v0.5.0
 	github.com/multiformats/go-multiaddr-dns v0.3.1
 	github.com/multiformats/go-multiaddr-fmt v0.1.0
 	github.com/multiformats/go-multihash v0.1.0
 	github.com/multiformats/go-multistream v0.3.0
 	github.com/multiformats/go-varint v0.0.6
+	github.com/prometheus/client_golang v1.12.1
 	github.com/raulk/go-watchdog v1.2.0
 	github.com/stretchr/testify v1.7.0
 	github.com/whyrusleeping/mdns v0.0.0-20190826153040-b9b60ed33aa9
@@ -78,20 +83,18 @@ require (
 	github.com/libp2p/go-libp2p-blankhost v0.3.0 // indirect
 	github.com/libp2p/go-libp2p-pnet v0.2.0 // indirect
 	github.com/libp2p/go-libp2p-swarm v0.10.2 // indirect
+	github.com/libp2p/go-mplex v0.4.0 // indirect
 	github.com/libp2p/go-nat v0.1.0 // indirect
 	github.com/libp2p/go-openssl v0.0.7 // indirect
-	github.com/libp2p/go-reuseport v0.1.0 // indirect
-	github.com/libp2p/go-reuseport-transport v0.1.0 // indirect
+	github.com/libp2p/go-tcp-transport v0.5.1 // indirect
 	github.com/libp2p/go-yamux/v3 v3.1.1 // indirect
 	github.com/lucas-clemente/quic-go v0.27.0 // indirect
 	github.com/marten-seemann/qtls-go1-16 v0.1.5 // indirect
 	github.com/marten-seemann/qtls-go1-17 v0.1.1 // indirect
 	github.com/marten-seemann/qtls-go1-18 v0.1.1 // indirect
-	github.com/marten-seemann/tcp v0.0.0-20210406111302-dfbc87cc63fd // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/miekg/dns v1.1.48 // indirect
-	github.com/mikioh/tcpinfo v0.0.0-20190314235526-30a79bb1804b // indirect
 	github.com/mikioh/tcpopt v0.0.0-20190314235656-172688c1accc // indirect
 	github.com/minio/blake2b-simd v0.0.0-20160723061019-3f5f724cb5b1 // indirect
 	github.com/minio/sha256-simd v1.0.0 // indirect
@@ -106,7 +109,6 @@ require (
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/prometheus/client_golang v1.12.1 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.33.0 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
