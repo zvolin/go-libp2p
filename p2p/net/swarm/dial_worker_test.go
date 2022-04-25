@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	yamux "github.com/libp2p/go-libp2p/p2p/muxer/yamux"
 	quic "github.com/libp2p/go-libp2p/p2p/transport/quic"
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
 
@@ -19,7 +20,6 @@ import (
 	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
 	tnet "github.com/libp2p/go-libp2p-testing/net"
 	tptu "github.com/libp2p/go-libp2p-transport-upgrader"
-	yamux "github.com/libp2p/go-libp2p-yamux"
 	msmux "github.com/libp2p/go-stream-muxer-multistream"
 	ma "github.com/multiformats/go-multiaddr"
 
