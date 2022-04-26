@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/libp2p/go-libp2p/p2p/muxer/yamux"
+	csms "github.com/libp2p/go-libp2p/p2p/net/conn-security-multistream"
 
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -14,7 +15,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/sec/insecure"
 	"github.com/libp2p/go-libp2p-core/transport"
 
-	csms "github.com/libp2p/go-conn-security-multistream"
 	mocknetwork "github.com/libp2p/go-libp2p-testing/mocks/network"
 	ttransport "github.com/libp2p/go-libp2p-testing/suites/transport"
 	tptu "github.com/libp2p/go-libp2p-transport-upgrader"

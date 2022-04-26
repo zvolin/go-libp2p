@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p/p2p/muxer/yamux"
+	csms "github.com/libp2p/go-libp2p/p2p/net/conn-security-multistream"
 	"github.com/libp2p/go-libp2p/p2p/net/swarm"
 	quic "github.com/libp2p/go-libp2p/p2p/transport/quic"
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
@@ -19,7 +20,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/sec/insecure"
 	"github.com/libp2p/go-libp2p-core/transport"
 
-	csms "github.com/libp2p/go-conn-security-multistream"
 	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
 	tnet "github.com/libp2p/go-libp2p-testing/net"
 	tptu "github.com/libp2p/go-libp2p-transport-upgrader"
