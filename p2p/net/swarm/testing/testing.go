@@ -7,6 +7,7 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/muxer/yamux"
 	csms "github.com/libp2p/go-libp2p/p2p/net/conn-security-multistream"
 	"github.com/libp2p/go-libp2p/p2p/net/swarm"
+	tptu "github.com/libp2p/go-libp2p/p2p/net/upgrader"
 	quic "github.com/libp2p/go-libp2p/p2p/transport/quic"
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
 
@@ -22,7 +23,6 @@ import (
 
 	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
 	tnet "github.com/libp2p/go-libp2p-testing/net"
-	tptu "github.com/libp2p/go-libp2p-transport-upgrader"
 	msmux "github.com/libp2p/go-stream-muxer-multistream"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/require"

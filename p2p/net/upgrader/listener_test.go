@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	upgrader "github.com/libp2p/go-libp2p-transport-upgrader"
+	"github.com/libp2p/go-libp2p/p2p/net/upgrader"
 
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"

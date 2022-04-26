@@ -6,7 +6,8 @@ import (
 	"net"
 	"testing"
 
-	upgrader "github.com/libp2p/go-libp2p-transport-upgrader"
+	"github.com/libp2p/go-libp2p/p2p/muxer/yamux"
+	"github.com/libp2p/go-libp2p/p2p/net/upgrader"
 
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -15,7 +16,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/test"
 	"github.com/libp2p/go-libp2p-core/transport"
 
-	mplex "github.com/libp2p/go-libp2p-mplex"
 	mocknetwork "github.com/libp2p/go-libp2p-testing/mocks/network"
 
 	"github.com/golang/mock/gomock"
@@ -39,7 +39,7 @@ func createUpgraderWithMuxer(t *testing.T, muxer network.Multiplexer, opts ...up
 	return id, u
 }
 
-// negotiatingMuxer sets up a new mplex connection
+// negotiatingMuxer sets up a new yamux connection
 // It makes sure that this happens at the same time for client and server.
 type negotiatingMuxer struct{}
 
@@ -54,7 +54,7 @@ func (m *negotiatingMuxer) NewConn(c net.Conn, isServer bool, scope network.Peer
 	if err != nil {
 		return nil, err
 	}
-	return mplex.DefaultTransport.NewConn(c, isServer, scope)
+	return yamux.DefaultTransport.NewConn(c, isServer, scope)
 }
 
 // blockingMuxer blocks the muxer negotiation until the contain chan is closed
