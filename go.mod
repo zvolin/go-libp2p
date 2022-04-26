@@ -27,6 +27,7 @@ require (
 	github.com/libp2p/go-libp2p-testing v0.9.2
 	github.com/libp2p/go-libp2p-tls v0.4.1
 	github.com/libp2p/go-libp2p-transport-upgrader v0.7.1
+	github.com/libp2p/go-mplex v0.7.0
 	github.com/libp2p/go-msgio v0.2.0
 	github.com/libp2p/go-netroute v0.2.0
 	github.com/libp2p/go-reuseport v0.1.0
