@@ -11,14 +11,14 @@ import (
 
 	"golang.org/x/crypto/poly1305"
 
-	"github.com/flynn/noise"
-	"github.com/gogo/protobuf/proto"
+	"github.com/libp2p/go-libp2p/p2p/security/noise/pb"
 
-	pool "github.com/libp2p/go-buffer-pool"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 
-	"github.com/libp2p/go-libp2p-noise/pb"
+	"github.com/flynn/noise"
+	"github.com/gogo/protobuf/proto"
+	pool "github.com/libp2p/go-buffer-pool"
 )
 
 // payloadSigPrefix is prepended to our Noise static key before signing with
