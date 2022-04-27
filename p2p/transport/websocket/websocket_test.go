@@ -16,6 +16,7 @@ import (
 	"time"
 
 	csms "github.com/libp2p/go-libp2p/p2p/net/conn-security-multistream"
+	tptu "github.com/libp2p/go-libp2p/p2p/net/upgrader"
 
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -27,7 +28,6 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/muxer/yamux"
 
 	ttransport "github.com/libp2p/go-libp2p-testing/suites/transport"
-	tptu "github.com/libp2p/go-libp2p-transport-upgrader"
 
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/require"

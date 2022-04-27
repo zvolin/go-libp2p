@@ -24,11 +24,10 @@ import (
 	blankhost "github.com/libp2p/go-libp2p/p2p/host/blank"
 	routed "github.com/libp2p/go-libp2p/p2p/host/routed"
 	"github.com/libp2p/go-libp2p/p2p/net/swarm"
+	tptu "github.com/libp2p/go-libp2p/p2p/net/upgrader"
 	circuitv2 "github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/client"
 	relayv2 "github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/relay"
 	"github.com/libp2p/go-libp2p/p2p/protocol/holepunch"
-
-	tptu "github.com/libp2p/go-libp2p-transport-upgrader"
 
 	logging "github.com/ipfs/go-log/v2"
 	ma "github.com/multiformats/go-multiaddr"

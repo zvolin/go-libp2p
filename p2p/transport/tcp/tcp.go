@@ -86,7 +86,7 @@ func (ll *tcpListener) Accept() (manet.Conn, error) {
 	tryKeepAlive(c, true)
 	// We're not calling OpenConnection in the resource manager here,
 	// since the manet.Conn doesn't allow us to save the scope.
-	// It's the caller's (usually the go-libp2p-transport-upgrader) responsibility
+	// It's the caller's (usually the p2p/net/upgrader) responsibility
 	// to call the resource manager.
 	return c, nil
 }
