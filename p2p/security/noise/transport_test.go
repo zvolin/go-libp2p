@@ -11,14 +11,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-
-	"golang.org/x/crypto/poly1305"
+	"golang.org/x/crypto/chacha20poly1305"
 
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/sec"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -302,7 +301,7 @@ func TestBufferEqEncPayload(t *testing.T) {
 	_, err := initConn.Write(before)
 	require.NoError(t, err)
 
-	after := make([]byte, len(before)+poly1305.TagSize)
+	after := make([]byte, len(before)+chacha20poly1305.Overhead)
 	afterLen, err := respConn.Read(after)
 	require.NoError(t, err)
 

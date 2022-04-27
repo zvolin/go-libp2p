@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"golang.org/x/crypto/poly1305"
+	"golang.org/x/crypto/chacha20poly1305"
 
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/sec"
@@ -174,7 +174,7 @@ func benchDataTransfer(b *benchenv, dataSize int64, m testMode) {
 		plainTextBufs[i] = make([]byte, (i+2)*1024)
 		switch m {
 		case readBufferGtEncMsg:
-			rbuf = make([]byte, len(plainTextBufs[i])+poly1305.TagSize+1)
+			rbuf = make([]byte, len(plainTextBufs[i])+chacha20poly1305.Overhead+1)
 		case readBufferLtPlainText:
 			rbuf = make([]byte, len(plainTextBufs[i])-2)
 		}

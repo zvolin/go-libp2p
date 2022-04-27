@@ -5,8 +5,7 @@ import (
 	"io"
 
 	pool "github.com/libp2p/go-buffer-pool"
-
-	"golang.org/x/crypto/poly1305"
+	"golang.org/x/crypto/chacha20poly1305"
 )
 
 // MaxTransportMsgLength is the Noise-imposed maximum transport message length,
@@ -15,7 +14,7 @@ const MaxTransportMsgLength = 0xffff
 
 // MaxPlaintextLength is the maximum payload size. It is MaxTransportMsgLength
 // minus the MAC size. Payloads over this size will be automatically chunked.
-const MaxPlaintextLength = MaxTransportMsgLength - poly1305.TagSize
+const MaxPlaintextLength = MaxTransportMsgLength - chacha20poly1305.Overhead
 
 // LengthPrefixLength is the length of the length prefix itself, which precedes
 // all transport messages in order to delimit them. In bytes.
@@ -100,7 +99,7 @@ func (s *secureSession) Write(data []byte) (int, error) {
 	)
 
 	if total < MaxPlaintextLength {
-		cbuf = pool.Get(total + poly1305.TagSize + LengthPrefixLength)
+		cbuf = pool.Get(total + chacha20poly1305.Overhead + LengthPrefixLength)
 	} else {
 		cbuf = pool.Get(MaxTransportMsgLength + LengthPrefixLength)
 	}
