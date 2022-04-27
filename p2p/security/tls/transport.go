@@ -93,7 +93,7 @@ func (t *Transport) handshake(ctx context.Context, tlsConn *tls.Conn, keyCh <-ch
 	default:
 	}
 	if remotePubKey == nil {
-		return nil, errors.New("go-libp2p-tls BUG: expected remote pub key to be set")
+		return nil, errors.New("go-libp2p tls BUG: expected remote pub key to be set")
 	}
 
 	return t.setupConn(tlsConn, remotePubKey)
