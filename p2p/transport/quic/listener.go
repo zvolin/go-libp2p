@@ -5,12 +5,12 @@ import (
 	"crypto/tls"
 	"net"
 
+	p2ptls "github.com/libp2p/go-libp2p/p2p/security/tls"
+
 	ic "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	tpt "github.com/libp2p/go-libp2p-core/transport"
-
-	p2ptls "github.com/libp2p/go-libp2p-tls"
 
 	"github.com/lucas-clemente/quic-go"
 	ma "github.com/multiformats/go-multiaddr"
