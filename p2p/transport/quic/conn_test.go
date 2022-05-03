@@ -198,9 +198,13 @@ func TestResourceManagerAcceptDenied(t *testing.T) {
 	clientRcmgr.EXPECT().OpenConnection(network.DirOutbound, false).Return(clientConnScope, nil)
 	clientConnScope.EXPECT().SetPeer(serverID)
 	conn, err := clientTransport.Dial(context.Background(), ln.Multiaddr(), serverID)
-	require.NoError(t, err)
-	_, err = conn.AcceptStream()
-	require.Error(t, err)
+	// In rare instances, the connection gating error will already occur on Dial.
+	if err != nil {
+		clientConnScope.EXPECT().Done()
+	} else {
+		_, err = conn.AcceptStream()
+		require.Error(t, err)
+	}
 	select {
 	case <-connChan:
 		t.Fatal("didn't expect to accept a connection")
