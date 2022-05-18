@@ -21,7 +21,7 @@ var Subtests = []func(t *testing.T, ta, tb transport.Transport, maddr ma.Multiad
 	SubtestStress1Conn1Stream1Msg,
 	SubtestStress1Conn1Stream100Msg,
 	SubtestStress1Conn100Stream100Msg,
-	SubtestStress50Conn10Stream50Msg,
+	SubtestStressManyConn10Stream50Msg,
 	SubtestStress1Conn1000Stream10Msg,
 	SubtestStress1Conn100Stream100Msg10MB,
 	SubtestStreamOpenStress,
@@ -37,6 +37,7 @@ func SubtestTransport(t *testing.T, ta, tb transport.Transport, addr string, pee
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	for _, f := range Subtests {
 		t.Run(getFunctionName(f), func(t *testing.T) {
 			f(t, ta, tb, maddr, peerA)
