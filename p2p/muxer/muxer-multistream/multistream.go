@@ -1,6 +1,6 @@
-// Package multistream implements a peerstream transport using
+// Package muxer_multistream implements a peerstream transport using
 // go-multistream to select the underlying stream muxer
-package multistream
+package muxer_multistream
 
 import (
 	"fmt"
