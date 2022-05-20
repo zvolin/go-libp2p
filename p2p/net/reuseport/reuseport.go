@@ -1,10 +1,10 @@
-package tcpreuse
+package reuseport
 
 import (
 	"context"
 	"net"
 
-	reuseport "github.com/libp2p/go-reuseport"
+	"github.com/libp2p/go-reuseport"
 )
 
 var fallbackDialer net.Dialer

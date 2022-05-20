@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	rtpt "github.com/libp2p/go-libp2p/p2p/net/reuseport"
+	"github.com/libp2p/go-libp2p/p2p/net/reuseport"
 
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -121,7 +121,7 @@ type TcpTransport struct {
 
 	rcmgr network.ResourceManager
 
-	reuse rtpt.Transport
+	reuse reuseport.Transport
 }
 
 var _ transport.Transport = &TcpTransport{}
