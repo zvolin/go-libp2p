@@ -16,6 +16,7 @@ import (
 	mrand "math/rand"
 	"net"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -71,6 +72,13 @@ func connect(t *testing.T) (net.Conn, net.Conn) {
 		sconn.Close()
 	})
 	return conn, sconn
+}
+
+func isWindowsTCPCloseError(err error) bool {
+	if runtime.GOOS != "windows" {
+		return false
+	}
+	return strings.Contains(err.Error(), "wsarecv: An existing connection was forcibly closed by the remote host")
 }
 
 func TestHandshakeSucceeds(t *testing.T) {
@@ -498,8 +506,9 @@ func TestInvalidCerts(t *testing.T) {
 			case err := <-clientErrChan:
 				require.Error(t, err)
 				if err.Error() != "remote error: tls: error decrypting message" &&
-					err.Error() != "remote error: tls: bad certificate" {
-					t.Fatalf("unexpected error: %s", err.Error())
+					err.Error() != "remote error: tls: bad certificate" &&
+					!isWindowsTCPCloseError(err) {
+					t.Errorf("unexpected error: %s", err.Error())
 				}
 			case <-time.After(250 * time.Millisecond):
 				t.Fatal("expected the server handshake to return")
@@ -540,7 +549,9 @@ func TestInvalidCerts(t *testing.T) {
 				t.Fatal("expected the server handshake to return")
 			}
 			require.Error(t, serverErr)
-			require.Contains(t, serverErr.Error(), "remote error: tls:")
+			if !isWindowsTCPCloseError(serverErr) {
+				require.Contains(t, serverErr.Error(), "remote error: tls:")
+			}
 		})
 	}
 }
