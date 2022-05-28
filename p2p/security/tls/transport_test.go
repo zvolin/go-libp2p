@@ -15,6 +15,7 @@ import (
 	"math/big"
 	mrand "math/rand"
 	"net"
+	"runtime"
 	"testing"
 	"time"
 
@@ -47,18 +48,29 @@ func createPeer(t *testing.T) (peer.ID, ic.PrivKey) {
 }
 
 func connect(t *testing.T) (net.Conn, net.Conn) {
-	ln, err := net.Listen("tcp", "localhost:0")
+	ln, err := net.ListenTCP("tcp", nil)
 	require.NoError(t, err)
 	defer ln.Close()
-	serverConnChan := make(chan net.Conn)
+	serverConnChan := make(chan *net.TCPConn)
 	go func() {
 		conn, err := ln.Accept()
 		assert.NoError(t, err)
-		serverConnChan <- conn
+		sconn := conn.(*net.TCPConn)
+		serverConnChan <- sconn
 	}()
-	conn, err := net.Dial("tcp", ln.Addr().String())
+	conn, err := net.DialTCP("tcp", nil, ln.Addr().(*net.TCPAddr))
 	require.NoError(t, err)
-	return conn, <-serverConnChan
+	sconn := <-serverConnChan
+	// On Windows we have to set linger to 0, otherwise we'll occasionally run into errors like the following:
+	// "connectex: Only one usage of each socket address (protocol/network address/port) is normally permitted."
+	// See https://github.com/libp2p/go-libp2p/issues/1529.
+	conn.SetLinger(0)
+	sconn.SetLinger(0)
+	t.Cleanup(func() {
+		conn.Close()
+		sconn.Close()
+	})
+	return conn, sconn
 }
 
 func TestHandshakeSucceeds(t *testing.T) {
