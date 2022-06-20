@@ -45,7 +45,6 @@ require (
 	github.com/prometheus/client_golang v1.12.1
 	github.com/raulk/go-watchdog v1.2.0
 	github.com/stretchr/testify v1.7.0
-	github.com/whyrusleeping/mdns v0.0.0-20190826153040-b9b60ed33aa9
 	github.com/whyrusleeping/multiaddr-filter v0.0.0-20160516205228-e903e4adabd7
 	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
