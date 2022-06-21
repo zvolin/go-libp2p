@@ -43,15 +43,8 @@ const (
 )
 
 type candidate struct {
-	added           time.Time
 	supportsRelayV2 bool
 	ai              peer.AddrInfo
-	numAttempts     int
-}
-
-type candidateOnBackoff struct {
-	candidate
-	nextConnAttempt time.Time
 }
 
 // relayFinder is a Host that uses relays for connectivity when a NAT is detected.
@@ -72,8 +65,13 @@ type relayFinder struct {
 	candidateMx               sync.Mutex
 	lastCandidateAdded        time.Time
 	candidates                map[peer.ID]*candidate
-	candidatesOnBackoff       []*candidateOnBackoff // this slice is always sorted by the nextConnAttempt time
-	handleNewCandidateTrigger chan struct{}         // cap: 1
+	backoff                   map[peer.ID]time.Time
+	handleNewCandidateTrigger chan struct{} // cap: 1
+	// Any time _something_ hapens that might cause us to need new candidates.
+	// This could be
+	// * the disconnection of a relay
+	// * the failed attempt to obtain a reservation with a current candidate
+	maybeRequestNewCandidates chan struct{} // cap: 1.
 
 	relayUpdated chan struct{}
 
@@ -91,16 +89,16 @@ func newRelayFinder(host *basic.BasicHost, peerSource func(int) <-chan peer.Addr
 		conf:                      conf,
 		peerSource:                peerSource,
 		candidates:                make(map[peer.ID]*candidate),
+		backoff:                   make(map[peer.ID]time.Time),
 		candidateFound:            make(chan struct{}, 1),
 		handleNewCandidateTrigger: make(chan struct{}, 1),
+		maybeRequestNewCandidates: make(chan struct{}, 1),
 		relays:                    make(map[peer.ID]*circuitv2.Reservation),
 		relayUpdated:              make(chan struct{}, 1),
 	}
 }
 
 func (rf *relayFinder) background(ctx context.Context) {
-	relayDisconnected := make(chan struct{}, 1)
-
 	if rf.usesStaticRelay() {
 		rf.refCount.Add(1)
 		go func() {
@@ -111,7 +109,7 @@ func (rf *relayFinder) background(ctx context.Context) {
 		rf.refCount.Add(1)
 		go func() {
 			defer rf.refCount.Done()
-			rf.findNodes(ctx, relayDisconnected)
+			rf.findNodes(ctx)
 		}()
 	}
 
@@ -152,10 +150,7 @@ func (rf *relayFinder) background(ctx context.Context) {
 			if rf.usingRelay(evt.Peer) { // we were disconnected from a relay
 				log.Debugw("disconnected from relay", "id", evt.Peer)
 				delete(rf.relays, evt.Peer)
-				select {
-				case relayDisconnected <- struct{}{}:
-				default:
-				}
+				rf.notifyMaybeNeedNewCandidates()
 				push = true
 			}
 			rf.relayMx.Unlock()
@@ -174,8 +169,14 @@ func (rf *relayFinder) background(ctx context.Context) {
 		case now := <-refreshTicker.C:
 			push = rf.refreshReservations(ctx, now)
 		case now := <-backoffTicker.C:
-			log.Debug("backoff timer fired")
-			rf.checkForCandidatesOnBackoff(now)
+			rf.candidateMx.Lock()
+			for id, t := range rf.backoff {
+				if !t.Add(rf.conf.backoff).After(now) {
+					log.Debugw("removing backoff for node", "id", id)
+					delete(rf.backoff, id)
+				}
+			}
+			rf.candidateMx.Unlock()
 		case <-ctx.Done():
 			return
 		}
@@ -193,46 +194,58 @@ func (rf *relayFinder) background(ctx context.Context) {
 // It is run on both public and private nodes.
 // It garbage collects old entries, so that nodes doesn't overflow.
 // This makes sure that as soon as we need to find relay candidates, we have them available.
-func (rf *relayFinder) findNodes(ctx context.Context, relayDisconnected <-chan struct{}) {
+func (rf *relayFinder) findNodes(ctx context.Context) {
 	peerChan := rf.peerSource(rf.conf.maxCandidates)
+	lastCallToPeerSource := rf.conf.clock.Now()
 
 	timer := newTimer(rf.conf.clock)
 	for {
+		rf.candidateMx.Lock()
+		numCandidates := len(rf.candidates)
+		rf.candidateMx.Unlock()
+
+		if peerChan == nil {
+			now := rf.conf.clock.Now()
+			nextAllowedCallToPeerSource := lastCallToPeerSource.Add(rf.conf.minInterval).Sub(now)
+			if numCandidates < rf.conf.minCandidates {
+				log.Debugw("not enough candidates. Resetting timer", "num", numCandidates, "desired", rf.conf.minCandidates)
+				timer.Reset(nextAllowedCallToPeerSource)
+			} else if !rf.lastCandidateAdded.IsZero() {
+				newestCandidateAge := now.Sub(rf.lastCandidateAdded)
+				log.Debugw("resetting timer. candidate will be too old in", "dur", rf.conf.maxCandidateAge-newestCandidateAge)
+				t := rf.conf.maxCandidateAge - newestCandidateAge
+				if t < nextAllowedCallToPeerSource {
+					t = nextAllowedCallToPeerSource
+				}
+				timer.Reset(t)
+			}
+		}
+
 		select {
-		case <-relayDisconnected:
-			timer.Reset(0)
+		case <-rf.maybeRequestNewCandidates:
+			continue
 		case now := <-timer.Chan():
 			timer.SetRead()
 			if peerChan != nil {
 				// We're still reading peers from the peerChan. No need to query for more peers now.
 				continue
 			}
-			rf.relayMx.Lock()
-			numRelays := len(rf.relays)
-			rf.relayMx.Unlock()
-			rf.candidateMx.Lock()
-			numCandidates := len(rf.candidates)
-			rf.candidateMx.Unlock()
-
-			// Even if we are connected to the desired number of relays, or have enough candidates,
-			// we want to make sure that our candidate list doesn't become outdated.
-			newestCandidateAge := now.Sub(rf.lastCandidateAdded)
-			if (numRelays >= rf.conf.desiredRelays || numCandidates >= rf.conf.maxCandidates) &&
-				newestCandidateAge < rf.conf.maxCandidateAge {
-				timer.Reset(rf.conf.maxCandidateAge - newestCandidateAge)
-				continue
-			}
+			lastCallToPeerSource = now
 			peerChan = rf.peerSource(rf.conf.maxCandidates)
 		case pi, ok := <-peerChan:
 			if !ok {
 				peerChan = nil
-				timer.Reset(rf.conf.maxCandidateAge - rf.conf.clock.Now().Sub(rf.lastCandidateAdded))
 				continue
 			}
 			log.Debugw("found node", "id", pi.ID)
 			rf.candidateMx.Lock()
 			numCandidates := len(rf.candidates)
+			backoffStart, isOnBackoff := rf.backoff[pi.ID]
 			rf.candidateMx.Unlock()
+			if isOnBackoff {
+				log.Debugw("skipping node that we recently failed to obtain a reservation with", "id", pi.ID, "last attempt", rf.conf.clock.Since(backoffStart))
+				continue
+			}
 			if numCandidates >= rf.conf.maxCandidates {
 				log.Debugw("skipping node. Already have enough candidates", "id", pi.ID, "num", numCandidates, "max", rf.conf.maxCandidates)
 				continue
@@ -264,6 +277,13 @@ func (rf *relayFinder) handleStaticRelays(ctx context.Context) {
 	wg.Wait()
 	log.Debug("processed all static relays")
 	rf.notifyNewCandidate()
+}
+
+func (rf *relayFinder) notifyMaybeNeedNewCandidates() {
+	select {
+	case rf.maybeRequestNewCandidates <- struct{}{}:
+	default:
+	}
 }
 
 func (rf *relayFinder) notifyNewCandidate() {
@@ -433,11 +453,16 @@ func (rf *relayFinder) handleNewCandidate(ctx context.Context) {
 		usingRelay := rf.usingRelay(id)
 		rf.relayMx.Unlock()
 		if usingRelay {
+			rf.candidateMx.Lock()
+			delete(rf.candidates, id)
+			rf.candidateMx.Unlock()
+			rf.notifyMaybeNeedNewCandidates()
 			continue
 		}
 		rsvp, err := rf.connectToRelay(ctx, cand)
 		if err != nil {
 			log.Debugw("failed to connect to relay", "peer", id, "error", err)
+			rf.notifyMaybeNeedNewCandidates()
 			continue
 		}
 		log.Debugw("adding new relay", "id", id)
@@ -445,6 +470,7 @@ func (rf *relayFinder) handleNewCandidate(ctx context.Context) {
 		rf.relays[id] = rsvp
 		numRelays := len(rf.relays)
 		rf.relayMx.Unlock()
+		rf.notifyMaybeNeedNewCandidates()
 
 		rf.host.ConnManager().Protect(id, autorelayTag) // protect the connection
 
@@ -452,6 +478,7 @@ func (rf *relayFinder) handleNewCandidate(ctx context.Context) {
 		case rf.relayUpdated <- struct{}{}:
 		default:
 		}
+
 		if numRelays >= rf.conf.desiredRelays {
 			break
 		}
@@ -476,6 +503,10 @@ func (rf *relayFinder) connectToRelay(ctx context.Context, cand *candidate) (*ci
 			return nil, fmt.Errorf("failed to connect: %w", err)
 		}
 	}
+
+	rf.candidateMx.Lock()
+	rf.backoff[id] = rf.conf.clock.Now()
+	rf.candidateMx.Unlock()
 	var err error
 	if cand.supportsRelayV2 {
 		rsvp, err = circuitv2.Reserve(ctx, rf.host, cand.ai)
@@ -487,58 +518,10 @@ func (rf *relayFinder) connectToRelay(ctx context.Context, cand *candidate) (*ci
 	rf.candidateMx.Lock()
 	defer rf.candidateMx.Unlock()
 	if failed {
-		cand.numAttempts++
 		delete(rf.candidates, id)
-		// We failed to obtain a reservation for too many times. We give up.
-		if cand.numAttempts >= rf.conf.maxAttempts {
-			return nil, fmt.Errorf("failed to obtain a reservation too may times: %w", err)
-		}
-		rf.moveCandidateToBackoff(cand)
 		return nil, err
 	}
 	return rsvp, nil
-}
-
-// must be called with mutex locked
-func (rf *relayFinder) moveCandidateToBackoff(cand *candidate) {
-	if len(rf.candidatesOnBackoff) >= rf.conf.maxCandidates {
-		log.Debugw("already have enough candidates on backoff. Dropping.", "id", cand.ai.ID)
-		return
-	}
-	log.Debugw("moving candidate to backoff", "id", cand.ai.ID)
-	backoff := rf.conf.backoff * (1 << (cand.numAttempts - 1))
-	// introduce a bit of jitter
-	backoff = (backoff * time.Duration(16+rand.Intn(8))) / time.Duration(20)
-	rf.candidatesOnBackoff = append(rf.candidatesOnBackoff, &candidateOnBackoff{
-		candidate:       *cand,
-		nextConnAttempt: rf.conf.clock.Now().Add(backoff),
-	})
-}
-
-func (rf *relayFinder) checkForCandidatesOnBackoff(now time.Time) {
-	rf.candidateMx.Lock()
-	defer rf.candidateMx.Unlock()
-
-	for _, cand := range rf.candidatesOnBackoff {
-		if cand.nextConnAttempt.After(now) {
-			log.Debug("break")
-			break
-		}
-		if len(rf.candidates) >= rf.conf.maxCandidates {
-			// drop this candidate if we already have enough others
-			log.Debugw("cannot move backoff'ed candidate back. Already have enough candidates.", "id", cand.ai.ID)
-		} else {
-			log.Debugw("moving backoff'ed candidate back", "id", cand.ai.ID)
-			rf.candidates[cand.ai.ID] = &candidate{
-				added:           cand.added,
-				supportsRelayV2: cand.supportsRelayV2,
-				ai:              cand.ai,
-				numAttempts:     cand.numAttempts,
-			}
-			rf.notifyNewCandidate()
-		}
-		rf.candidatesOnBackoff = rf.candidatesOnBackoff[1:]
-	}
 }
 
 func (rf *relayFinder) refreshReservations(ctx context.Context, now time.Time) bool {

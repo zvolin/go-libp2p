@@ -10,7 +10,6 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/host/autorelay"
 	relayv1 "github.com/libp2p/go-libp2p/p2p/protocol/circuitv1/relay"
 	circuitv2_proto "github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/proto"
-	relayv2 "github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/relay"
 
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -20,6 +19,8 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/require"
 )
+
+const protoIDv2 = circuitv2_proto.ProtoIDv2Hop
 
 func numRelays(h host.Host) int {
 	peers := make(map[peer.ID]struct{})
@@ -71,7 +72,7 @@ func newRelay(t *testing.T) host.Host {
 	require.NoError(t, err)
 	require.Eventually(t, func() bool {
 		for _, p := range h.Mux().Protocols() {
-			if p == circuitv2_proto.ProtoIDv2Hop {
+			if p == protoIDv2 {
 				return true
 			}
 		}
@@ -103,38 +104,6 @@ func newRelayV1(t *testing.T) host.Host {
 	return h
 }
 
-// creates a node that speaks the relay v2 protocol, but doesn't accept any reservations for the first workAfter tries
-func newBrokenRelay(t *testing.T, workAfter int) host.Host {
-	t.Helper()
-	h, err := libp2p.New(
-		libp2p.DisableRelay(),
-		libp2p.AddrsFactory(func(addrs []ma.Multiaddr) []ma.Multiaddr {
-			for i, addr := range addrs {
-				saddr := addr.String()
-				if strings.HasPrefix(saddr, "/ip4/127.0.0.1/") {
-					addrNoIP := strings.TrimPrefix(saddr, "/ip4/127.0.0.1")
-					addrs[i] = ma.StringCast("/dns4/localhost" + addrNoIP)
-				}
-			}
-			return addrs
-		}),
-		libp2p.EnableRelayService(),
-	)
-	require.NoError(t, err)
-	var n int32
-	h.SetStreamHandler(circuitv2_proto.ProtoIDv2Hop, func(str network.Stream) {
-		str.Reset()
-		num := atomic.AddInt32(&n, 1)
-		if int(num) >= workAfter {
-			h.RemoveStreamHandler(circuitv2_proto.ProtoIDv2Hop)
-			r, err := relayv2.New(h)
-			require.NoError(t, err)
-			t.Cleanup(func() { r.Close() })
-		}
-	})
-	return h
-}
-
 func TestSingleCandidate(t *testing.T) {
 	var counter int
 	h := newPrivateNode(t,
@@ -147,7 +116,7 @@ func TestSingleCandidate(t *testing.T) {
 			t.Cleanup(func() { r.Close() })
 			peerChan <- peer.AddrInfo{ID: r.ID(), Addrs: r.Addrs()}
 			return peerChan
-		}),
+		}, time.Hour),
 		autorelay.WithMaxCandidates(1),
 		autorelay.WithNumRelays(99999),
 		autorelay.WithBootDelay(0),
@@ -177,7 +146,7 @@ func TestSingleRelay(t *testing.T) {
 			called = true
 			require.Equal(t, numCandidates, num)
 			return peerChan
-		}),
+		}, time.Hour),
 		autorelay.WithMaxCandidates(numCandidates),
 		autorelay.WithNumRelays(1),
 		autorelay.WithBootDelay(0),
@@ -204,7 +173,7 @@ func TestPreferRelayV2(t *testing.T) {
 			defer close(peerChan)
 			peerChan <- peer.AddrInfo{ID: r.ID(), Addrs: r.Addrs()}
 			return peerChan
-		}),
+		}, time.Hour),
 		autorelay.WithMaxCandidates(1),
 		autorelay.WithNumRelays(99999),
 		autorelay.WithBootDelay(0),
@@ -217,7 +186,7 @@ func TestPreferRelayV2(t *testing.T) {
 func TestWaitForCandidates(t *testing.T) {
 	peerChan := make(chan peer.AddrInfo)
 	h := newPrivateNode(t,
-		autorelay.WithPeerSource(func(int) <-chan peer.AddrInfo { return peerChan }),
+		autorelay.WithPeerSource(func(int) <-chan peer.AddrInfo { return peerChan }, time.Hour),
 		autorelay.WithMinCandidates(2),
 		autorelay.WithNumRelays(1),
 		autorelay.WithBootDelay(time.Hour),
@@ -264,7 +233,7 @@ func TestMaxCandidateAge(t *testing.T) {
 				candidates = candidates[1:]
 			}
 			return peerChan
-		}),
+		}, time.Hour),
 		autorelay.WithMaxCandidates(numCandidates),
 		autorelay.WithNumRelays(1),
 		autorelay.WithMaxCandidateAge(time.Hour),
@@ -285,53 +254,57 @@ func TestMaxCandidateAge(t *testing.T) {
 }
 
 func TestBackoff(t *testing.T) {
-	const backoff = 10 * time.Second
-	peerChan := make(chan peer.AddrInfo)
-	cl := clock.NewMock()
-	h := newPrivateNode(t,
-		autorelay.WithPeerSource(func(int) <-chan peer.AddrInfo { return peerChan }),
-		autorelay.WithNumRelays(1),
-		autorelay.WithBootDelay(0),
-		autorelay.WithBackoff(backoff),
-		autorelay.WithClock(cl),
-	)
-	defer h.Close()
-
-	r1 := newBrokenRelay(t, 1)
-	t.Cleanup(func() { r1.Close() })
-	peerChan <- peer.AddrInfo{ID: r1.ID(), Addrs: r1.Addrs()}
-
-	// make sure we don't add any relays yet
-	require.Never(t, func() bool { return numRelays(h) > 0 }, 100*time.Millisecond, 20*time.Millisecond)
-	cl.Add(backoff * 2 / 3)
-	require.Never(t, func() bool { return numRelays(h) > 0 }, 100*time.Millisecond, 20*time.Millisecond)
-	cl.Add(backoff * 2 / 3)
-	require.Eventually(t, func() bool { return numRelays(h) > 0 }, 3*time.Second, 100*time.Millisecond)
-}
-
-func TestMaxBackoffs(t *testing.T) {
 	const backoff = 20 * time.Second
 	cl := clock.NewMock()
-	peerChan := make(chan peer.AddrInfo)
+	r, err := libp2p.New(
+		libp2p.DisableRelay(),
+		libp2p.ForceReachabilityPublic(),
+		libp2p.AddrsFactory(func(addrs []ma.Multiaddr) []ma.Multiaddr {
+			for i, addr := range addrs {
+				saddr := addr.String()
+				if strings.HasPrefix(saddr, "/ip4/127.0.0.1/") {
+					addrNoIP := strings.TrimPrefix(saddr, "/ip4/127.0.0.1")
+					addrs[i] = ma.StringCast("/dns4/localhost" + addrNoIP)
+				}
+			}
+			return addrs
+		}),
+	)
+	require.NoError(t, err)
+	defer r.Close()
+	var reservations int32
+	r.SetStreamHandler(protoIDv2, func(str network.Stream) {
+		atomic.AddInt32(&reservations, 1)
+		str.Reset()
+	})
+
+	var counter int
 	h := newPrivateNode(t,
-		autorelay.WithPeerSource(func(int) <-chan peer.AddrInfo { return peerChan }),
+		autorelay.WithPeerSource(func(int) <-chan peer.AddrInfo {
+			// always return the same node, and make sure we don't try to connect to it too frequently
+			counter++
+			peerChan := make(chan peer.AddrInfo, 1)
+			peerChan <- peer.AddrInfo{ID: r.ID(), Addrs: r.Addrs()}
+			close(peerChan)
+			return peerChan
+		}, time.Second),
 		autorelay.WithNumRelays(1),
 		autorelay.WithBootDelay(0),
 		autorelay.WithBackoff(backoff),
-		autorelay.WithMaxAttempts(3),
 		autorelay.WithClock(cl),
 	)
 	defer h.Close()
 
-	r := newBrokenRelay(t, 4)
-	t.Cleanup(func() { r.Close() })
-	peerChan <- peer.AddrInfo{ID: r.ID(), Addrs: r.Addrs()}
-
+	require.Eventually(t, func() bool { return atomic.LoadInt32(&reservations) == 1 }, 3*time.Second, 20*time.Millisecond)
 	// make sure we don't add any relays yet
-	for i := 0; i < 5; i++ {
-		cl.Add(backoff * 3 / 2)
-		require.Never(t, func() bool { return numRelays(h) > 0 }, 50*time.Millisecond, 20*time.Millisecond)
+	for i := 0; i < 2; i++ {
+		cl.Add(backoff / 3)
+		require.Equal(t, 1, int(atomic.LoadInt32(&reservations)))
 	}
+	cl.Add(backoff / 2)
+	require.Eventually(t, func() bool { return atomic.LoadInt32(&reservations) == 2 }, 3*time.Second, 20*time.Millisecond)
+	require.Less(t, counter, 100) // just make sure we're not busy-looping
+	require.Equal(t, 2, int(atomic.LoadInt32(&reservations)))
 }
 
 func TestStaticRelays(t *testing.T) {
@@ -361,7 +334,7 @@ func TestRelayV1(t *testing.T) {
 		close(peerChan)
 
 		h := newPrivateNode(t,
-			autorelay.WithPeerSource(func(int) <-chan peer.AddrInfo { return peerChan }),
+			autorelay.WithPeerSource(func(int) <-chan peer.AddrInfo { return peerChan }, time.Hour),
 			autorelay.WithBootDelay(0),
 		)
 		defer h.Close()
@@ -377,7 +350,7 @@ func TestRelayV1(t *testing.T) {
 		close(peerChan)
 
 		h := newPrivateNode(t,
-			autorelay.WithPeerSource(func(int) <-chan peer.AddrInfo { return peerChan }),
+			autorelay.WithPeerSource(func(int) <-chan peer.AddrInfo { return peerChan }, time.Hour),
 			autorelay.WithBootDelay(0),
 			autorelay.WithCircuitV1Support(),
 		)

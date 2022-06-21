@@ -11,8 +11,10 @@ import (
 )
 
 type config struct {
-	clock        clock.Clock
-	peerSource   func(num int) <-chan peer.AddrInfo
+	clock      clock.Clock
+	peerSource func(num int) <-chan peer.AddrInfo
+	// minimum interval used to call the peerSource callback
+	minInterval  time.Duration
 	staticRelays []peer.AddrInfo
 	// see WithMinCandidates
 	minCandidates int
@@ -23,8 +25,6 @@ type config struct {
 	bootDelay time.Duration
 	// backoff is the time we wait after failing to obtain a reservation with a candidate
 	backoff time.Duration
-	// If we fail to obtain a reservation more than maxAttempts, we stop trying.
-	maxAttempts int
 	// Number of relays we strive to obtain a reservation with.
 	desiredRelays int
 	// see WithMaxCandidateAge
@@ -39,7 +39,6 @@ var defaultConfig = config{
 	maxCandidates:   20,
 	bootDelay:       3 * time.Minute,
 	backoff:         time.Hour,
-	maxAttempts:     3,
 	desiredRelays:   2,
 	maxCandidateAge: 30 * time.Minute,
 }
@@ -95,16 +94,21 @@ func WithDefaultStaticRelays() Option {
 }
 
 // WithPeerSource defines a callback for AutoRelay to query for more relay candidates.
-// AutoRelay will call this function in regular intervals, until it  is connected to the desired number of
+// AutoRelay will call this function when it needs new candidates is connected to the desired number of
 // relays, and it has enough candidates (in case we get disconnected from one of the relays).
 // Implementations must send *at most* numPeers, and close the channel when they don't intend to provide
-// any more peers. AutoRelay will not call the callback again until the channel is closed.
-func WithPeerSource(f func(numPeers int) <-chan peer.AddrInfo) Option {
+// any more peers.
+// AutoRelay will not call the callback again until the channel is closed.
+// Implementations should send new peers, but may send peers they sent before. AutoRelay implements
+// a per-peer backoff (see WithBackoff).
+// minInterval is the minimum interval this callback is called with, even if AutoRelay needs new candidates.
+func WithPeerSource(f func(numPeers int) <-chan peer.AddrInfo, minInterval time.Duration) Option {
 	return func(c *config) error {
 		if len(c.staticRelays) > 0 {
 			return errStaticRelaysPeerSource
 		}
 		c.peerSource = f
+		c.minInterval = minInterval
 		return nil
 	}
 }
@@ -154,15 +158,6 @@ func WithBootDelay(d time.Duration) Option {
 func WithBackoff(d time.Duration) Option {
 	return func(c *config) error {
 		c.backoff = d
-		return nil
-	}
-}
-
-// WithMaxAttempts sets the number of times we attempt to obtain a reservation with a candidate.
-// If we still fail to obtain a reservation, this candidate is dropped.
-func WithMaxAttempts(n int) Option {
-	return func(c *config) error {
-		c.maxAttempts = n
 		return nil
 	}
 }
