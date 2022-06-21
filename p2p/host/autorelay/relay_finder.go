@@ -196,6 +196,7 @@ func (rf *relayFinder) background(ctx context.Context) {
 // This makes sure that as soon as we need to find relay candidates, we have them available.
 func (rf *relayFinder) findNodes(ctx context.Context) {
 	peerChan := rf.peerSource(rf.conf.maxCandidates)
+	var wg sync.WaitGroup
 	lastCallToPeerSource := rf.conf.clock.Now()
 
 	timer := newTimer(rf.conf.clock)
@@ -234,6 +235,7 @@ func (rf *relayFinder) findNodes(ctx context.Context) {
 			peerChan = rf.peerSource(rf.conf.maxCandidates)
 		case pi, ok := <-peerChan:
 			if !ok {
+				wg.Wait()
 				peerChan = nil
 				continue
 			}
@@ -252,8 +254,10 @@ func (rf *relayFinder) findNodes(ctx context.Context) {
 			}
 			rf.lastCandidateAdded = rf.conf.clock.Now()
 			rf.refCount.Add(1)
+			wg.Add(1)
 			go func() {
 				defer rf.refCount.Done()
+				defer wg.Done()
 				rf.handleNewNode(ctx, pi)
 			}()
 		case <-ctx.Done():
