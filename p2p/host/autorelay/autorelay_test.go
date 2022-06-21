@@ -48,7 +48,6 @@ func usedRelays(h host.Host) []peer.ID {
 		peers = append(peers, id)
 	}
 	return peers
-
 }
 
 func newPrivateNode(t *testing.T, opts ...autorelay.Option) host.Host {
@@ -216,52 +215,6 @@ func TestWaitForCandidates(t *testing.T) {
 	require.Eventually(t, func() bool { return numRelays(h) > 0 }, 3*time.Second, 100*time.Millisecond)
 }
 
-func TestMaxCandidateAge(t *testing.T) {
-	const numCandidates = 3
-
-	// Precompute the candidates.
-	// Generating public-private key pairs might be too expensive to do it sync on CI.
-	candidates := make([]peer.AddrInfo, 0, 2*numCandidates)
-	for i := 0; i < 2*numCandidates; i++ {
-		r := newRelay(t)
-		t.Cleanup(func() { r.Close() })
-		candidates = append(candidates, peer.AddrInfo{ID: r.ID(), Addrs: r.Addrs()})
-	}
-
-	var counter int32 // to be used atomically
-	cl := clock.NewMock()
-	h := newPrivateNode(t,
-		autorelay.WithPeerSource(func(num int) <-chan peer.AddrInfo {
-			c := atomic.AddInt32(&counter, 1)
-			require.LessOrEqual(t, int(c), 2, "expected the callback to only be called twice")
-			require.Equal(t, numCandidates, num)
-			peerChan := make(chan peer.AddrInfo, num)
-			defer close(peerChan)
-			for i := 0; i < num; i++ {
-				peerChan <- candidates[0]
-				candidates = candidates[1:]
-			}
-			return peerChan
-		}, time.Hour),
-		autorelay.WithMaxCandidates(numCandidates),
-		autorelay.WithNumRelays(1),
-		autorelay.WithMaxCandidateAge(time.Hour),
-		autorelay.WithBootDelay(0),
-		autorelay.WithClock(cl),
-	)
-	defer h.Close()
-
-	r1 := newRelay(t)
-	t.Cleanup(func() { r1.Close() })
-
-	require.Eventually(t, func() bool { return numRelays(h) == 1 }, 5*time.Second, 50*time.Millisecond)
-	require.Equal(t, 1, int(atomic.LoadInt32(&counter)))
-	cl.Add(40 * time.Minute)
-	require.Never(t, func() bool { return numRelays(h) > 1 }, 100*time.Millisecond, 25*time.Millisecond)
-	cl.Add(30 * time.Minute)
-	require.Eventually(t, func() bool { return atomic.LoadInt32(&counter) == 2 }, time.Second, 25*time.Millisecond)
-}
-
 func TestBackoff(t *testing.T) {
 	const backoff = 20 * time.Second
 	cl := clock.NewMock()
@@ -403,4 +356,80 @@ func TestConnectOnDisconnect(t *testing.T) {
 	relaysInUse = usedRelays(h)
 	require.Len(t, relaysInUse, 1)
 	require.NotEqualf(t, oldRelay, relaysInUse[0], "old relay should not be used again")
+}
+
+func TestMaxAge(t *testing.T) {
+	cl := clock.NewMock()
+
+	const num = 4
+	peerChan1 := make(chan peer.AddrInfo, num)
+	peerChan2 := make(chan peer.AddrInfo, num)
+	relays1 := make([]host.Host, 0, num)
+	relays2 := make([]host.Host, 0, num)
+	for i := 0; i < num; i++ {
+		r1 := newRelay(t)
+		t.Cleanup(func() { r1.Close() })
+		peerChan1 <- peer.AddrInfo{ID: r1.ID(), Addrs: r1.Addrs()}
+		relays1 = append(relays1, r1)
+		r2 := newRelay(t)
+		t.Cleanup(func() { r2.Close() })
+		relays2 = append(relays2, r2)
+	}
+	close(peerChan1)
+	peerChans := make(chan chan peer.AddrInfo, 2)
+	peerChans <- peerChan1
+	peerChans <- peerChan2
+	close(peerChans)
+
+	h := newPrivateNode(t,
+		autorelay.WithPeerSource(func(int) <-chan peer.AddrInfo {
+			c, ok := <-peerChans
+			if !ok {
+				t.Fatal("unexpected call to PeerSource")
+			}
+			return c
+		}, time.Second),
+		autorelay.WithNumRelays(1),
+		autorelay.WithMaxCandidates(100),
+		autorelay.WithBootDelay(0),
+		autorelay.WithMaxCandidateAge(20*time.Minute),
+		autorelay.WithClock(cl),
+	)
+	defer h.Close()
+
+	require.Eventually(t, func() bool { return numRelays(h) > 0 }, 3*time.Second, 100*time.Millisecond)
+	relays := usedRelays(h)
+	require.Len(t, relays, 1)
+	cl.Add(time.Second)
+	require.Eventually(t, func() bool { return len(peerChans) == 0 }, time.Second, 100*time.Millisecond)
+
+	cl.Add(10 * time.Minute)
+	for _, r := range relays2 {
+		peerChan2 <- peer.AddrInfo{ID: r.ID(), Addrs: r.Addrs()}
+	}
+	cl.Add(11 * time.Minute)
+	// by now the 3 relays should have been garbage collected
+	var oldRelay peer.ID
+	for _, r := range relays1 {
+		if r.ID() == relays[0] {
+			oldRelay = r.ID()
+			r.Close()
+		}
+	}
+	require.NotEmpty(t, oldRelay)
+
+	require.Eventually(t, func() bool {
+		relays = usedRelays(h)
+		if len(relays) != 1 {
+			return false
+		}
+		return relays[0] != oldRelay
+	}, 3*time.Second, 100*time.Millisecond)
+
+	require.Len(t, relays, 1)
+	ids := make([]peer.ID, 0, len(relays2))
+	for _, r := range relays2 {
+		ids = append(ids, r.ID())
+	}
+	require.Contains(t, ids, relays[0])
 }

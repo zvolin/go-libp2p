@@ -125,6 +125,9 @@ func WithNumRelays(n int) Option {
 func WithMaxCandidates(n int) Option {
 	return func(c *config) error {
 		c.maxCandidates = n
+		if c.minCandidates > n {
+			c.minCandidates = n
+		}
 		return nil
 	}
 }
@@ -136,6 +139,9 @@ func WithMinCandidates(n int) Option {
 	return func(c *config) error {
 		if len(c.staticRelays) > 0 {
 			return errStaticRelaysMinCandidates
+		}
+		if n > c.maxCandidates {
+			n = c.maxCandidates
 		}
 		c.minCandidates = n
 		c.setMinCandidates = true

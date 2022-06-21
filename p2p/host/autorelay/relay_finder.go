@@ -43,6 +43,7 @@ const (
 )
 
 type candidate struct {
+	added           time.Time
 	supportsRelayV2 bool
 	ai              peer.AddrInfo
 }
@@ -63,7 +64,6 @@ type relayFinder struct {
 
 	candidateFound             chan struct{} // receives every time we find a new relay candidate
 	candidateMx                sync.Mutex
-	lastCandidateAdded         time.Time
 	candidates                 map[peer.ID]*candidate
 	backoff                    map[peer.ID]time.Time
 	maybeConnectToRelayTrigger chan struct{} // cap: 1
@@ -71,6 +71,7 @@ type relayFinder struct {
 	// This could be
 	// * the disconnection of a relay
 	// * the failed attempt to obtain a reservation with a current candidate
+	// * a candidate is deleted due to its age
 	maybeRequestNewCandidates chan struct{} // cap: 1.
 
 	relayUpdated chan struct{}
@@ -132,6 +133,8 @@ func (rf *relayFinder) background(ctx context.Context) {
 	defer refreshTicker.Stop()
 	backoffTicker := rf.conf.clock.Ticker(rf.conf.backoff / 5)
 	defer backoffTicker.Stop()
+	oldCandidateTicker := rf.conf.clock.Ticker(rf.conf.maxCandidateAge / 5)
+	defer oldCandidateTicker.Stop()
 
 	for {
 		// when true, we need to identify push
@@ -172,6 +175,20 @@ func (rf *relayFinder) background(ctx context.Context) {
 				}
 			}
 			rf.candidateMx.Unlock()
+		case now := <-oldCandidateTicker.C:
+			var deleted bool
+			rf.candidateMx.Lock()
+			for id, cand := range rf.candidates {
+				if !cand.added.Add(rf.conf.maxCandidateAge).After(now) {
+					deleted = true
+					log.Debugw("deleting candidate due to age", "id", id)
+					delete(rf.candidates, id)
+				}
+			}
+			rf.candidateMx.Unlock()
+			if deleted {
+				rf.notifyMaybeNeedNewCandidates()
+			}
 		case <-ctx.Done():
 			return
 		}
@@ -206,14 +223,6 @@ func (rf *relayFinder) findNodes(ctx context.Context) {
 			if numCandidates < rf.conf.minCandidates {
 				log.Debugw("not enough candidates. Resetting timer", "num", numCandidates, "desired", rf.conf.minCandidates)
 				timer.Reset(nextAllowedCallToPeerSource)
-			} else if !rf.lastCandidateAdded.IsZero() {
-				newestCandidateAge := now.Sub(rf.lastCandidateAdded)
-				log.Debugw("resetting timer. candidate will be too old in", "dur", rf.conf.maxCandidateAge-newestCandidateAge)
-				t := rf.conf.maxCandidateAge - newestCandidateAge
-				if t < nextAllowedCallToPeerSource {
-					t = nextAllowedCallToPeerSource
-				}
-				timer.Reset(t)
 			}
 		}
 
@@ -247,7 +256,6 @@ func (rf *relayFinder) findNodes(ctx context.Context) {
 				log.Debugw("skipping node. Already have enough candidates", "id", pi.ID, "num", numCandidates, "max", rf.conf.maxCandidates)
 				continue
 			}
-			rf.lastCandidateAdded = rf.conf.clock.Now()
 			rf.refCount.Add(1)
 			wg.Add(1)
 			go func() {
@@ -324,7 +332,11 @@ func (rf *relayFinder) handleNewNode(ctx context.Context, pi peer.AddrInfo) {
 		return
 	}
 	log.Debugw("node supports relay protocol", "peer", pi.ID, "supports circuit v2", supportsV2)
-	rf.candidates[pi.ID] = &candidate{ai: pi, supportsRelayV2: supportsV2}
+	rf.candidates[pi.ID] = &candidate{
+		added:           rf.conf.clock.Now(),
+		ai:              pi,
+		supportsRelayV2: supportsV2,
+	}
 	rf.candidateMx.Unlock()
 
 	// Don't notify when we're using static relays. We need to process all entries first.
@@ -497,7 +509,6 @@ func (rf *relayFinder) connectToRelay(ctx context.Context, cand *candidate) (*ci
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	var failed bool
 	var rsvp *circuitv2.Reservation
 
 	// make sure we're still connected.
@@ -517,17 +528,13 @@ func (rf *relayFinder) connectToRelay(ctx context.Context, cand *candidate) (*ci
 	if cand.supportsRelayV2 {
 		rsvp, err = circuitv2.Reserve(ctx, rf.host, cand.ai)
 		if err != nil {
-			failed = true
 			err = fmt.Errorf("failed to reserve slot: %w", err)
 		}
 	}
 	rf.candidateMx.Lock()
-	defer rf.candidateMx.Unlock()
-	if failed {
-		delete(rf.candidates, id)
-		return nil, err
-	}
-	return rsvp, nil
+	delete(rf.candidates, id)
+	rf.candidateMx.Unlock()
+	return rsvp, err
 }
 
 func (rf *relayFinder) refreshReservations(ctx context.Context, now time.Time) bool {
