@@ -111,7 +111,7 @@ func WithConnectionTimeout(d time.Duration) Option {
 type TcpTransport struct {
 	// Connection upgrader for upgrading insecure stream connections to
 	// secure multiplex connections.
-	Upgrader transport.Upgrader
+	upgrader transport.Upgrader
 
 	// Explicitly disable reuseport.
 	disableReuseport bool
@@ -133,7 +133,7 @@ func NewTCPTransport(upgrader transport.Upgrader, rcmgr network.ResourceManager,
 		rcmgr = network.NullResourceManager
 	}
 	tr := &TcpTransport{
-		Upgrader:       upgrader,
+		upgrader:       upgrader,
 		connectTimeout: defaultConnectTimeout, // can be set by using the WithConnectionTimeout option
 		rcmgr:          rcmgr,
 	}
@@ -199,7 +199,7 @@ func (t *TcpTransport) Dial(ctx context.Context, raddr ma.Multiaddr, p peer.ID) 
 	if ok, isClient, _ := network.GetSimultaneousConnect(ctx); ok && !isClient {
 		direction = network.DirInbound
 	}
-	return t.Upgrader.Upgrade(ctx, t, c, direction, p, connScope)
+	return t.upgrader.Upgrade(ctx, t, c, direction, p, connScope)
 }
 
 // UseReuseport returns true if reuseport is enabled and available.
@@ -221,7 +221,7 @@ func (t *TcpTransport) Listen(laddr ma.Multiaddr) (transport.Listener, error) {
 		return nil, err
 	}
 	list = newTracingListener(&tcpListener{list, 0})
-	return t.Upgrader.UpgradeListener(t, list), nil
+	return t.upgrader.UpgradeListener(t, list), nil
 }
 
 // Protocols returns the list of terminal protocols this transport can dial.
