@@ -61,12 +61,12 @@ type relayFinder struct {
 
 	peerSource func(int) <-chan peer.AddrInfo
 
-	candidateFound            chan struct{} // receives every time we find a new relay candidate
-	candidateMx               sync.Mutex
-	lastCandidateAdded        time.Time
-	candidates                map[peer.ID]*candidate
-	backoff                   map[peer.ID]time.Time
-	handleNewCandidateTrigger chan struct{} // cap: 1
+	candidateFound             chan struct{} // receives every time we find a new relay candidate
+	candidateMx                sync.Mutex
+	lastCandidateAdded         time.Time
+	candidates                 map[peer.ID]*candidate
+	backoff                    map[peer.ID]time.Time
+	maybeConnectToRelayTrigger chan struct{} // cap: 1
 	// Any time _something_ hapens that might cause us to need new candidates.
 	// This could be
 	// * the disconnection of a relay
@@ -84,17 +84,17 @@ type relayFinder struct {
 
 func newRelayFinder(host *basic.BasicHost, peerSource func(int) <-chan peer.AddrInfo, conf *config) *relayFinder {
 	return &relayFinder{
-		bootTime:                  conf.clock.Now(),
-		host:                      host,
-		conf:                      conf,
-		peerSource:                peerSource,
-		candidates:                make(map[peer.ID]*candidate),
-		backoff:                   make(map[peer.ID]time.Time),
-		candidateFound:            make(chan struct{}, 1),
-		handleNewCandidateTrigger: make(chan struct{}, 1),
-		maybeRequestNewCandidates: make(chan struct{}, 1),
-		relays:                    make(map[peer.ID]*circuitv2.Reservation),
-		relayUpdated:              make(chan struct{}, 1),
+		bootTime:                   conf.clock.Now(),
+		host:                       host,
+		conf:                       conf,
+		peerSource:                 peerSource,
+		candidates:                 make(map[peer.ID]*candidate),
+		backoff:                    make(map[peer.ID]time.Time),
+		candidateFound:             make(chan struct{}, 1),
+		maybeConnectToRelayTrigger: make(chan struct{}, 1),
+		maybeRequestNewCandidates:  make(chan struct{}, 1),
+		relays:                     make(map[peer.ID]*circuitv2.Reservation),
+		relayUpdated:               make(chan struct{}, 1),
 	}
 }
 
@@ -150,20 +150,15 @@ func (rf *relayFinder) background(ctx context.Context) {
 			if rf.usingRelay(evt.Peer) { // we were disconnected from a relay
 				log.Debugw("disconnected from relay", "id", evt.Peer)
 				delete(rf.relays, evt.Peer)
+				rf.notifyMaybeConnectToRelay()
 				rf.notifyMaybeNeedNewCandidates()
 				push = true
 			}
 			rf.relayMx.Unlock()
 		case <-rf.candidateFound:
-			select {
-			case rf.handleNewCandidateTrigger <- struct{}{}:
-			default:
-			}
+			rf.notifyMaybeConnectToRelay()
 		case <-bootDelayTimer.C:
-			select {
-			case rf.handleNewCandidateTrigger <- struct{}{}:
-			default:
-			}
+			rf.notifyMaybeConnectToRelay()
 		case <-rf.relayUpdated:
 			push = true
 		case now := <-refreshTicker.C:
@@ -281,6 +276,13 @@ func (rf *relayFinder) handleStaticRelays(ctx context.Context) {
 	wg.Wait()
 	log.Debug("processed all static relays")
 	rf.notifyNewCandidate()
+}
+
+func (rf *relayFinder) notifyMaybeConnectToRelay() {
+	select {
+	case rf.maybeConnectToRelayTrigger <- struct{}{}:
+	default:
+	}
 }
 
 func (rf *relayFinder) notifyMaybeNeedNewCandidates() {
@@ -404,28 +406,28 @@ func (rf *relayFinder) tryNode(ctx context.Context, pi peer.AddrInfo) (supportsR
 	return false, nil
 }
 
-// When a new node that could be a relay is found, we receive a notification on the handleNewCandidateTrigger chan.
-// This function makes sure that we only run one instance of handleNewCandidate at once, and buffers
-// exactly one more trigger event to run handleNewCandidate.
+// When a new node that could be a relay is found, we receive a notification on the maybeConnectToRelayTrigger chan.
+// This function makes sure that we only run one instance of maybeConnectToRelay at once, and buffers
+// exactly one more trigger event to run maybeConnectToRelay.
 func (rf *relayFinder) handleNewCandidates(ctx context.Context) {
 	sem := make(chan struct{}, 1)
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case <-rf.handleNewCandidateTrigger:
+		case <-rf.maybeConnectToRelayTrigger:
 			select {
 			case <-ctx.Done():
 				return
 			case sem <- struct{}{}:
 			}
-			rf.handleNewCandidate(ctx)
+			rf.maybeConnectToRelay(ctx)
 			<-sem
 		}
 	}
 }
 
-func (rf *relayFinder) handleNewCandidate(ctx context.Context) {
+func (rf *relayFinder) maybeConnectToRelay(ctx context.Context) {
 	rf.relayMx.Lock()
 	numRelays := len(rf.relays)
 	rf.relayMx.Unlock()

@@ -23,7 +23,11 @@ import (
 const protoIDv2 = circuitv2_proto.ProtoIDv2Hop
 
 func numRelays(h host.Host) int {
-	peers := make(map[peer.ID]struct{})
+	return len(usedRelays(h))
+}
+
+func usedRelays(h host.Host) []peer.ID {
+	m := make(map[peer.ID]struct{})
 	for _, addr := range h.Addrs() {
 		addr, comp := ma.SplitLast(addr)
 		if comp.Protocol().Code != ma.P_CIRCUIT { // not a relay addr
@@ -37,9 +41,14 @@ func numRelays(h host.Host) int {
 		if err != nil {
 			panic(err)
 		}
-		peers[id] = struct{}{}
+		m[id] = struct{}{}
 	}
-	return len(peers)
+	peers := make([]peer.ID, 0, len(m))
+	for id := range m {
+		peers = append(peers, id)
+	}
+	return peers
+
 }
 
 func newPrivateNode(t *testing.T, opts ...autorelay.Option) host.Host {
@@ -358,4 +367,40 @@ func TestRelayV1(t *testing.T) {
 
 		require.Eventually(t, func() bool { return numRelays(h) > 0 }, 3*time.Second, 100*time.Millisecond)
 	})
+}
+
+func TestConnectOnDisconnect(t *testing.T) {
+	const num = 3
+	peerChan := make(chan peer.AddrInfo, num)
+	relays := make([]host.Host, 0, num)
+	for i := 0; i < 3; i++ {
+		r := newRelay(t)
+		t.Cleanup(func() { r.Close() })
+		peerChan <- peer.AddrInfo{ID: r.ID(), Addrs: r.Addrs()}
+		relays = append(relays, r)
+	}
+	h := newPrivateNode(t,
+		autorelay.WithPeerSource(func(int) <-chan peer.AddrInfo { return peerChan }, time.Hour),
+		autorelay.WithMinCandidates(1),
+		autorelay.WithMaxCandidates(num),
+		autorelay.WithNumRelays(1),
+		autorelay.WithBootDelay(0),
+	)
+	defer h.Close()
+
+	require.Eventually(t, func() bool { return numRelays(h) > 0 }, 3*time.Second, 100*time.Millisecond)
+	relaysInUse := usedRelays(h)
+	require.Len(t, relaysInUse, 1)
+	oldRelay := relaysInUse[0]
+
+	for _, r := range relays {
+		if r.ID() == oldRelay {
+			r.Close()
+		}
+	}
+
+	require.Eventually(t, func() bool { return numRelays(h) > 0 }, 3*time.Second, 100*time.Millisecond)
+	relaysInUse = usedRelays(h)
+	require.Len(t, relaysInUse, 1)
+	require.NotEqualf(t, oldRelay, relaysInUse[0], "old relay should not be used again")
 }
