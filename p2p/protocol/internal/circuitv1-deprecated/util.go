@@ -4,7 +4,7 @@ import (
 	"errors"
 	"io"
 
-	pb "github.com/libp2p/go-libp2p-circuit/pb"
+	pb "github.com/libp2p/go-libp2p/p2p/protocol/internal/circuitv1-deprecated/pb"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 

@@ -10,14 +10,14 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/libp2p/go-libp2p-circuit"
-	pb "github.com/libp2p/go-libp2p-circuit/pb"
+	bhost "github.com/libp2p/go-libp2p/p2p/host/blank"
+	"github.com/libp2p/go-libp2p/p2p/net/swarm"
+	swarmt "github.com/libp2p/go-libp2p/p2p/net/swarm/testing"
+	. "github.com/libp2p/go-libp2p/p2p/protocol/internal/circuitv1-deprecated"
+	pb "github.com/libp2p/go-libp2p/p2p/protocol/internal/circuitv1-deprecated/pb"
 
-	bhost "github.com/libp2p/go-libp2p-blankhost"
 	"github.com/libp2p/go-libp2p-core/host"
 
-	swarm "github.com/libp2p/go-libp2p-swarm"
-	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 )

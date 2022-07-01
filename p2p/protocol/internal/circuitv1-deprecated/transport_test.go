@@ -8,14 +8,14 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/libp2p/go-libp2p-circuit"
+	"github.com/libp2p/go-libp2p/p2p/net/swarm"
+	swarmt "github.com/libp2p/go-libp2p/p2p/net/swarm/testing"
+	. "github.com/libp2p/go-libp2p/p2p/protocol/internal/circuitv1-deprecated"
 
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peerstore"
 
-	swarm "github.com/libp2p/go-libp2p-swarm"
-	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
 	ma "github.com/multiformats/go-multiaddr"
 )
 

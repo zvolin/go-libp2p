@@ -3,7 +3,7 @@ package relay
 import (
 	"net"
 
-	pb "github.com/libp2p/go-libp2p-circuit/pb"
+	pb "github.com/libp2p/go-libp2p/p2p/protocol/internal/circuitv1-deprecated/pb"
 
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
