@@ -1,3 +1,4 @@
+//lint:file-ignore U1000 Ignore all unused code, we're not running any tests.
 package relay_test
 
 import (
@@ -60,6 +61,8 @@ func connect(t *testing.T, a, b host.Host) {
 }
 
 func TestBasicRelay(t *testing.T) {
+	t.Skip("This package is legacy code we only keep around for testing purposes.")
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -134,6 +137,8 @@ func TestBasicRelay(t *testing.T) {
 }
 
 func TestRelayReset(t *testing.T) {
+	t.Skip("This package is legacy code we only keep around for testing purposes.")
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -193,6 +198,8 @@ func TestRelayReset(t *testing.T) {
 }
 
 func TestBasicRelayDial(t *testing.T) {
+	t.Skip("This package is legacy code we only keep around for testing purposes.")
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	hosts := getNetHosts(t, 3)
@@ -265,6 +272,8 @@ func TestBasicRelayDial(t *testing.T) {
 }
 
 func TestUnspecificRelayDialFails(t *testing.T) {
+	t.Skip("This package is legacy code we only keep around for testing purposes.")
+
 	hosts := getNetHosts(t, 3)
 
 	r1 := newTestRelay(t, hosts[0])
@@ -292,6 +301,8 @@ func TestUnspecificRelayDialFails(t *testing.T) {
 }
 
 func TestRelayThroughNonHop(t *testing.T) {
+	t.Skip("This package is legacy code we only keep around for testing purposes.")
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -330,6 +341,8 @@ func TestRelayThroughNonHop(t *testing.T) {
 }
 
 func TestRelayNoDestConnection(t *testing.T) {
+	t.Skip("This package is legacy code we only keep around for testing purposes.")
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -365,6 +378,8 @@ func TestRelayNoDestConnection(t *testing.T) {
 }
 
 func TestActiveRelay(t *testing.T) {
+	t.Skip("This package is legacy code we only keep around for testing purposes.")
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -427,6 +442,8 @@ func TestActiveRelay(t *testing.T) {
 }
 
 func TestRelayCanHop(t *testing.T) {
+	t.Skip("This package is legacy code we only keep around for testing purposes.")
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

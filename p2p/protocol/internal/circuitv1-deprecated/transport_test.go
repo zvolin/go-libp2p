@@ -1,3 +1,4 @@
+//lint:file-ignore U1000 Ignore all unused code, we're not running any tests.
 package relay_test
 
 import (
@@ -60,6 +61,8 @@ func testSetupRelay(t *testing.T) []host.Host {
 }
 
 func TestFullAddressTransportDial(t *testing.T) {
+	t.Skip("This package is legacy code we only keep around for testing purposes.")
+
 	hosts := testSetupRelay(t)
 
 	var relayAddr ma.Multiaddr
@@ -95,6 +98,8 @@ func TestFullAddressTransportDial(t *testing.T) {
 }
 
 func TestSpecificRelayTransportDial(t *testing.T) {
+	t.Skip("This package is legacy code we only keep around for testing purposes.")
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -126,6 +131,8 @@ func TestSpecificRelayTransportDial(t *testing.T) {
 }
 
 func TestUnspecificRelayTransportDialFails(t *testing.T) {
+	t.Skip("This package is legacy code we only keep around for testing purposes.")
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
