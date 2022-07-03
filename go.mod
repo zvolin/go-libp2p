@@ -22,7 +22,7 @@ require (
 	github.com/libp2p/go-libp2p-asn-util v0.2.0
 	github.com/libp2p/go-libp2p-core v0.19.0
 	github.com/libp2p/go-libp2p-peerstore v0.7.1
-	github.com/libp2p/go-libp2p-resource-manager v0.4.0
+	github.com/libp2p/go-libp2p-resource-manager v0.5.0
 	github.com/libp2p/go-libp2p-testing v0.10.0
 	github.com/libp2p/go-mplex v0.7.0
 	github.com/libp2p/go-msgio v0.2.0
