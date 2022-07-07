@@ -20,10 +20,10 @@ require (
 	github.com/libp2p/go-buffer-pool v0.1.0
 	github.com/libp2p/go-eventbus v0.2.1
 	github.com/libp2p/go-libp2p-asn-util v0.2.0
-	github.com/libp2p/go-libp2p-core v0.19.0
+	github.com/libp2p/go-libp2p-core v0.19.1
 	github.com/libp2p/go-libp2p-peerstore v0.7.1
-	github.com/libp2p/go-libp2p-resource-manager v0.5.0
-	github.com/libp2p/go-libp2p-testing v0.10.0
+	github.com/libp2p/go-libp2p-resource-manager v0.5.1
+	github.com/libp2p/go-libp2p-testing v0.11.0
 	github.com/libp2p/go-mplex v0.7.0
 	github.com/libp2p/go-msgio v0.2.0
 	github.com/libp2p/go-nat v0.1.0
@@ -51,9 +51,7 @@ require (
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/btcsuite/btcd v0.23.1 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.2.0 // indirect
-	github.com/btcsuite/btcd/chaincfg/chainhash v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/cheekybits/genny v1.0.0 // indirect
 	github.com/containerd/cgroups v1.0.4 // indirect
@@ -110,7 +108,6 @@ require (
 	golang.org/x/net v0.0.0-20220630215102-69896b714898 // indirect
 	golang.org/x/tools v0.1.11 // indirect
 	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f // indirect
-	google.golang.org/grpc v1.47.0 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
