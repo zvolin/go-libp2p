@@ -261,7 +261,9 @@ func (rf *relayFinder) findNodes(ctx context.Context) {
 			go func() {
 				defer rf.refCount.Done()
 				defer wg.Done()
-				rf.handleNewNode(ctx, pi)
+				if added := rf.handleNewNode(ctx, pi); added {
+					rf.notifyNewCandidate()
+				}
 			}()
 		case <-ctx.Done():
 			return
@@ -311,12 +313,12 @@ func (rf *relayFinder) notifyNewCandidate() {
 // This method is only run on private nodes.
 // If a peer does, it is added to the candidates map.
 // Note that just supporting the protocol doesn't guarantee that we can also obtain a reservation.
-func (rf *relayFinder) handleNewNode(ctx context.Context, pi peer.AddrInfo) {
+func (rf *relayFinder) handleNewNode(ctx context.Context, pi peer.AddrInfo) (added bool) {
 	rf.relayMx.Lock()
 	relayInUse := rf.usingRelay(pi.ID)
 	rf.relayMx.Unlock()
 	if relayInUse {
-		return
+		return false
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
@@ -324,12 +326,12 @@ func (rf *relayFinder) handleNewNode(ctx context.Context, pi peer.AddrInfo) {
 	supportsV2, err := rf.tryNode(ctx, pi)
 	if err != nil {
 		log.Debugf("node %s not accepted as a candidate: %s", pi.ID, err)
-		return
+		return false
 	}
 	rf.candidateMx.Lock()
 	if len(rf.candidates) > rf.conf.maxCandidates {
 		rf.candidateMx.Unlock()
-		return
+		return false
 	}
 	log.Debugw("node supports relay protocol", "peer", pi.ID, "supports circuit v2", supportsV2)
 	rf.candidates[pi.ID] = &candidate{
@@ -338,11 +340,7 @@ func (rf *relayFinder) handleNewNode(ctx context.Context, pi peer.AddrInfo) {
 		supportsRelayV2: supportsV2,
 	}
 	rf.candidateMx.Unlock()
-
-	// Don't notify when we're using static relays. We need to process all entries first.
-	if !rf.usesStaticRelay() {
-		rf.notifyNewCandidate()
-	}
+	return true
 }
 
 // tryNode checks if a peer actually supports either circuit v1 or circuit v2.
