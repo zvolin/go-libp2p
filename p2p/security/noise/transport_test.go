@@ -372,3 +372,57 @@ func TestReadUnencryptedFails(t *testing.T) {
 	require.Error(t, err)
 	require.Equal(t, 0, afterLen)
 }
+
+func TestPrologueMatches(t *testing.T) {
+	commonPrologue := []byte("test")
+	initTransport := newTestTransport(t, crypto.Ed25519, 2048)
+	respTransport := newTestTransport(t, crypto.Ed25519, 2048)
+
+	initConn, respConn := newConnPair(t)
+
+	done := make(chan struct{})
+
+	go func() {
+		defer close(done)
+		tpt, err := initTransport.
+			WithSessionOptions(Prologue(commonPrologue))
+		require.NoError(t, err)
+		conn, err := tpt.SecureOutbound(context.TODO(), initConn, respTransport.localID)
+		require.NoError(t, err)
+		defer conn.Close()
+	}()
+
+	tpt, err := respTransport.
+		WithSessionOptions(Prologue(commonPrologue))
+	require.NoError(t, err)
+	conn, err := tpt.SecureInbound(context.TODO(), respConn, "")
+	require.NoError(t, err)
+	defer conn.Close()
+	<-done
+}
+
+func TestPrologueDoesNotMatchFailsHandshake(t *testing.T) {
+	initPrologue, respPrologue := []byte("initPrologue"), []byte("respPrologue")
+	initTransport := newTestTransport(t, crypto.Ed25519, 2048)
+	respTransport := newTestTransport(t, crypto.Ed25519, 2048)
+
+	initConn, respConn := newConnPair(t)
+
+	done := make(chan struct{})
+
+	go func() {
+		defer close(done)
+		tpt, err := initTransport.
+			WithSessionOptions(Prologue(initPrologue))
+		require.NoError(t, err)
+		_, err = tpt.SecureOutbound(context.TODO(), initConn, respTransport.localID)
+		require.Error(t, err)
+	}()
+
+	tpt, err := respTransport.WithSessionOptions(Prologue(respPrologue))
+	require.NoError(t, err)
+
+	_, err = tpt.SecureInbound(context.TODO(), respConn, "")
+	require.Error(t, err)
+	<-done
+}
