@@ -245,8 +245,8 @@ func EnableRelayService(opts ...relayv2.Option) Option {
 // EnableAutoRelay configures libp2p to enable the AutoRelay subsystem.
 //
 // Dependencies:
-//  * Relay (enabled by default)
-//  * Routing (to find relays), or StaticRelays/DefaultStaticRelays.
+//   - Relay (enabled by default)
+//   - Routing (to find relays), or StaticRelays/DefaultStaticRelays.
 //
 // This subsystem performs automatic address rewriting to advertise relay addresses when it
 // detects that the node is publicly unreachable (e.g. behind a NAT).
@@ -342,7 +342,7 @@ func ConnectionGater(cg connmgr.ConnectionGater) Option {
 }
 
 // ResourceManager configures libp2p to use the given ResourceManager.
-// When using the go-libp2p-resource-manager implementation of the ResourceManager interface,
+// When using the p2p/host/resource-manager implementation of the ResourceManager interface,
 // it is recommended to set limits for libp2p protocol by calling SetDefaultServiceLimits.
 func ResourceManager(rcmgr network.ResourceManager) Option {
 	return func(cfg *Config) error {
@@ -436,14 +436,14 @@ func MultiaddrResolver(rslv *madns.Resolver) Option {
 // to create direct/NAT-traversed connections with other peers. (default: disabled)
 //
 // Dependencies:
-//  * Relay (enabled by default)
+//   - Relay (enabled by default)
 //
 // This subsystem performs two functions:
 //
-// 1. On receiving an inbound Relay connection, it attempts to create a direct connection with the remote peer
-//    by initiating and co-ordinating a hole punch over the Relayed connection.
-// 2. If a peer sees a request to co-ordinate a hole punch on an outbound Relay connection,
-//    it will participate in the hole-punch to create a direct connection with the remote peer.
+//  1. On receiving an inbound Relay connection, it attempts to create a direct connection with the remote peer
+//     by initiating and co-ordinating a hole punch over the Relayed connection.
+//  2. If a peer sees a request to co-ordinate a hole punch on an outbound Relay connection,
+//     it will participate in the hole-punch to create a direct connection with the remote peer.
 //
 // If the hole punch is successful, all new streams will thereafter be created on the hole-punched connection.
 // The Relayed connection will eventually be closed after a grace period.

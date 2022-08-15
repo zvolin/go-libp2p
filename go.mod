@@ -22,7 +22,6 @@ require (
 	github.com/libp2p/go-eventbus v0.2.1
 	github.com/libp2p/go-libp2p-asn-util v0.2.0
 	github.com/libp2p/go-libp2p-core v0.19.1
-	github.com/libp2p/go-libp2p-resource-manager v0.5.1
 	github.com/libp2p/go-libp2p-testing v0.11.0
 	github.com/libp2p/go-mplex v0.7.0
 	github.com/libp2p/go-msgio v0.2.0
@@ -42,9 +41,11 @@ require (
 	github.com/multiformats/go-multihash v0.2.0
 	github.com/multiformats/go-multistream v0.3.3
 	github.com/multiformats/go-varint v0.0.6
+	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58
 	github.com/prometheus/client_golang v1.12.1
 	github.com/raulk/go-watchdog v1.3.0
 	github.com/stretchr/testify v1.8.0
+	go.opencensus.io v0.23.0
 	go.uber.org/goleak v1.1.12
 	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
@@ -98,7 +99,6 @@ require (
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/opencontainers/runtime-spec v1.0.2 // indirect
-	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect

@@ -13,8 +13,8 @@ import (
     // ...
 	ocprom "contrib.go.opencensus.io/exporter/prometheus"
 
-	rcmgr "github.com/libp2p/go-libp2p-resource-manager"
-	rcmgrObs "github.com/libp2p/go-libp2p-resource-manager/obs"
+	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
+	rcmgrObs "github.com/libp2p/go-libp2p/p2p/host/resource-manager/obs"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"go.opencensus.io/stats/view"

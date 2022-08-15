@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	rcmgr "github.com/libp2p/go-libp2p-resource-manager"
-
 	"github.com/libp2p/go-libp2p"
+	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
+
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 

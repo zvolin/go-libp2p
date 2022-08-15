@@ -4,8 +4,9 @@ import (
 	"testing"
 	"time"
 
-	rcmgr "github.com/libp2p/go-libp2p-resource-manager"
-	"github.com/libp2p/go-libp2p-resource-manager/obs"
+	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
+	"github.com/libp2p/go-libp2p/p2p/host/resource-manager/obs"
+
 	"go.opencensus.io/stats/view"
 )
 
