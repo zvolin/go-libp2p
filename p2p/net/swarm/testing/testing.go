@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/libp2p/go-libp2p/p2p/host/peerstore/pstoremem"
 	msmux "github.com/libp2p/go-libp2p/p2p/muxer/muxer-multistream"
 	"github.com/libp2p/go-libp2p/p2p/muxer/yamux"
 	csms "github.com/libp2p/go-libp2p/p2p/net/conn-security-multistream"
@@ -22,7 +23,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/sec/insecure"
 	"github.com/libp2p/go-libp2p-core/transport"
 
-	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
 	tnet "github.com/libp2p/go-libp2p-testing/net"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/require"
