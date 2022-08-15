@@ -15,8 +15,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/peerstore"
 
 	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
+	"github.com/libp2p/go-libp2p/p2p/host/peerstore/pstoremem"
 
-	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
 	ma "github.com/multiformats/go-multiaddr"
 )
 

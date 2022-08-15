@@ -6,12 +6,12 @@ import (
 	"strconv"
 	"time"
 
+	pb "github.com/libp2p/go-libp2p/p2p/host/peerstore/pb"
+
+	"github.com/libp2p/go-libp2p-core/peer"
+
 	ds "github.com/ipfs/go-datastore"
-	query "github.com/ipfs/go-datastore/query"
-
-	peer "github.com/libp2p/go-libp2p-core/peer"
-	pb "github.com/libp2p/go-libp2p-peerstore/pb"
-
+	"github.com/ipfs/go-datastore/query"
 	b32 "github.com/multiformats/go-base32"
 )
 

@@ -7,22 +7,21 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
+	pt "github.com/libp2p/go-libp2p/p2p/host/peerstore/test"
 
+	pstore "github.com/libp2p/go-libp2p-core/peerstore"
+
+	mockClock "github.com/benbjohnson/clock"
 	ds "github.com/ipfs/go-datastore"
 	badger "github.com/ipfs/go-ds-badger"
 	leveldb "github.com/ipfs/go-ds-leveldb"
-
-	pstore "github.com/libp2p/go-libp2p-core/peerstore"
-	pt "github.com/libp2p/go-libp2p-peerstore/test"
-
-	mockClock "github.com/benbjohnson/clock"
+	"github.com/stretchr/testify/require"
 )
 
 type datastoreFactory func(tb testing.TB) (ds.Batching, func())
 
 var dstores = map[string]datastoreFactory{
-	//"Badger": badgerStore,
+	// "Badger": badgerStore,
 	"Leveldb": leveldbStore,
 }
 
@@ -104,6 +103,7 @@ func BenchmarkDsPeerstore(b *testing.B) {
 }
 
 // Doesn't work on 32bit because badger.
+//
 //lint:ignore U1000 disabled for now
 func badgerStore(tb testing.TB) (ds.Batching, func()) {
 	dataPath, err := ioutil.TempDir(os.TempDir(), "badger")

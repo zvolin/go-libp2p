@@ -7,17 +7,17 @@ import (
 	"sync"
 	"time"
 
-	ds "github.com/ipfs/go-datastore"
-	"github.com/ipfs/go-datastore/query"
-	logging "github.com/ipfs/go-log/v2"
+	pb "github.com/libp2p/go-libp2p/p2p/host/peerstore/pb"
+	"github.com/libp2p/go-libp2p/p2p/host/peerstore/pstoremem"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 	pstore "github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/record"
-	pb "github.com/libp2p/go-libp2p-peerstore/pb"
-	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
 
 	lru "github.com/hashicorp/golang-lru"
+	ds "github.com/ipfs/go-datastore"
+	"github.com/ipfs/go-datastore/query"
+	logging "github.com/ipfs/go-log/v2"
 	b32 "github.com/multiformats/go-base32"
 	ma "github.com/multiformats/go-multiaddr"
 )
@@ -175,16 +175,16 @@ var _ pstore.CertifiedAddrBook = (*dsAddrBook)(nil)
 //
 // The user has a choice of two GC algorithms:
 //
-//  - lookahead GC: minimises the amount of full store traversals by maintaining a time-indexed list of entries that
-//    need to be visited within the period specified in Options.GCLookaheadInterval. This is useful in scenarios with
-//    considerable TTL variance, coupled with datastores whose native iterators return entries in lexicographical key
-//    order. Enable this mode by passing a value Options.GCLookaheadInterval > 0. Lookahead windows are jumpy, not
-//    sliding. Purges operate exclusively over the lookahead window with periodicity Options.GCPurgeInterval.
+//   - lookahead GC: minimises the amount of full store traversals by maintaining a time-indexed list of entries that
+//     need to be visited within the period specified in Options.GCLookaheadInterval. This is useful in scenarios with
+//     considerable TTL variance, coupled with datastores whose native iterators return entries in lexicographical key
+//     order. Enable this mode by passing a value Options.GCLookaheadInterval > 0. Lookahead windows are jumpy, not
+//     sliding. Purges operate exclusively over the lookahead window with periodicity Options.GCPurgeInterval.
 //
-//  - full-purge GC (default): performs a full visit of the store with periodicity Options.GCPurgeInterval. Useful when
-//    the range of possible TTL values is small and the values themselves are also extreme, e.g. 10 minutes or
-//    permanent, popular values used in other libp2p modules. In this cited case, optimizing with lookahead windows
-//    makes little sense.
+//   - full-purge GC (default): performs a full visit of the store with periodicity Options.GCPurgeInterval. Useful when
+//     the range of possible TTL values is small and the values themselves are also extreme, e.g. 10 minutes or
+//     permanent, popular values used in other libp2p modules. In this cited case, optimizing with lookahead windows
+//     makes little sense.
 func NewAddrBook(ctx context.Context, store ds.Batching, opts Options) (ab *dsAddrBook, err error) {
 	ctx, cancelFn := context.WithCancel(ctx)
 	ab = &dsAddrBook{

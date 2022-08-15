@@ -11,6 +11,7 @@ import (
 
 	"github.com/libp2p/go-libp2p"
 	blhost "github.com/libp2p/go-libp2p/p2p/host/blank"
+	"github.com/libp2p/go-libp2p/p2p/host/peerstore/pstoremem"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 	"github.com/libp2p/go-libp2p/p2p/net/swarm"
 	swarmt "github.com/libp2p/go-libp2p/p2p/net/swarm/testing"
@@ -28,7 +29,6 @@ import (
 	coretest "github.com/libp2p/go-libp2p-core/test"
 
 	"github.com/libp2p/go-eventbus"
-	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
 
 	mockClock "github.com/benbjohnson/clock"
 	logging "github.com/ipfs/go-log/v2"

@@ -3,7 +3,7 @@ package pstoremem
 import (
 	"testing"
 
-	pt "github.com/libp2p/go-libp2p-peerstore/test"
+	pt "github.com/libp2p/go-libp2p/p2p/host/peerstore/test"
 
 	pstore "github.com/libp2p/go-libp2p-core/peerstore"
 
