@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	mocknetwork "github.com/libp2p/go-libp2p-testing/mocks/network"
 	"github.com/libp2p/go-libp2p/core/control"
 	"github.com/libp2p/go-libp2p/core/network"
+	mocknetwork "github.com/libp2p/go-libp2p/core/network/mocks"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/peerstore"
 	"github.com/libp2p/go-libp2p/core/protocol"
