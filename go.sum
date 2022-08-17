@@ -303,8 +303,6 @@ github.com/libp2p/go-flow-metrics v0.1.0 h1:0iPhMI8PskQwzh57jB9WxIuIOQ0r+15PChFG
 github.com/libp2p/go-flow-metrics v0.1.0/go.mod h1:4Xi8MX8wj5aWNDAZttg6UPmc0ZrnFNsMtpsYUClFtro=
 github.com/libp2p/go-libp2p-asn-util v0.2.0 h1:rg3+Os8jbnO5DxkC7K/Utdi+DkY3q/d1/1q+8WeNAsw=
 github.com/libp2p/go-libp2p-asn-util v0.2.0/go.mod h1:WoaWxbHKBymSN41hWSq/lGKJEca7TNm58+gGJi2WsLI=
-github.com/libp2p/go-libp2p-core v0.19.1 h1:zaZQQCeCrFMtxFa1wHy6AhsVynyNmZAvwgWqSSPT3WE=
-github.com/libp2p/go-libp2p-core v0.19.1/go.mod h1:2uLhmmqDiFY+dw+70KkBLeKvvsJHGWUINRDdeV1ip7k=
 github.com/libp2p/go-libp2p-testing v0.11.0 h1:+R7FRl/U3Y00neyBSM2qgDzqz3HkWH24U9nMlascHL4=
 github.com/libp2p/go-libp2p-testing v0.11.0/go.mod h1:qG4sF27dfKFoK9KlVzK2y52LQKhp0VEmLjV5aDqr1Hg=
 github.com/libp2p/go-mplex v0.7.0 h1:BDhFZdlk5tbr0oyFq/xv/NPGfjbnrsDam1EvutpBDbY=
