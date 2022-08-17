@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p/p2p/host/autonat"
+	"github.com/libp2p/go-libp2p/p2p/host/eventbus"
 	swarmt "github.com/libp2p/go-libp2p/p2p/net/swarm/testing"
 	"github.com/libp2p/go-libp2p/p2p/protocol/identify"
 
@@ -23,7 +24,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/record"
 	"github.com/libp2p/go-libp2p-core/test"
 
-	"github.com/libp2p/go-eventbus"
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
 
