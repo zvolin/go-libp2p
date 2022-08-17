@@ -13,9 +13,9 @@ import (
 
 	"golang.org/x/crypto/chacha20poly1305"
 
-	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/sec"
+	"github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/sec"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -6,7 +6,7 @@ package crypto
 import (
 	"sync"
 
-	pb "github.com/libp2p/go-libp2p-core/crypto/pb"
+	pb "github.com/libp2p/go-libp2p/core/crypto/pb"
 
 	"github.com/libp2p/go-openssl"
 )

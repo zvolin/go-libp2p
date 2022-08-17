@@ -4,14 +4,13 @@ import (
 	"context"
 	"errors"
 
-	"github.com/multiformats/go-base32"
+	ic "github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/peer"
+	pstore "github.com/libp2p/go-libp2p/core/peerstore"
 
 	ds "github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/query"
-
-	ic "github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/peer"
-	pstore "github.com/libp2p/go-libp2p-core/peerstore"
+	"github.com/multiformats/go-base32"
 )
 
 // Public and private keys are stored under the following db key pattern:

@@ -10,13 +10,13 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 
-	btcec "github.com/btcsuite/btcd/btcec/v2"
-	openssl "github.com/libp2p/go-openssl"
+	"github.com/libp2p/go-libp2p/core/internal/catch"
 
-	"github.com/libp2p/go-libp2p-core/internal/catch"
+	"github.com/btcsuite/btcd/btcec/v2"
+	"github.com/libp2p/go-openssl"
 )
 
-// KeyPairFromStdKey wraps standard library (and secp256k1) private keys in libp2p/go-libp2p-core/crypto keys
+// KeyPairFromStdKey wraps standard library (and secp256k1) private keys in libp2p/go-libp2p/core/crypto keys
 func KeyPairFromStdKey(priv crypto.PrivateKey) (_priv PrivKey, _pub PubKey, err error) {
 	if priv == nil {
 		return nil, nil, ErrNilPrivateKey
@@ -50,7 +50,7 @@ func KeyPairFromStdKey(priv crypto.PrivateKey) (_priv PrivKey, _pub PubKey, err 
 	}
 }
 
-// PrivKeyToStdKey converts libp2p/go-libp2p-core/crypto private keys to standard library (and secp256k1) private keys
+// PrivKeyToStdKey converts libp2p/go-libp2p/core/crypto private keys to standard library (and secp256k1) private keys
 func PrivKeyToStdKey(priv PrivKey) (_priv crypto.PrivateKey, err error) {
 	if priv == nil {
 		return nil, ErrNilPrivateKey
@@ -74,7 +74,7 @@ func PrivKeyToStdKey(priv PrivKey) (_priv crypto.PrivateKey, err error) {
 	}
 }
 
-// PubKeyToStdKey converts libp2p/go-libp2p-core/crypto private keys to standard library (and secp256k1) public keys
+// PubKeyToStdKey converts libp2p/go-libp2p/core/crypto private keys to standard library (and secp256k1) public keys
 func PubKeyToStdKey(pub PubKey) (key crypto.PublicKey, err error) {
 	if pub == nil {
 		return nil, ErrNilPublicKey

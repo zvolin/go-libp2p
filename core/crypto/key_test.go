@@ -13,11 +13,12 @@ import (
 	"reflect"
 	"testing"
 
-	btcec "github.com/btcsuite/btcd/btcec/v2"
+	. "github.com/libp2p/go-libp2p/core/crypto"
+	pb "github.com/libp2p/go-libp2p/core/crypto/pb"
+	"github.com/libp2p/go-libp2p/core/test"
+
+	"github.com/btcsuite/btcd/btcec/v2"
 	btcececdsa "github.com/btcsuite/btcd/btcec/v2/ecdsa"
-	. "github.com/libp2p/go-libp2p-core/crypto"
-	pb "github.com/libp2p/go-libp2p-core/crypto/pb"
-	"github.com/libp2p/go-libp2p-core/test"
 	"github.com/minio/sha256-simd"
 )
 

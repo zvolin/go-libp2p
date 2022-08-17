@@ -9,9 +9,9 @@ import (
 	"math"
 	"time"
 
-	ic "github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/record"
+	ic "github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/record"
 
 	ma "github.com/multiformats/go-multiaddr"
 )
@@ -142,10 +142,9 @@ type AddrBook interface {
 // certified addresses, callers should use the GetCertifiedAddrBook helper or
 // type-assert on the CertifiedAddrBook interface:
 //
-//     if cab, ok := aPeerstore.(CertifiedAddrBook); ok {
-//         cab.ConsumePeerRecord(signedPeerRecord, aTTL)
-//     }
-//
+//	if cab, ok := aPeerstore.(CertifiedAddrBook); ok {
+//	    cab.ConsumePeerRecord(signedPeerRecord, aTTL)
+//	}
 type CertifiedAddrBook interface {
 	// ConsumePeerRecord adds addresses from a signed peer.PeerRecord (contained in
 	// a record.Envelope), which will expire after the given TTL.

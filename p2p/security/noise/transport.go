@@ -4,10 +4,11 @@ import (
 	"context"
 	"net"
 
-	"github.com/libp2p/go-libp2p-core/canonicallog"
-	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/sec"
+	"github.com/libp2p/go-libp2p/core/canonicallog"
+	"github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/sec"
+
 	manet "github.com/multiformats/go-multiaddr/net"
 )
 
@@ -17,7 +18,7 @@ const ID = "/noise"
 var _ sec.SecureTransport = &Transport{}
 
 // Transport implements the interface sec.SecureTransport
-// https://godoc.org/github.com/libp2p/go-libp2p-core/sec#SecureConn
+// https://godoc.org/github.com/libp2p/go-libp2p/core/sec#SecureConn
 type Transport struct {
 	localID    peer.ID
 	privateKey crypto.PrivKey

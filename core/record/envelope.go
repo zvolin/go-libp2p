@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/internal/catch"
-	pb "github.com/libp2p/go-libp2p-core/record/pb"
+	"github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/internal/catch"
+	pb "github.com/libp2p/go-libp2p/core/record/pb"
 
 	pool "github.com/libp2p/go-buffer-pool"
 
@@ -94,15 +94,15 @@ func Seal(rec Record, privateKey crypto.PrivKey) (*Envelope, error) {
 // You can type assert on the returned Record to convert it to an instance of the concrete
 // Record type:
 //
-//    envelope, rec, err := ConsumeEnvelope(envelopeBytes, peer.PeerRecordEnvelopeDomain)
-//    if err != nil {
-//      handleError(envelope, err)  // envelope may be non-nil, even if errors occur!
-//      return
-//    }
-//    peerRec, ok := rec.(*peer.PeerRecord)
-//    if ok {
-//      doSomethingWithPeerRecord(peerRec)
-//    }
+//	envelope, rec, err := ConsumeEnvelope(envelopeBytes, peer.PeerRecordEnvelopeDomain)
+//	if err != nil {
+//	  handleError(envelope, err)  // envelope may be non-nil, even if errors occur!
+//	  return
+//	}
+//	peerRec, ok := rec.(*peer.PeerRecord)
+//	if ok {
+//	  doSomethingWithPeerRecord(peerRec)
+//	}
 //
 // Important: you MUST check the error value before using the returned Envelope. In some error
 // cases, including when the envelope signature is invalid, both the Envelope and an error will
@@ -140,12 +140,12 @@ func ConsumeEnvelope(data []byte, domain string) (envelope *Envelope, rec Record
 // responsibility to determine whether the given Record type is able to unmarshal the payload
 // correctly.
 //
-//    rec := &MyRecordType{}
-//    envelope, err := ConsumeTypedEnvelope(envelopeBytes, rec)
-//    if err != nil {
-//      handleError(envelope, err)
-//    }
-//    doSomethingWithRecord(rec)
+//	rec := &MyRecordType{}
+//	envelope, err := ConsumeTypedEnvelope(envelopeBytes, rec)
+//	if err != nil {
+//	  handleError(envelope, err)
+//	}
+//	doSomethingWithRecord(rec)
 //
 // Important: you MUST check the error value before using the returned Envelope. In some error
 // cases, including when the envelope signature is invalid, both the Envelope and an error will

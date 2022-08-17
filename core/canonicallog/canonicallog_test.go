@@ -5,8 +5,9 @@ import (
 	"net"
 	"testing"
 
+	"github.com/libp2p/go-libp2p/core/test"
+
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/libp2p/go-libp2p-core/test"
 	"github.com/multiformats/go-multiaddr"
 )
 

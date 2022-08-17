@@ -13,9 +13,9 @@ import (
 	swarmt "github.com/libp2p/go-libp2p/p2p/net/swarm/testing"
 	. "github.com/libp2p/go-libp2p/p2p/protocol/internal/circuitv1-deprecated"
 
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peerstore"
+	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/network"
+	"github.com/libp2p/go-libp2p/core/peerstore"
 
 	ma "github.com/multiformats/go-multiaddr"
 )

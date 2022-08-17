@@ -4,8 +4,8 @@ import (
 	"context"
 	"io"
 
-	ic "github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/peer"
+	ic "github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/peer"
 
 	ma "github.com/multiformats/go-multiaddr"
 )
@@ -13,7 +13,8 @@ import (
 // Conn is a connection to a remote peer. It multiplexes streams.
 // Usually there is no need to use a Conn directly, but it may
 // be useful to get information about the peer on the other side:
-//  stream.Conn().RemotePeer()
+//
+//	stream.Conn().RemotePeer()
 type Conn interface {
 	io.Closer
 

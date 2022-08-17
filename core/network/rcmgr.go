@@ -1,8 +1,8 @@
 package network
 
 import (
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/protocol"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/multiformats/go-multiaddr"
 )
 
@@ -15,16 +15,17 @@ import (
 // Management Scopes, whereby resource usage is constrained by a DAG of scopes,
 // The following diagram illustrates the structure of the resource constraint DAG:
 // System
-//   +------------> Transient.............+................+
-//   |                                    .                .
-//   +------------>  Service------------- . ----------+    .
-//   |                                    .           |    .
-//   +------------->  Protocol----------- . ----------+    .
-//   |                                    .           |    .
-//   +-------------->  Peer               \           |    .
-//                      +------------> Connection     |    .
-//                      |                             \    \
-//                      +--------------------------->  Stream
+//
+//	+------------> Transient.............+................+
+//	|                                    .                .
+//	+------------>  Service------------- . ----------+    .
+//	|                                    .           |    .
+//	+------------->  Protocol----------- . ----------+    .
+//	|                                    .           |    .
+//	+-------------->  Peer               \           |    .
+//	                   +------------> Connection     |    .
+//	                   |                             \    \
+//	                   +--------------------------->  Stream
 //
 // The basic resources accounted by the ResourceManager include memory, streams, connections,
 // and file  descriptors. These account for both space and time used by
@@ -59,16 +60,16 @@ import (
 // scopes can form trees, with nested spans.
 //
 // Typical Usage:
-//  - Low level components of the system (transports, muxers) all have access to the resource
-//    manager and create connection and stream scopes through it. These scopes are accessible
-//    to the user, albeit with a narrower interface, through Conn and Stream objects who have
-//    a Scope method.
-//  - Services typically center around streams, where the programmer can attach streams to a
-//    particular service. They can also directly reserve memory for a service by accessing the
-//    service scope using the ResourceManager interface.
-//  - Applications that want to account for their network resource usage can reserve memory,
-//    typically using a span, directly in the System or a Service scope; they can also
-//    opt to use appropriate steam scopes for streams that they create or own.
+//   - Low level components of the system (transports, muxers) all have access to the resource
+//     manager and create connection and stream scopes through it. These scopes are accessible
+//     to the user, albeit with a narrower interface, through Conn and Stream objects who have
+//     a Scope method.
+//   - Services typically center around streams, where the programmer can attach streams to a
+//     particular service. They can also directly reserve memory for a service by accessing the
+//     service scope using the ResourceManager interface.
+//   - Applications that want to account for their network resource usage can reserve memory,
+//     typically using a span, directly in the System or a Service scope; they can also
+//     opt to use appropriate steam scopes for streams that they create or own.
 //
 // User Serviceable Parts: the user has the option to specify their own implementation of the
 // interface. We provide a canonical implementation in the go-libp2p-resource-manager package.
@@ -76,7 +77,8 @@ import (
 // or dynamic.
 //
 // WARNING The ResourceManager interface is considered experimental and subject to change
-//         in subsequent releases.
+//
+//	in subsequent releases.
 type ResourceManager interface {
 	ResourceScopeViewer
 
@@ -172,12 +174,13 @@ type ResourceScope interface {
 // when the programmer calls Done.
 //
 // Example:
-//  s, err := someScope.BeginSpan()
-//  if err != nil { ... }
-//  defer s.Done()
 //
-//  if err := s.ReserveMemory(...); err != nil { ... }
-//  // ... use memory
+//	s, err := someScope.BeginSpan()
+//	if err != nil { ... }
+//	defer s.Done()
+//
+//	if err := s.ReserveMemory(...); err != nil { ... }
+//	// ... use memory
 type ResourceScopeSpan interface {
 	ResourceScope
 	// Done ends the span and releases associated resources.

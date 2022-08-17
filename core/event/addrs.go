@@ -1,7 +1,8 @@
 package event
 
 import (
-	"github.com/libp2p/go-libp2p-core/record"
+	"github.com/libp2p/go-libp2p/core/record"
+
 	ma "github.com/multiformats/go-multiaddr"
 )
 

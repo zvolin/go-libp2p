@@ -4,7 +4,7 @@ import (
 	"errors"
 	"reflect"
 
-	"github.com/libp2p/go-libp2p-core/internal/catch"
+	"github.com/libp2p/go-libp2p/core/internal/catch"
 )
 
 var (
@@ -59,15 +59,14 @@ type Record interface {
 // a pointer type. Registration should be done in the init function of the package
 // where the Record type is defined:
 //
-//    package hello_record
-//    import record "github.com/libp2p/go-libp2p-core/record"
+//	package hello_record
+//	import record "github.com/libp2p/go-libp2p/core/record"
 //
-//    func init() {
-//        record.RegisterType(&HelloRecord{})
-//    }
+//	func init() {
+//	    record.RegisterType(&HelloRecord{})
+//	}
 //
-//    type HelloRecord struct { } // etc..
-//
+//	type HelloRecord struct { } // etc..
 func RegisterType(prototype Record) {
 	payloadTypeRegistry[string(prototype.Codec())] = getValueType(prototype)
 }

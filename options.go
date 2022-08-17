@@ -8,15 +8,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/libp2p/go-libp2p-core/connmgr"
-	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/metrics"
-	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/peerstore"
-	"github.com/libp2p/go-libp2p-core/pnet"
-
 	"github.com/libp2p/go-libp2p/config"
+	"github.com/libp2p/go-libp2p/core/connmgr"
+	"github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/metrics"
+	"github.com/libp2p/go-libp2p/core/network"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/peerstore"
+	"github.com/libp2p/go-libp2p/core/pnet"
 	"github.com/libp2p/go-libp2p/p2p/host/autorelay"
 	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
 	relayv2 "github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/relay"
@@ -330,7 +329,7 @@ func AutoNATServiceRateLimit(global, perPeer int, interval time.Duration) Option
 // to actively reject inbound/outbound connections based on the lifecycle stage
 // of the connection.
 //
-// For more information, refer to go-libp2p-core.ConnectionGater.
+// For more information, refer to go-libp2p/core.ConnectionGater.
 func ConnectionGater(cg connmgr.ConnectionGater) Option {
 	return func(cfg *Config) error {
 		if cfg.ConnectionGater != nil {

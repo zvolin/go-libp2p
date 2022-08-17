@@ -5,11 +5,12 @@ package record_pb
 
 import (
 	fmt "fmt"
-	proto "github.com/gogo/protobuf/proto"
-	pb "github.com/libp2p/go-libp2p-core/crypto/pb"
 	io "io"
 	math "math"
 	math_bits "math/bits"
+
+	proto "github.com/gogo/protobuf/proto"
+	pb "github.com/libp2p/go-libp2p/core/crypto/pb"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.

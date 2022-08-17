@@ -8,6 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/libp2p/go-libp2p/core/peerstore"
+	"github.com/libp2p/go-libp2p/core/sec/insecure"
+	"github.com/libp2p/go-libp2p/core/transport"
 	"github.com/libp2p/go-libp2p/p2p/host/peerstore/pstoremem"
 	msmux "github.com/libp2p/go-libp2p/p2p/muxer/muxer-multistream"
 	"github.com/libp2p/go-libp2p/p2p/muxer/yamux"
@@ -16,13 +19,9 @@ import (
 	quic "github.com/libp2p/go-libp2p/p2p/transport/quic"
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
 
-	"github.com/libp2p/go-libp2p-core/peerstore"
-	"github.com/libp2p/go-libp2p-core/sec/insecure"
-	"github.com/libp2p/go-libp2p-core/transport"
-
 	tnet "github.com/libp2p/go-libp2p-testing/net"
-	ma "github.com/multiformats/go-multiaddr"
 
+	ma "github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/require"
 )
 

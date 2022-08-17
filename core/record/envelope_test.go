@@ -5,10 +5,10 @@ import (
 	"errors"
 	"testing"
 
-	crypto "github.com/libp2p/go-libp2p-core/crypto"
-	. "github.com/libp2p/go-libp2p-core/record"
-	pb "github.com/libp2p/go-libp2p-core/record/pb"
-	"github.com/libp2p/go-libp2p-core/test"
+	crypto "github.com/libp2p/go-libp2p/core/crypto"
+	. "github.com/libp2p/go-libp2p/core/record"
+	pb "github.com/libp2p/go-libp2p/core/record/pb"
+	"github.com/libp2p/go-libp2p/core/test"
 
 	"github.com/gogo/protobuf/proto"
 )

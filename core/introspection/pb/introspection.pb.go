@@ -397,11 +397,12 @@ func (m *ResultCounter) GetErr() uint32 {
 //
 // time     past -> present                              an event 16 min ago
 // ======================================================X================>>
-//                                                       |               | 1m
-//                                                       |           |---| 5m
-//                                                       | |-------------| 15m
-//                                          |------------X---------------| 30m
-//            |------------------------------------------X---------------| 60m
+//
+//	                                           |               | 1m
+//	                                           |           |---| 5m
+//	                                           | |-------------| 15m
+//	                              |------------X---------------| 30m
+//	|------------------------------------------X---------------| 60m
 type SlidingCounter struct {
 	Over_1M   uint32 `protobuf:"varint,1,opt,name=over_1m,json=over1m,proto3" json:"over_1m,omitempty"`
 	Over_5M   uint32 `protobuf:"varint,2,opt,name=over_5m,json=over5m,proto3" json:"over_5m,omitempty"`

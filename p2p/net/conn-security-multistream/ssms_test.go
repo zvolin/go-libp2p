@@ -7,10 +7,10 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/sec"
-	"github.com/libp2p/go-libp2p-core/sec/insecure"
 	tnet "github.com/libp2p/go-libp2p-testing/net"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/sec"
+	"github.com/libp2p/go-libp2p/core/sec/insecure"
 
 	"github.com/stretchr/testify/require"
 )

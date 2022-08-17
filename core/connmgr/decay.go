@@ -4,7 +4,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 // Decayer is implemented by connection managers supporting decaying tags. A
@@ -22,10 +22,10 @@ import (
 // Such a pluggable design affords a great deal of flexibility and versatility.
 // Behaviours that are straightforward to implement include:
 //
-//  * Decay a tag by -1, or by half its current value, on every tick.
-//  * Every time a value is bumped, sum it to its current value.
-//  * Exponentially boost a score with every bump.
-//  * Sum the incoming score, but keep it within min, max bounds.
+//   - Decay a tag by -1, or by half its current value, on every tick.
+//   - Every time a value is bumped, sum it to its current value.
+//   - Exponentially boost a score with every bump.
+//   - Sum the incoming score, but keep it within min, max bounds.
 //
 // Commonly used DecayFns and BumpFns are provided in this package.
 type Decayer interface {

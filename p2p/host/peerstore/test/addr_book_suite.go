@@ -4,14 +4,14 @@ import (
 	"testing"
 	"time"
 
-	mockClock "github.com/benbjohnson/clock"
-	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/record"
-	"github.com/libp2p/go-libp2p-core/test"
-	"github.com/multiformats/go-multiaddr"
+	"github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/peer"
+	pstore "github.com/libp2p/go-libp2p/core/peerstore"
+	"github.com/libp2p/go-libp2p/core/record"
+	"github.com/libp2p/go-libp2p/core/test"
 
-	pstore "github.com/libp2p/go-libp2p-core/peerstore"
+	mockClock "github.com/benbjohnson/clock"
+	"github.com/multiformats/go-multiaddr"
 )
 
 var addressBookSuite = map[string]func(book pstore.AddrBook, clk *mockClock.Mock) func(*testing.T){

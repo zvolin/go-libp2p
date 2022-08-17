@@ -5,10 +5,11 @@ package peer_pb
 
 import (
 	fmt "fmt"
-	proto "github.com/gogo/protobuf/proto"
 	io "io"
 	math "math"
 	math_bits "math/bits"
+
+	proto "github.com/gogo/protobuf/proto"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -28,7 +29,7 @@ const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 //
 // PeerRecords are designed to be serialized to bytes and placed inside of
 // SignedEnvelopes before sharing with other peers.
-// See https://github.com/libp2p/go-libp2p-core/record/pb/envelope.proto for
+// See https://github.com/libp2p/go-libp2p/core/record/pb/envelope.proto for
 // the SignedEnvelope definition.
 type PeerRecord struct {
 	// peer_id contains a libp2p peer id in its binary representation.

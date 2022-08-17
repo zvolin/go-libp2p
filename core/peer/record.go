@@ -5,9 +5,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/libp2p/go-libp2p-core/internal/catch"
-	pb "github.com/libp2p/go-libp2p-core/peer/pb"
-	"github.com/libp2p/go-libp2p-core/record"
+	"github.com/libp2p/go-libp2p/core/internal/catch"
+	pb "github.com/libp2p/go-libp2p/core/peer/pb"
+	"github.com/libp2p/go-libp2p/core/record"
 
 	ma "github.com/multiformats/go-multiaddr"
 
@@ -40,14 +40,14 @@ var PeerRecordEnvelopePayloadType = []byte{0x03, 0x01}
 // a PeerRecord with a timestamp-based Seq value. The other PeerRecord fields should
 // be set by the caller:
 //
-//    rec := peer.NewPeerRecord()
-//    rec.PeerID = aPeerID
-//    rec.Addrs = someAddrs
+//	rec := peer.NewPeerRecord()
+//	rec.PeerID = aPeerID
+//	rec.Addrs = someAddrs
 //
 // Alternatively, you can construct a PeerRecord struct directly and use the TimestampSeq
 // helper to set the Seq field:
 //
-//    rec := peer.PeerRecord{PeerID: aPeerID, Addrs: someAddrs, Seq: peer.TimestampSeq()}
+//	rec := peer.PeerRecord{PeerID: aPeerID, Addrs: someAddrs, Seq: peer.TimestampSeq()}
 //
 // Failing to set the Seq field will not result in an error, however, a PeerRecord with a
 // Seq value of zero may be ignored or rejected by other peers.
@@ -59,28 +59,27 @@ var PeerRecordEnvelopePayloadType = []byte{0x03, 0x01}
 // To share a PeerRecord, first call Sign to wrap the record in a Envelope
 // and sign it with the local peer's private key:
 //
-//     rec := &PeerRecord{PeerID: myPeerId, Addrs: myAddrs}
-//     envelope, err := rec.Sign(myPrivateKey)
+//	rec := &PeerRecord{PeerID: myPeerId, Addrs: myAddrs}
+//	envelope, err := rec.Sign(myPrivateKey)
 //
 // The resulting record.Envelope can be marshalled to a []byte and shared
 // publicly. As a convenience, the MarshalSigned method will produce the
 // Envelope and marshal it to a []byte in one go:
 //
-//     rec := &PeerRecord{PeerID: myPeerId, Addrs: myAddrs}
-//     recordBytes, err := rec.MarshalSigned(myPrivateKey)
+//	rec := &PeerRecord{PeerID: myPeerId, Addrs: myAddrs}
+//	recordBytes, err := rec.MarshalSigned(myPrivateKey)
 //
 // To validate and unmarshal a signed PeerRecord from a remote peer,
 // "consume" the containing envelope, which will return both the
 // routing.Envelope and the inner Record. The Record must be cast to
 // a PeerRecord pointer before use:
 //
-//     envelope, untypedRecord, err := ConsumeEnvelope(envelopeBytes, PeerRecordEnvelopeDomain)
-//     if err != nil {
-//       handleError(err)
-//       return
-//     }
-//     peerRec := untypedRecord.(*PeerRecord)
-//
+//	envelope, untypedRecord, err := ConsumeEnvelope(envelopeBytes, PeerRecordEnvelopeDomain)
+//	if err != nil {
+//	  handleError(err)
+//	  return
+//	}
+//	peerRec := untypedRecord.(*PeerRecord)
 type PeerRecord struct {
 	// PeerID is the ID of the peer this record pertains to.
 	PeerID ID

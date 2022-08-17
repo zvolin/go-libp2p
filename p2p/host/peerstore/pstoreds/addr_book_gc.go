@@ -6,9 +6,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/libp2p/go-libp2p/core/peer"
 	pb "github.com/libp2p/go-libp2p/p2p/host/peerstore/pb"
-
-	"github.com/libp2p/go-libp2p-core/peer"
 
 	ds "github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/query"

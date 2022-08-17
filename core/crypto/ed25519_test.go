@@ -5,7 +5,7 @@ import (
 	"crypto/rand"
 	"testing"
 
-	pb "github.com/libp2p/go-libp2p-core/crypto/pb"
+	pb "github.com/libp2p/go-libp2p/core/crypto/pb"
 )
 
 func TestBasicSignAndVerify(t *testing.T) {
