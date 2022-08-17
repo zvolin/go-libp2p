@@ -19,7 +19,6 @@ require (
 	github.com/jbenet/go-temp-err-catcher v0.1.0
 	github.com/klauspost/compress v1.15.1
 	github.com/libp2p/go-buffer-pool v0.1.0
-	github.com/libp2p/go-eventbus v0.2.1
 	github.com/libp2p/go-libp2p-asn-util v0.2.0
 	github.com/libp2p/go-libp2p-core v0.19.1
 	github.com/libp2p/go-libp2p-testing v0.11.0

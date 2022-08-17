@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p/p2p/host/autonat"
+	"github.com/libp2p/go-libp2p/p2p/host/eventbus"
 	"github.com/libp2p/go-libp2p/p2p/host/pstoremanager"
 	"github.com/libp2p/go-libp2p/p2p/host/relaysvc"
 	inat "github.com/libp2p/go-libp2p/p2p/net/nat"
@@ -28,7 +29,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/libp2p/go-libp2p-core/record"
 
-	"github.com/libp2p/go-eventbus"
 	"github.com/libp2p/go-netroute"
 
 	logging "github.com/ipfs/go-log/v2"
