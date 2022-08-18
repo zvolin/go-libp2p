@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/benbjohnson/clock v1.3.0
+	github.com/btcsuite/btcd/btcec/v2 v2.2.0
 	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c
 	github.com/flynn/noise v1.0.0
 	github.com/gogo/protobuf v1.3.2
@@ -19,13 +20,14 @@ require (
 	github.com/jbenet/go-temp-err-catcher v0.1.0
 	github.com/klauspost/compress v1.15.1
 	github.com/libp2p/go-buffer-pool v0.1.0
+	github.com/libp2p/go-flow-metrics v0.1.0
 	github.com/libp2p/go-libp2p-asn-util v0.2.0
-	github.com/libp2p/go-libp2p-core v0.19.1
 	github.com/libp2p/go-libp2p-testing v0.11.0
 	github.com/libp2p/go-mplex v0.7.0
 	github.com/libp2p/go-msgio v0.2.0
 	github.com/libp2p/go-nat v0.1.0
 	github.com/libp2p/go-netroute v0.2.0
+	github.com/libp2p/go-openssl v0.0.7
 	github.com/libp2p/go-reuseport v0.2.0
 	github.com/libp2p/go-yamux/v3 v3.1.2
 	github.com/libp2p/zeroconf/v2 v2.1.1
@@ -33,10 +35,12 @@ require (
 	github.com/marten-seemann/tcp v0.0.0-20210406111302-dfbc87cc63fd
 	github.com/mikioh/tcpinfo v0.0.0-20190314235526-30a79bb1804b
 	github.com/minio/sha256-simd v1.0.0
+	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-base32 v0.0.4
 	github.com/multiformats/go-multiaddr v0.6.0
 	github.com/multiformats/go-multiaddr-dns v0.3.1
 	github.com/multiformats/go-multiaddr-fmt v0.1.0
+	github.com/multiformats/go-multicodec v0.5.0
 	github.com/multiformats/go-multihash v0.2.0
 	github.com/multiformats/go-multistream v0.3.3
 	github.com/multiformats/go-varint v0.0.6
@@ -54,7 +58,6 @@ require (
 require (
 	github.com/AndreasBriese/bbloom v0.0.0-20190825152654-46b345b51c96 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/btcsuite/btcd/btcec/v2 v2.2.0 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/cheekybits/genny v1.0.0 // indirect
@@ -80,8 +83,6 @@ require (
 	github.com/klauspost/cpuid/v2 v2.0.14 // indirect
 	github.com/koron/go-ssdp v0.0.3 // indirect
 	github.com/libp2p/go-cidranger v1.1.0 // indirect
-	github.com/libp2p/go-flow-metrics v0.0.3 // indirect
-	github.com/libp2p/go-openssl v0.0.7 // indirect
 	github.com/marten-seemann/qtls-go1-16 v0.1.5 // indirect
 	github.com/marten-seemann/qtls-go1-17 v0.1.2 // indirect
 	github.com/marten-seemann/qtls-go1-18 v0.1.2 // indirect
@@ -90,10 +91,8 @@ require (
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/miekg/dns v1.1.50 // indirect
 	github.com/mikioh/tcpopt v0.0.0-20190314235656-172688c1accc // indirect
-	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/multiformats/go-base36 v0.1.0 // indirect
 	github.com/multiformats/go-multibase v0.1.1 // indirect
-	github.com/multiformats/go-multicodec v0.5.0 // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/opencontainers/runtime-spec v1.0.2 // indirect

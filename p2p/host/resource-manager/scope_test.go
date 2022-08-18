@@ -3,7 +3,7 @@ package rcmgr
 import (
 	"testing"
 
-	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p/core/network"
 )
 
 func checkResources(t *testing.T, rc *resources, st network.ScopeStat) {

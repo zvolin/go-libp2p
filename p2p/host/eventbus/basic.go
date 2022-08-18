@@ -7,10 +7,10 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/libp2p/go-libp2p-core/event"
+	"github.com/libp2p/go-libp2p/core/event"
 )
 
-///////////////////////
+// /////////////////////
 // BUS
 
 // basicBus is a type-based event delivery system
@@ -273,7 +273,7 @@ func (b *basicBus) GetAllEventTypes() []reflect.Type {
 	return types
 }
 
-///////////////////////
+// /////////////////////
 // NODE
 
 type wildcardNode struct {

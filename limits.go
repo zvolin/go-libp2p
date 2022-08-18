@@ -1,8 +1,7 @@
 package libp2p
 
 import (
-	"github.com/libp2p/go-libp2p-core/protocol"
-
+	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/libp2p/go-libp2p/p2p/host/autonat"
 	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 	relayv1 "github.com/libp2p/go-libp2p/p2p/protocol/circuitv1/relay"

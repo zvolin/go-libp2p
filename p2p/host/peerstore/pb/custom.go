@@ -3,9 +3,10 @@ package pstore_pb
 import (
 	"encoding/json"
 
-	proto "github.com/gogo/protobuf/proto"
-	peer "github.com/libp2p/go-libp2p-core/peer"
-	pt "github.com/libp2p/go-libp2p-core/test"
+	"github.com/libp2p/go-libp2p/core/peer"
+	pt "github.com/libp2p/go-libp2p/core/test"
+
+	"github.com/gogo/protobuf/proto"
 	ma "github.com/multiformats/go-multiaddr"
 )
 

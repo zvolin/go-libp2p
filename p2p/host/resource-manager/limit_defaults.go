@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"math"
 
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/protocol"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/protocol"
 
 	"github.com/pbnjay/memory"
 )
@@ -141,7 +141,7 @@ func (cfg *LimitConfig) MarshalJSON() ([]byte, error) {
 	// we want to marshal the encoded peer id
 	encodedPeerMap := make(map[string]BaseLimit, len(cfg.Peer))
 	for p, v := range cfg.Peer {
-		encodedPeerMap[peer.Encode(p)] = v
+		encodedPeerMap[p.String()] = v
 	}
 
 	type Alias LimitConfig

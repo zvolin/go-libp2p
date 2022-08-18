@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/peerstore"
 	pstore "github.com/libp2p/go-libp2p/p2p/host/peerstore"
-
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/peerstore"
 )
 
 type pstoremem struct {

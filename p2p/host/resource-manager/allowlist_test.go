@@ -6,8 +6,9 @@ import (
 	"net"
 	"testing"
 
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/test"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/test"
+
 	"github.com/multiformats/go-multiaddr"
 )
 
@@ -22,7 +23,7 @@ func ExampleWithAllowlistedMultiaddrs() {
 		// Any peer connecting from this IP address
 		multiaddr.StringCast("/ip4/1.2.3.4"),
 		// Only the specified peer from this address
-		multiaddr.StringCast("/ip4/2.2.3.4/p2p/" + peer.Encode(somePeer)),
+		multiaddr.StringCast("/ip4/2.2.3.4/p2p/" + somePeer.String()),
 		// Only peers from this 1.2.3.0/24 IP address range
 		multiaddr.StringCast("/ip4/1.2.3.0/ipcidr/24"),
 	}))
@@ -77,7 +78,7 @@ func TestAllowedWithPeer(t *testing.T) {
 			name:              "Blocked wrong peer",
 			isConnAllowed:     true,
 			isAllowedWithPeer: false,
-			allowlist:         []string{"/ip4/1.2.3.4" + "/p2p/" + peer.Encode(peerB)},
+			allowlist:         []string{"/ip4/1.2.3.4" + "/p2p/" + peerB.String()},
 			endpoint:          multiaddrA,
 			peer:              peerA,
 		},
@@ -100,7 +101,7 @@ func TestAllowedWithPeer(t *testing.T) {
 			name:              "allowed. right network, right peer",
 			isConnAllowed:     true,
 			isAllowedWithPeer: true,
-			allowlist:         []string{"/ip4/1.2.3.0/ipcidr/24" + "/p2p/" + peer.Encode(peerA)},
+			allowlist:         []string{"/ip4/1.2.3.0/ipcidr/24" + "/p2p/" + peerA.String()},
 			endpoint:          multiaddrA,
 			peer:              peerA,
 		}, {
@@ -115,7 +116,7 @@ func TestAllowedWithPeer(t *testing.T) {
 			name:              "Blocked. right network, wrong peer",
 			isConnAllowed:     true,
 			isAllowedWithPeer: false,
-			allowlist:         []string{"/ip4/1.2.3.0/ipcidr/24" + "/p2p/" + peer.Encode(peerB)},
+			allowlist:         []string{"/ip4/1.2.3.0/ipcidr/24" + "/p2p/" + peerB.String()},
 			endpoint:          multiaddrA,
 			peer:              peerA,
 		},
@@ -131,7 +132,7 @@ func TestAllowedWithPeer(t *testing.T) {
 			name:              "allowed peer multiple ips in allowlist",
 			isConnAllowed:     true,
 			isAllowedWithPeer: true,
-			allowlist:         []string{"/ip4/1.2.3.4/p2p/" + peer.Encode(peerA), "/ip4/2.2.3.4/p2p/" + peer.Encode(peerA)},
+			allowlist:         []string{"/ip4/1.2.3.4/p2p/" + peerA.String(), "/ip4/2.2.3.4/p2p/" + peerA.String()},
 			endpoint:          multiaddrA,
 			peer:              peerA,
 		},
@@ -139,7 +140,7 @@ func TestAllowedWithPeer(t *testing.T) {
 			name:              "allowed peer multiple ips in allowlist",
 			isConnAllowed:     true,
 			isAllowedWithPeer: true,
-			allowlist:         []string{"/ip4/1.2.3.4/p2p/" + peer.Encode(peerA), "/ip4/1.2.3.4/p2p/" + peer.Encode(peerA)},
+			allowlist:         []string{"/ip4/1.2.3.4/p2p/" + peerA.String(), "/ip4/1.2.3.4/p2p/" + peerA.String()},
 			endpoint:          multiaddrA,
 			peer:              peerA,
 		},
@@ -147,7 +148,7 @@ func TestAllowedWithPeer(t *testing.T) {
 			name:              "allowed peer multiple ips in allowlist",
 			isConnAllowed:     true,
 			isAllowedWithPeer: true,
-			allowlist:         []string{"/ip4/1.2.3.4/p2p/" + peer.Encode(peerA), "/ip4/2.2.3.4/p2p/" + peer.Encode(peerA)},
+			allowlist:         []string{"/ip4/1.2.3.4/p2p/" + peerA.String(), "/ip4/2.2.3.4/p2p/" + peerA.String()},
 			endpoint:          multiaddrB,
 			peer:              peerA,
 		},
@@ -186,9 +187,9 @@ func TestRemoved(t *testing.T) {
 
 	testCases := []testCase{
 		{name: "ip4", allowedMA: "/ip4/1.2.3.4"},
-		{name: "ip4 with peer", allowedMA: "/ip4/1.2.3.4/p2p/" + peer.Encode(peerA)},
+		{name: "ip4 with peer", allowedMA: "/ip4/1.2.3.4/p2p/" + peerA.String()},
 		{name: "ip4 network", allowedMA: "/ip4/0.0.0.0/ipcidr/0"},
-		{name: "ip4 network with peer", allowedMA: "/ip4/0.0.0.0/ipcidr/0/p2p/" + peer.Encode(peerA)},
+		{name: "ip4 network with peer", allowedMA: "/ip4/0.0.0.0/ipcidr/0/p2p/" + peerA.String()},
 	}
 
 	for _, tc := range testCases {
@@ -255,7 +256,7 @@ func BenchmarkAllowlistCheck(b *testing.B) {
 
 		var ma multiaddr.Multiaddr
 		if i%ratioOfSpecifiedPeers == 0 {
-			ma = multiaddr.StringCast(ipString + "/p2p/" + peer.Encode(test.RandPeerIDFatal(b)))
+			ma = multiaddr.StringCast(ipString + "/p2p/" + test.RandPeerIDFatal(b).String())
 		} else {
 			ma = multiaddr.StringCast(ipString)
 		}

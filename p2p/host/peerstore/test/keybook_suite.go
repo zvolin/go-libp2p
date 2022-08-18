@@ -4,13 +4,12 @@ import (
 	"sort"
 	"testing"
 
+	ic "github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/peer"
+	pstore "github.com/libp2p/go-libp2p/core/peerstore"
+	pt "github.com/libp2p/go-libp2p/core/test"
+
 	"github.com/stretchr/testify/require"
-
-	ic "github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/peer"
-	pt "github.com/libp2p/go-libp2p-core/test"
-
-	pstore "github.com/libp2p/go-libp2p-core/peerstore"
 )
 
 var keyBookSuite = map[string]func(kb pstore.KeyBook) func(*testing.T){

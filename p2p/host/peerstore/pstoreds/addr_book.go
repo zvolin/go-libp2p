@@ -7,12 +7,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/libp2p/go-libp2p/core/peer"
+	pstore "github.com/libp2p/go-libp2p/core/peerstore"
+	"github.com/libp2p/go-libp2p/core/record"
 	pb "github.com/libp2p/go-libp2p/p2p/host/peerstore/pb"
 	"github.com/libp2p/go-libp2p/p2p/host/peerstore/pstoremem"
-
-	"github.com/libp2p/go-libp2p-core/peer"
-	pstore "github.com/libp2p/go-libp2p-core/peerstore"
-	"github.com/libp2p/go-libp2p-core/record"
 
 	lru "github.com/hashicorp/golang-lru"
 	ds "github.com/ipfs/go-datastore"
@@ -282,7 +281,7 @@ func (ab *dsAddrBook) AddAddrs(p peer.ID, addrs []ma.Multiaddr, ttl time.Duratio
 
 // ConsumePeerRecord adds addresses from a signed peer.PeerRecord (contained in
 // a record.Envelope), which will expire after the given TTL.
-// See https://godoc.org/github.com/libp2p/go-libp2p-core/peerstore#CertifiedAddrBook for more details.
+// See https://godoc.org/github.com/libp2p/go-libp2p/core/peerstore#CertifiedAddrBook for more details.
 func (ab *dsAddrBook) ConsumePeerRecord(recordEnvelope *record.Envelope, ttl time.Duration) (bool, error) {
 	r, err := recordEnvelope.Record()
 	if err != nil {

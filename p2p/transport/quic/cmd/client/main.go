@@ -8,9 +8,10 @@ import (
 	"log"
 	"os"
 
-	ic "github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/peer"
+	ic "github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/peer"
 	libp2pquic "github.com/libp2p/go-libp2p/p2p/transport/quic"
+
 	ma "github.com/multiformats/go-multiaddr"
 )
 
