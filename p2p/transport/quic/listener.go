@@ -20,7 +20,7 @@ var quicListen = quic.Listen // so we can mock it in tests
 // A listener listens for QUIC connections.
 type listener struct {
 	quicListener   quic.Listener
-	conn           *reuseConn
+	conn           pConn
 	transport      *transport
 	rcmgr          network.ResourceManager
 	privKey        ic.PrivKey
@@ -30,7 +30,7 @@ type listener struct {
 
 var _ tpt.Listener = &listener{}
 
-func newListener(rconn *reuseConn, t *transport, localPeer peer.ID, key ic.PrivKey, identity *p2ptls.Identity, rcmgr network.ResourceManager) (tpt.Listener, error) {
+func newListener(pconn pConn, t *transport, localPeer peer.ID, key ic.PrivKey, identity *p2ptls.Identity, rcmgr network.ResourceManager) (tpt.Listener, error) {
 	var tlsConf tls.Config
 	tlsConf.GetConfigForClient = func(_ *tls.ClientHelloInfo) (*tls.Config, error) {
 		// return a tls.Config that verifies the peer's certificate chain.
@@ -40,7 +40,7 @@ func newListener(rconn *reuseConn, t *transport, localPeer peer.ID, key ic.PrivK
 		conf, _ := identity.ConfigForPeer("")
 		return conf, nil
 	}
-	ln, err := quicListen(rconn, &tlsConf, t.serverConfig)
+	ln, err := quicListen(pconn, &tlsConf, t.serverConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func newListener(rconn *reuseConn, t *transport, localPeer peer.ID, key ic.PrivK
 		return nil, err
 	}
 	return &listener{
-		conn:           rconn,
+		conn:           pconn,
 		quicListener:   ln,
 		transport:      t,
 		rcmgr:          rcmgr,
@@ -145,7 +145,17 @@ func (l *listener) setupConn(qconn quic.Connection) (*conn, error) {
 // Close closes the listener.
 func (l *listener) Close() error {
 	defer l.conn.DecreaseCount()
-	return l.quicListener.Close()
+
+	if err := l.quicListener.Close(); err != nil {
+		return err
+	}
+
+	if _, ok := l.conn.(*noreuseConn); ok {
+		// if we use a `noreuseConn`, close the underlying connection
+		return l.conn.Close()
+	}
+
+	return nil
 }
 
 // Addr returns the address of this listener.
