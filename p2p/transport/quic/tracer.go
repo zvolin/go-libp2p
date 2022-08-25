@@ -13,16 +13,12 @@ import (
 	"github.com/lucas-clemente/quic-go/qlog"
 )
 
-var tracer logging.Tracer
+var qlogTracer logging.Tracer
 
 func init() {
-	tracers := []logging.Tracer{&metricsTracer{}}
 	if qlogDir := os.Getenv("QLOGDIR"); len(qlogDir) > 0 {
-		if qlogger := initQlogger(qlogDir); qlogger != nil {
-			tracers = append(tracers, qlogger)
-		}
+		qlogTracer = initQlogger(qlogDir)
 	}
-	tracer = logging.NewMultiplexedTracer(tracers...)
 }
 
 func initQlogger(qlogDir string) logging.Tracer {

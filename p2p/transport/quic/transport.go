@@ -26,6 +26,7 @@ import (
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/lucas-clemente/quic-go"
+	quiclogging "github.com/lucas-clemente/quic-go/logging"
 	"github.com/minio/sha256-simd"
 )
 
@@ -199,7 +200,16 @@ func NewTransport(key ic.PrivKey, psk pnet.PSK, gater connmgr.ConnectionGater, r
 	if _, err := io.ReadFull(keyReader, qconfig.StatelessResetKey); err != nil {
 		return nil, err
 	}
-	qconfig.Tracer = tracer
+	var tracers []quiclogging.Tracer
+	if qlogTracer != nil {
+		tracers = append(tracers, qlogTracer)
+	}
+	if cfg.metrics {
+		tracers = append(tracers, &metricsTracer{})
+	}
+	if len(tracers) > 0 {
+		qconfig.Tracer = quiclogging.NewMultiplexedTracer(tracers...)
+	}
 
 	tr := &transport{
 		privKey:      key,
