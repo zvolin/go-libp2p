@@ -40,10 +40,10 @@ func newCertConfig(start, end time.Time) (*certConfig, error) {
 }
 
 // Certificate renewal logic:
-// 1. On startup, we generate one cert that is valid from now (-1h, to allow for clock skew), and another
-//    cert that is valid from the expiry date of the first certificate (again, with allowance for clock skew).
-// 2. Once we reach 1h before expiry of the first certificate, we switch over to the second certificate.
-//    At the same time, we stop advertising the certhash of the first cert and generate the next cert.
+//  1. On startup, we generate one cert that is valid from now (-1h, to allow for clock skew), and another
+//     cert that is valid from the expiry date of the first certificate (again, with allowance for clock skew).
+//  2. Once we reach 1h before expiry of the first certificate, we switch over to the second certificate.
+//     At the same time, we stop advertising the certhash of the first cert and generate the next cert.
 type certManager struct {
 	clock     clock.Clock
 	ctx       context.Context
