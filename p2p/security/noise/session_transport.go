@@ -12,6 +12,16 @@ import (
 
 type SessionOption = func(*SessionTransport) error
 
+// Prologue sets a prologue for the Noise session.
+// The handshake will only complete successfully if both parties set the same prologue.
+// See https://noiseprotocol.org/noise.html#prologue for details.
+func Prologue(prologue []byte) SessionOption {
+	return func(s *SessionTransport) error {
+		s.prologue = prologue
+		return nil
+	}
+}
+
 var _ sec.SecureTransport = &SessionTransport{}
 
 // SessionTransport can be used
@@ -38,21 +48,4 @@ func (i *SessionTransport) SecureInbound(ctx context.Context, insecure net.Conn,
 // SecureOutbound runs the Noise handshake as the initiator.
 func (i *SessionTransport) SecureOutbound(ctx context.Context, insecure net.Conn, p peer.ID) (sec.SecureConn, error) {
 	return newSecureSession(i.t, ctx, insecure, p, i.prologue, true)
-}
-
-func (t *Transport) WithSessionOptions(opts ...SessionOption) (sec.SecureTransport, error) {
-	st := &SessionTransport{t: t}
-	for _, opt := range opts {
-		if err := opt(st); err != nil {
-			return nil, err
-		}
-	}
-	return st, nil
-}
-
-func Prologue(prologue []byte) SessionOption {
-	return func(s *SessionTransport) error {
-		s.prologue = prologue
-		return nil
-	}
 }

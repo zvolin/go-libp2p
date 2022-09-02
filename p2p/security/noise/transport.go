@@ -55,3 +55,13 @@ func (t *Transport) SecureInbound(ctx context.Context, insecure net.Conn, p peer
 func (t *Transport) SecureOutbound(ctx context.Context, insecure net.Conn, p peer.ID) (sec.SecureConn, error) {
 	return newSecureSession(t, ctx, insecure, p, nil, true)
 }
+
+func (t *Transport) WithSessionOptions(opts ...SessionOption) (sec.SecureTransport, error) {
+	st := &SessionTransport{t: t}
+	for _, opt := range opts {
+		if err := opt(st); err != nil {
+			return nil, err
+		}
+	}
+	return st, nil
+}
