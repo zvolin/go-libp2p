@@ -73,16 +73,4 @@ func TestExtractCertHashes(t *testing.T) {
 			require.Equal(t, h, string(ch[i].Digest))
 		}
 	}
-
-	// invalid cases
-	for _, tc := range [...]struct {
-		addr string
-		err  string
-	}{
-		{addr: fmt.Sprintf("/ip4/127.0.0.1/udp/1234/quic/webtransport/certhash/%s", fooHash[:len(fooHash)-1]), err: "failed to multihash-decode certificate hash"},
-	} {
-		_, err := extractCertHashes(ma.StringCast(tc.addr))
-		require.Error(t, err)
-		require.Contains(t, err.Error(), tc.err)
-	}
 }

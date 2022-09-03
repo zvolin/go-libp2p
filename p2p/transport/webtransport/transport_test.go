@@ -43,9 +43,12 @@ func newIdentity(t *testing.T) (peer.ID, ic.PrivKey) {
 }
 
 func randomMultihash(t *testing.T) string {
+	t.Helper()
 	b := make([]byte, 16)
 	rand.Read(b)
-	s, err := multibase.Encode(multibase.Base32hex, b)
+	h, err := multihash.Encode(b, multihash.KECCAK_224)
+	require.NoError(t, err)
+	s, err := multibase.Encode(multibase.Base32hex, h)
 	require.NoError(t, err)
 	return s
 }
