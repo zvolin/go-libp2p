@@ -37,9 +37,12 @@ func generateCert(start, end time.Time) (*x509.Certificate, *ecdsa.PrivateKey, e
 	if _, err := rand.Read(b); err != nil {
 		return nil, nil, err
 	}
-	serial := binary.BigEndian.Uint64(b)
+	serial := int64(binary.BigEndian.Uint64(b))
+	if serial < 0 {
+		serial = -serial
+	}
 	certTempl := &x509.Certificate{
-		SerialNumber:          big.NewInt(int64(serial)),
+		SerialNumber:          big.NewInt(serial),
 		Subject:               pkix.Name{},
 		NotBefore:             start,
 		NotAfter:              end,
