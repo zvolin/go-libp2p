@@ -20,12 +20,12 @@ import (
 
 	libp2pwebtransport "github.com/marten-seemann/go-libp2p-webtransport"
 
-	ic "github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
+	ic "github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/network"
+	mocknetwork "github.com/libp2p/go-libp2p/core/network/mocks"
+	"github.com/libp2p/go-libp2p/core/peer"
 
 	"github.com/golang/mock/gomock"
-	mocknetwork "github.com/libp2p/go-libp2p-testing/mocks/network"
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 	"github.com/multiformats/go-multibase"
@@ -338,7 +338,7 @@ func TestResourceManagerListening(t *testing.T) {
 }
 
 // TODO: unify somehow. We do the same in libp2pquic.
-//go:generate sh -c "mockgen -package libp2pwebtransport_test -destination mock_connection_gater_test.go github.com/libp2p/go-libp2p-core/connmgr ConnectionGater && goimports -w mock_connection_gater_test.go"
+//go:generate sh -c "mockgen -package libp2pwebtransport_test -destination mock_connection_gater_test.go github.com/libp2p/go-libp2p/core/connmgr ConnectionGater && goimports -w mock_connection_gater_test.go"
 
 func TestConnectionGaterDialing(t *testing.T) {
 	ctrl := gomock.NewController(t)

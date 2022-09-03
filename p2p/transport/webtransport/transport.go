@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"errors"
 	"fmt"
 	"io"
 	"sync"
@@ -12,13 +11,12 @@ import (
 
 	pb "github.com/marten-seemann/go-libp2p-webtransport/pb"
 
-	"github.com/libp2p/go-libp2p-core/connmgr"
-	ic "github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
-	tpt "github.com/libp2p/go-libp2p-core/transport"
-
-	noise "github.com/libp2p/go-libp2p-noise"
+	"github.com/libp2p/go-libp2p/core/connmgr"
+	ic "github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/network"
+	"github.com/libp2p/go-libp2p/core/peer"
+	tpt "github.com/libp2p/go-libp2p/core/transport"
+	"github.com/libp2p/go-libp2p/p2p/security/noise"
 
 	"github.com/benbjohnson/clock"
 	logging "github.com/ipfs/go-log/v2"
@@ -102,11 +100,11 @@ func New(key ic.PrivKey, gater connmgr.ConnectionGater, rcmgr network.ResourceMa
 			return nil, err
 		}
 	}
-	noise, err := noise.New(key, noise.WithEarlyDataHandler(t.checkEarlyData))
+	n, err := noise.New(key)
 	if err != nil {
 		return nil, err
 	}
-	t.noise = noise
+	t.noise = n
 	return t, nil
 }
 
@@ -207,7 +205,11 @@ func (t *transport) upgrade(ctx context.Context, sess *webtransport.Session, p p
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal WebTransport protobuf: %w", err)
 	}
-	c, err := t.noise.SecureOutboundWithEarlyData(ctx, &webtransportStream{Stream: str, wsess: sess}, p, msgBytes)
+	n, err := t.noise.WithSessionOptions(noise.EarlyData(newEarlyDataSender(msgBytes)))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Noise transport: %w", err)
+	}
+	c, err := n.SecureOutbound(ctx, &webtransportStream{Stream: str, wsess: sess}, p)
 	if err != nil {
 		return nil, err
 	}
@@ -215,30 +217,6 @@ func (t *transport) upgrade(ctx context.Context, sess *webtransport.Session, p p
 		ConnSecurity:   c,
 		ConnMultiaddrs: &connMultiaddrs{local: local, remote: remote},
 	}, nil
-}
-
-func (t *transport) checkEarlyData(b []byte) error {
-	var msg pb.WebTransport
-	if err := msg.Unmarshal(b); err != nil {
-		return fmt.Errorf("failed to unmarshal early data protobuf: %w", err)
-	}
-	hashes := make([]multihash.DecodedMultihash, 0, len(msg.CertHashes))
-
-	if t.staticTLSConf != nil {
-		if len(hashes) > 0 {
-			return errors.New("using static TLS config, didn't expect any certificate hashes")
-		}
-		return nil
-	}
-
-	for _, h := range msg.CertHashes {
-		dh, err := multihash.Decode(h)
-		if err != nil {
-			return fmt.Errorf("failed to decode hash: %w", err)
-		}
-		hashes = append(hashes, *dh)
-	}
-	return t.certManager.Verify(hashes)
 }
 
 func (t *transport) CanDial(addr ma.Multiaddr) bool {
