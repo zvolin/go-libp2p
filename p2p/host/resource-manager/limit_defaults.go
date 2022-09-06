@@ -514,7 +514,7 @@ var DefaultLimits = ScalingLimitConfig{
 		ConnsOutbound: 1,
 		Conns:         1,
 		FD:            1,
-		Memory:        1 << 20,
+		Memory:        32 << 20,
 	},
 
 	StreamBaseLimit: BaseLimit{
