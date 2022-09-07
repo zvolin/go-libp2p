@@ -10,12 +10,7 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
-type connSecurityMultiaddrs interface {
-	network.ConnMultiaddrs
-	network.ConnSecurity
-}
-
-type connSecurityMultiaddrsImpl struct {
+type connSecurityMultiaddrs struct {
 	network.ConnSecurity
 	network.ConnMultiaddrs
 }
@@ -30,7 +25,7 @@ func (c *connMultiaddrs) LocalMultiaddr() ma.Multiaddr  { return c.local }
 func (c *connMultiaddrs) RemoteMultiaddr() ma.Multiaddr { return c.remote }
 
 type conn struct {
-	connSecurityMultiaddrs
+	*connSecurityMultiaddrs
 
 	transport tpt.Transport
 	session   *webtransport.Session
@@ -40,7 +35,7 @@ type conn struct {
 
 var _ tpt.CapableConn = &conn{}
 
-func newConn(tr tpt.Transport, sess *webtransport.Session, sconn connSecurityMultiaddrs, scope network.ConnScope) *conn {
+func newConn(tr tpt.Transport, sess *webtransport.Session, sconn *connSecurityMultiaddrs, scope network.ConnScope) *conn {
 	return &conn{
 		connSecurityMultiaddrs: sconn,
 		transport:              tr,

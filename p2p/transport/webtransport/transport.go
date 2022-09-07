@@ -179,7 +179,7 @@ func (t *transport) dial(ctx context.Context, addr string, certHashes []multihas
 	return sess, err
 }
 
-func (t *transport) upgrade(ctx context.Context, sess *webtransport.Session, p peer.ID, certHashes []multihash.DecodedMultihash) (connSecurityMultiaddrs, error) {
+func (t *transport) upgrade(ctx context.Context, sess *webtransport.Session, p peer.ID, certHashes []multihash.DecodedMultihash) (*connSecurityMultiaddrs, error) {
 	local, err := toWebtransportMultiaddr(sess.LocalAddr())
 	if err != nil {
 		return nil, fmt.Errorf("error determiniting local addr: %w", err)
@@ -215,7 +215,7 @@ func (t *transport) upgrade(ctx context.Context, sess *webtransport.Session, p p
 	if err != nil {
 		return nil, err
 	}
-	return &connSecurityMultiaddrsImpl{
+	return &connSecurityMultiaddrs{
 		ConnSecurity:   c,
 		ConnMultiaddrs: &connMultiaddrs{local: local, remote: remote},
 	}, nil
