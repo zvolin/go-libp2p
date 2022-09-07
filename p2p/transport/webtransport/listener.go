@@ -5,8 +5,6 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	pb "github.com/marten-seemann/go-libp2p-webtransport/pb"
-	"github.com/multiformats/go-multihash"
 	"net"
 	"net/http"
 	"time"
@@ -15,11 +13,13 @@ import (
 	"github.com/libp2p/go-libp2p/core/network"
 	tpt "github.com/libp2p/go-libp2p/core/transport"
 	"github.com/libp2p/go-libp2p/p2p/security/noise"
+	pb "github.com/libp2p/go-libp2p/p2p/transport/webtransport/pb"
 
 	"github.com/lucas-clemente/quic-go/http3"
 	"github.com/marten-seemann/webtransport-go"
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
+	"github.com/multiformats/go-multihash"
 )
 
 var errClosed = errors.New("closed")

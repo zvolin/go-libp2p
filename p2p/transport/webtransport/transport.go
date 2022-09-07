@@ -9,14 +9,13 @@ import (
 	"sync"
 	"time"
 
-	pb "github.com/marten-seemann/go-libp2p-webtransport/pb"
-
 	"github.com/libp2p/go-libp2p/core/connmgr"
 	ic "github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	tpt "github.com/libp2p/go-libp2p/core/transport"
 	"github.com/libp2p/go-libp2p/p2p/security/noise"
+	pb "github.com/libp2p/go-libp2p/p2p/transport/webtransport/pb"
 
 	"github.com/benbjohnson/clock"
 	logging "github.com/ipfs/go-log/v2"

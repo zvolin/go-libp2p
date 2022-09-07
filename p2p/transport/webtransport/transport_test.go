@@ -18,20 +18,18 @@ import (
 	"testing"
 	"time"
 
-	libp2pwebtransport "github.com/marten-seemann/go-libp2p-webtransport"
-
 	ic "github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/network"
 	mocknetwork "github.com/libp2p/go-libp2p/core/network/mocks"
 	"github.com/libp2p/go-libp2p/core/peer"
 	tpt "github.com/libp2p/go-libp2p/core/transport"
+	libp2pwebtransport "github.com/libp2p/go-libp2p/p2p/transport/webtransport"
 
 	"github.com/golang/mock/gomock"
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 	"github.com/multiformats/go-multibase"
 	"github.com/multiformats/go-multihash"
-
 	"github.com/stretchr/testify/require"
 )
 
