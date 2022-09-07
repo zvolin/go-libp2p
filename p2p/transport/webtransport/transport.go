@@ -159,7 +159,9 @@ func (t *transport) dial(ctx context.Context, addr string, certHashes []multihas
 	}
 
 	if len(certHashes) > 0 {
-		tlsConf.InsecureSkipVerify = true // this is not insecure. We verify the certificate ourselves.
+		// This is not insecure. We verify the certificate ourselves.
+		// See https://www.w3.org/TR/webtransport/#certificate-hashes.
+		tlsConf.InsecureSkipVerify = true
 		tlsConf.VerifyPeerCertificate = func(rawCerts [][]byte, _ [][]*x509.Certificate) error {
 			return verifyRawCerts(rawCerts, certHashes)
 		}
