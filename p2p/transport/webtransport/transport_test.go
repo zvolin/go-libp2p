@@ -177,13 +177,13 @@ func TestCanDial(t *testing.T) {
 		ma.StringCast("/ip4/127.0.0.1/udp/1234/quic/webtransport/certhash/" + randomMultihash(t)),
 		ma.StringCast("/ip6/b16b:8255:efc6:9cd5:1a54:ee86:2d7a:c2e6/udp/1234/quic/webtransport/certhash/" + randomMultihash(t)),
 		ma.StringCast(fmt.Sprintf("/ip4/127.0.0.1/udp/1234/quic/webtransport/certhash/%s/certhash/%s/certhash/%s", randomMultihash(t), randomMultihash(t), randomMultihash(t))),
+		ma.StringCast("/ip4/127.0.0.1/udp/1234/quic/webtransport"), // no certificate hash
 	}
 
 	invalid := []ma.Multiaddr{
-		ma.StringCast("/ip4/127.0.0.1/udp/1234"),                   // missing webtransport
-		ma.StringCast("/ip4/127.0.0.1/udp/1234/webtransport"),      // missing quic
-		ma.StringCast("/ip4/127.0.0.1/tcp/1234/webtransport"),      // WebTransport over TCP? Is this a joke?
-		ma.StringCast("/ip4/127.0.0.1/udp/1234/quic/webtransport"), // missing certificate hash
+		ma.StringCast("/ip4/127.0.0.1/udp/1234"),              // missing webtransport
+		ma.StringCast("/ip4/127.0.0.1/udp/1234/webtransport"), // missing quic
+		ma.StringCast("/ip4/127.0.0.1/tcp/1234/webtransport"), // WebTransport over TCP? Is this a joke?
 	}
 
 	_, key := newIdentity(t)
@@ -506,6 +506,7 @@ func TestStaticTLSConf(t *testing.T) {
 		require.NoError(t, err)
 		defer cl.(io.Closer).Close()
 
+		require.True(t, cl.CanDial(ln.Multiaddr()))
 		conn, err := cl.Dial(context.Background(), ln.Multiaddr(), serverID)
 		require.NoError(t, err)
 		defer conn.Close()

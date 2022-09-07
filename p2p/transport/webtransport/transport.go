@@ -231,9 +231,8 @@ func (t *transport) CanDial(addr ma.Multiaddr) bool {
 		}
 		return true
 	})
-	if numHashes == 0 {
-		return false
-	}
+	// Remove the /certhash components from the multiaddr.
+	// If the multiaddr doesn't contain any certhashes, the node might have a CA-signed certificate.
 	for i := 0; i < numHashes; i++ {
 		addr, _ = ma.SplitLast(addr)
 	}
