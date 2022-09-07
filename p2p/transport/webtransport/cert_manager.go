@@ -11,7 +11,6 @@ import (
 
 	"github.com/benbjohnson/clock"
 	ma "github.com/multiformats/go-multiaddr"
-	"github.com/multiformats/go-multibase"
 	"github.com/multiformats/go-multihash"
 )
 
@@ -147,12 +146,12 @@ func (m *certManager) Verify(hashes []multihash.DecodedMultihash) error {
 }
 
 func (m *certManager) cacheAddrComponent() error {
-	addr, err := m.addrComponentForCert(m.currentConfig.sha256[:])
+	addr, err := addrComponentForCert(m.currentConfig.sha256[:])
 	if err != nil {
 		return err
 	}
 	if m.nextConfig != nil {
-		comp, err := m.addrComponentForCert(m.nextConfig.sha256[:])
+		comp, err := addrComponentForCert(m.nextConfig.sha256[:])
 		if err != nil {
 			return err
 		}
@@ -160,18 +159,6 @@ func (m *certManager) cacheAddrComponent() error {
 	}
 	m.addrComp = addr
 	return nil
-}
-
-func (m *certManager) addrComponentForCert(hash []byte) (ma.Multiaddr, error) {
-	mh, err := multihash.Encode(hash, multihash.SHA2_256)
-	if err != nil {
-		return nil, err
-	}
-	certStr, err := multibase.Encode(multibase.Base58BTC, mh)
-	if err != nil {
-		return nil, err
-	}
-	return ma.NewComponent(ma.ProtocolWithCode(ma.P_CERTHASH).Name, certStr)
 }
 
 func (m *certManager) Close() error {

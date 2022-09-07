@@ -66,3 +66,15 @@ func extractCertHashes(addr ma.Multiaddr) ([]multihash.DecodedMultihash, error) 
 	}
 	return certHashes, nil
 }
+
+func addrComponentForCert(hash []byte) (ma.Multiaddr, error) {
+	mh, err := multihash.Encode(hash, multihash.SHA2_256)
+	if err != nil {
+		return nil, err
+	}
+	certStr, err := multibase.Encode(multibase.Base58BTC, mh)
+	if err != nil {
+		return nil, err
+	}
+	return ma.NewComponent(ma.ProtocolWithCode(ma.P_CERTHASH).Name, certStr)
+}
