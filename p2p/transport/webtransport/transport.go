@@ -195,7 +195,8 @@ func (t *transport) upgrade(ctx context.Context, sess *webtransport.Session, p p
 		return nil, err
 	}
 
-	// Now run a Noise handshake (using early data) and verify the cert hash.
+	// Now run a Noise handshake (using early data) and send all the certificate hashes that we would have accepted.
+	// The server will verify that it advertised all of these certificate hashes.
 	msg := pb.WebTransport{CertHashes: make([][]byte, 0, len(certHashes))}
 	for _, certHash := range certHashes {
 		h, err := multihash.Encode(certHash.Digest, certHash.Code)
