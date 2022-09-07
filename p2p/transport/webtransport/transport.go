@@ -143,6 +143,7 @@ func (t *transport) Dial(ctx context.Context, raddr ma.Multiaddr, p peer.ID) (tp
 	if t.gater != nil && !t.gater.InterceptSecured(network.DirOutbound, p, sconn) {
 		// TODO: can we close with a specific error here?
 		sess.Close()
+		scope.Done()
 		return nil, fmt.Errorf("secured connection gated")
 	}
 
