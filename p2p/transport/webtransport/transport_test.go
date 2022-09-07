@@ -24,6 +24,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/network"
 	mocknetwork "github.com/libp2p/go-libp2p/core/network/mocks"
 	"github.com/libp2p/go-libp2p/core/peer"
+	tpt "github.com/libp2p/go-libp2p/core/transport"
 
 	"github.com/golang/mock/gomock"
 	ma "github.com/multiformats/go-multiaddr"
@@ -509,4 +510,35 @@ func TestStaticTLSConf(t *testing.T) {
 		require.NoError(t, err)
 		defer conn.Close()
 	})
+}
+
+func TestAcceptQueueFilledUp(t *testing.T) {
+	serverID, serverKey := newIdentity(t)
+	tr, err := libp2pwebtransport.New(serverKey, nil, network.NullResourceManager)
+	require.NoError(t, err)
+	defer tr.(io.Closer).Close()
+	ln, err := tr.Listen(ma.StringCast("/ip4/127.0.0.1/udp/0/quic/webtransport"))
+	require.NoError(t, err)
+	defer ln.Close()
+
+	newConn := func() (tpt.CapableConn, error) {
+		t.Helper()
+		_, key := newIdentity(t)
+		cl, err := libp2pwebtransport.New(key, nil, network.NullResourceManager)
+		require.NoError(t, err)
+		defer cl.(io.Closer).Close()
+		return cl.Dial(context.Background(), ln.Multiaddr(), serverID)
+	}
+
+	for i := 0; i < 16; i++ {
+		conn, err := newConn()
+		require.NoError(t, err)
+		defer conn.Close()
+	}
+
+	conn, err := newConn()
+	if err == nil {
+		_, err = conn.AcceptStream()
+	}
+	require.Error(t, err)
 }

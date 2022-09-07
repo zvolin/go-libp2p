@@ -158,8 +158,13 @@ func (l *listener) httpHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: think about what happens when this channel fills up
-	l.queue <- newConn(l.transport, sess, sconn, connScope)
+	select {
+	case l.queue <- newConn(l.transport, sess, sconn, connScope):
+	default:
+		log.Debugw("accept queue full, dropping incoming connection", "peer", sconn.RemotePeer(), "addr", r.RemoteAddr, "error", err)
+		sess.Close()
+		connScope.Done()
+	}
 }
 
 func (l *listener) Accept() (tpt.CapableConn, error) {
