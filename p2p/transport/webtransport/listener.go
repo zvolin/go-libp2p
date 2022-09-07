@@ -91,9 +91,6 @@ func newListener(laddr ma.Multiaddr, transport tpt.Transport, noise *noise.Trans
 	}
 	ln.ctx, ln.ctxCancel = context.WithCancel(context.Background())
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Hello, world!"))
-	})
 	mux.HandleFunc(webtransportHTTPEndpoint, ln.httpHandler)
 	ln.server.H3.Handler = mux
 	go func() {
