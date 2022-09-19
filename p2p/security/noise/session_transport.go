@@ -22,18 +22,28 @@ func Prologue(prologue []byte) SessionOption {
 	}
 }
 
-// EarlyDataHandler allows attaching an (unencrypted) application payload to the first handshake message.
-// While unencrypted, the integrity of this early data is retroactively authenticated on completion of the handshake.
+// EarlyDataHandler defines what the application payload is for either the second
+// (if responder) or third (if initiator) handshake message, and defines the
+// logic for handling the other side's early data. Note the early data in the
+// second handshake message is encrypted, but the peer is not authenticated at that point.
 type EarlyDataHandler interface {
-	// Send is called for the client before sending the first handshake message.
+	// Send for the initiator is called for the client before sending the third
+	// handshake message. Defines the application payload for the third message.
+	// Send for the responder is called before sending the second handshake message.
 	Send(context.Context, net.Conn, peer.ID) []byte
-	// Received is called for the server when the first handshake message from the client is received.
+	// Received for the initiator is called when the second handshake message
+	// from the responder is received.
+	// Received for the responder is called when the third handshake message
+	// from the initiator is received.
 	Received(context.Context, net.Conn, []byte) error
 }
 
-func EarlyData(h EarlyDataHandler) SessionOption {
+// EarlyData sets the `EarlyDataHandler` for the initiator and responder roles.
+// See `EarlyDataHandler` for more details.
+func EarlyData(initiator, responder EarlyDataHandler) SessionOption {
 	return func(s *SessionTransport) error {
-		s.earlyDataHandler = h
+		s.initiatorEarlyDataHandler = initiator
+		s.responderEarlyDataHandler = responder
 		return nil
 	}
 }
@@ -45,14 +55,15 @@ var _ sec.SecureTransport = &SessionTransport{}
 type SessionTransport struct {
 	t *Transport
 	// options
-	prologue         []byte
-	earlyDataHandler EarlyDataHandler
+	prologue []byte
+
+	initiatorEarlyDataHandler, responderEarlyDataHandler EarlyDataHandler
 }
 
 // SecureInbound runs the Noise handshake as the responder.
 // If p is empty, connections from any peer are accepted.
 func (i *SessionTransport) SecureInbound(ctx context.Context, insecure net.Conn, p peer.ID) (sec.SecureConn, error) {
-	c, err := newSecureSession(i.t, ctx, insecure, p, i.prologue, i.earlyDataHandler, false)
+	c, err := newSecureSession(i.t, ctx, insecure, p, i.prologue, i.initiatorEarlyDataHandler, i.responderEarlyDataHandler, false)
 	if err != nil {
 		addr, maErr := manet.FromNetAddr(insecure.RemoteAddr())
 		if maErr == nil {
@@ -64,5 +75,5 @@ func (i *SessionTransport) SecureInbound(ctx context.Context, insecure net.Conn,
 
 // SecureOutbound runs the Noise handshake as the initiator.
 func (i *SessionTransport) SecureOutbound(ctx context.Context, insecure net.Conn, p peer.ID) (sec.SecureConn, error) {
-	return newSecureSession(i.t, ctx, insecure, p, i.prologue, i.earlyDataHandler, true)
+	return newSecureSession(i.t, ctx, insecure, p, i.prologue, i.initiatorEarlyDataHandler, i.responderEarlyDataHandler, true)
 }
