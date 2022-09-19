@@ -16,6 +16,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/sec"
+	"github.com/libp2p/go-libp2p/p2p/security/noise/pb"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -428,22 +429,22 @@ func TestPrologueDoesNotMatchFailsHandshake(t *testing.T) {
 }
 
 type earlyDataHandler struct {
-	send     func(context.Context, net.Conn, peer.ID) []byte
-	received func(context.Context, net.Conn, []byte) error
+	send     func(context.Context, net.Conn, peer.ID) *pb.NoiseExtensions
+	received func(context.Context, net.Conn, *pb.NoiseExtensions) error
 }
 
-func (e *earlyDataHandler) Send(ctx context.Context, conn net.Conn, id peer.ID) []byte {
+func (e *earlyDataHandler) Send(ctx context.Context, conn net.Conn, id peer.ID) *pb.NoiseExtensions {
 	if e.send == nil {
 		return nil
 	}
 	return e.send(ctx, conn, id)
 }
 
-func (e *earlyDataHandler) Received(ctx context.Context, conn net.Conn, data []byte) error {
+func (e *earlyDataHandler) Received(ctx context.Context, conn net.Conn, ext *pb.NoiseExtensions) error {
 	if e.received == nil {
 		return nil
 	}
-	return e.received(ctx, conn, data)
+	return e.received(ctx, conn, ext)
 }
 
 func TestEarlyDataAccepted(t *testing.T) {
@@ -474,27 +475,29 @@ func TestEarlyDataAccepted(t *testing.T) {
 		defer conn.Close()
 	}
 
-	var receivedEarlyData []byte
+	var receivedExtensions *pb.NoiseExtensions
 	receivingEDH := &earlyDataHandler{
-		received: func(_ context.Context, _ net.Conn, data []byte) error {
-			receivedEarlyData = data
+		received: func(_ context.Context, _ net.Conn, ext *pb.NoiseExtensions) error {
+			receivedExtensions = ext
 			return nil
 		},
 	}
 	sendingEDH := &earlyDataHandler{
-		send: func(ctx context.Context, conn net.Conn, id peer.ID) []byte { return []byte("foobar") },
+		send: func(context.Context, net.Conn, peer.ID) *pb.NoiseExtensions {
+			return &pb.NoiseExtensions{WebtransportCerthashes: [][]byte{[]byte("foobar")}}
+		},
 	}
 
 	t.Run("client sending", func(t *testing.T) {
 		handshake(t, sendingEDH, receivingEDH)
-		require.Equal(t, []byte("foobar"), receivedEarlyData)
-		receivedEarlyData = nil
+		require.Equal(t, [][]byte{[]byte("foobar")}, receivedExtensions.WebtransportCerthashes)
+		receivedExtensions = nil
 	})
 
 	t.Run("server sending", func(t *testing.T) {
 		handshake(t, receivingEDH, sendingEDH)
-		require.Equal(t, []byte("foobar"), receivedEarlyData)
-		receivedEarlyData = nil
+		require.Equal(t, [][]byte{[]byte("foobar")}, receivedExtensions.WebtransportCerthashes)
+		receivedExtensions = nil
 	})
 }
 
@@ -532,10 +535,12 @@ func TestEarlyDataRejected(t *testing.T) {
 	}
 
 	receivingEDH := &earlyDataHandler{
-		received: func(_ context.Context, _ net.Conn, data []byte) error { return errors.New("nope") },
+		received: func(context.Context, net.Conn, *pb.NoiseExtensions) error { return errors.New("nope") },
 	}
 	sendingEDH := &earlyDataHandler{
-		send: func(ctx context.Context, conn net.Conn, id peer.ID) []byte { return []byte("foobar") },
+		send: func(context.Context, net.Conn, peer.ID) *pb.NoiseExtensions {
+			return &pb.NoiseExtensions{WebtransportCerthashes: [][]byte{[]byte("foobar")}}
+		},
 	}
 
 	t.Run("client sending", func(t *testing.T) {
@@ -554,7 +559,9 @@ func TestEarlyDataRejected(t *testing.T) {
 
 func TestEarlyfffDataAcceptedWithNoHandler(t *testing.T) {
 	clientEDH := &earlyDataHandler{
-		send: func(ctx context.Context, conn net.Conn, id peer.ID) []byte { return []byte("foobar") },
+		send: func(ctx context.Context, conn net.Conn, id peer.ID) *pb.NoiseExtensions {
+			return &pb.NoiseExtensions{WebtransportCerthashes: [][]byte{[]byte("foobar")}}
+		},
 	}
 	initTransport, err := newTestTransport(t, crypto.Ed25519, 2048).WithSessionOptions(EarlyData(clientEDH, nil))
 	require.NoError(t, err)

@@ -11,16 +11,16 @@ import (
 	"sync"
 	"time"
 
+	"github.com/libp2p/go-libp2p/p2p/security/noise/pb"
+
+	"github.com/benbjohnson/clock"
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p/core/connmgr"
 	ic "github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	tpt "github.com/libp2p/go-libp2p/core/transport"
 	"github.com/libp2p/go-libp2p/p2p/security/noise"
-	pb "github.com/libp2p/go-libp2p/p2p/transport/webtransport/pb"
-
-	"github.com/benbjohnson/clock"
-	logging "github.com/ipfs/go-log/v2"
 	"github.com/lucas-clemente/quic-go/http3"
 	"github.com/marten-seemann/webtransport-go"
 	ma "github.com/multiformats/go-multiaddr"
@@ -206,8 +206,8 @@ func (t *transport) upgrade(ctx context.Context, sess *webtransport.Session, p p
 	// Now run a Noise handshake (using early data) and send all the certificate hashes that we would have accepted.
 	// The server will verify that it advertised all of these certificate hashes.
 	var verified bool
-	n, err := t.noise.WithSessionOptions(noise.EarlyData(newEarlyDataReceiver(func(b []byte) error {
-		decodedCertHashes, err := decodeCertHashesFromProtobuf(b)
+	n, err := t.noise.WithSessionOptions(noise.EarlyData(newEarlyDataReceiver(func(b *pb.NoiseExtensions) error {
+		decodedCertHashes, err := decodeCertHashesFromProtobuf(b.WebtransportCerthashes)
 		if err != nil {
 			return err
 		}
@@ -244,14 +244,9 @@ func (t *transport) upgrade(ctx context.Context, sess *webtransport.Session, p p
 	}, nil
 }
 
-func decodeCertHashesFromProtobuf(b []byte) ([]multihash.DecodedMultihash, error) {
-	var msg pb.WebTransport
-	if err := msg.Unmarshal(b); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal early data protobuf: %w", err)
-	}
-
-	hashes := make([]multihash.DecodedMultihash, 0, len(msg.CertHashes))
-	for _, h := range msg.CertHashes {
+func decodeCertHashesFromProtobuf(b [][]byte) ([]multihash.DecodedMultihash, error) {
+	hashes := make([]multihash.DecodedMultihash, 0, len(b))
+	for _, h := range b {
 		dh, err := multihash.Decode(h)
 		if err != nil {
 			return nil, fmt.Errorf("failed to decode hash: %w", err)
