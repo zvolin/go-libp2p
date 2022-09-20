@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	pb "github.com/libp2p/go-libp2p/p2p/transport/webtransport/pb"
+	"github.com/libp2p/go-libp2p/p2p/security/noise/pb"
 
 	"github.com/libp2p/go-libp2p/core/connmgr"
 	"github.com/libp2p/go-libp2p/core/network"
@@ -197,19 +197,15 @@ func (l *listener) handshake(ctx context.Context, sess *webtransport.Session) (*
 	if err != nil {
 		return nil, err
 	}
-	var earlyData []byte
-	if l.isStaticTLSConf {
-		var msg pb.WebTransport
-		var err error
-		earlyData, err = msg.Marshal()
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		earlyData = l.certManager.Protobuf()
+	var earlyData [][]byte
+	if !l.isStaticTLSConf {
+		earlyData = l.certManager.SerializedCertHashes()
 	}
 
-	n, err := l.noise.WithSessionOptions(noise.EarlyData(nil, newEarlyDataSender(earlyData)))
+	n, err := l.noise.WithSessionOptions(noise.EarlyData(
+		nil,
+		newEarlyDataSender(&pb.NoiseExtensions{WebtransportCerthashes: earlyData}),
+	))
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize Noise session: %w", err)
 	}

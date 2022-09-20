@@ -8,8 +8,6 @@ import (
 	"sync"
 	"time"
 
-	pb "github.com/libp2p/go-libp2p/p2p/transport/webtransport/pb"
-
 	"github.com/benbjohnson/clock"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/multiformats/go-multihash"
@@ -56,7 +54,7 @@ type certManager struct {
 	nextConfig    *certConfig // nil until we have passed half the certValidity of the current config
 	addrComp      ma.Multiaddr
 
-	protobuf []byte
+	serializedCertHashes [][]byte
 }
 
 func newCertManager(clock clock.Clock) (*certManager, error) {
@@ -91,7 +89,7 @@ func (m *certManager) rollConfig() error {
 	m.lastConfig = m.currentConfig
 	m.currentConfig = m.nextConfig
 	m.nextConfig = c
-	if err := m.cacheProtobuf(); err != nil {
+	if err := m.cacheSerializedCertHashes(); err != nil {
 		return err
 	}
 	return m.cacheAddrComponent()
@@ -137,11 +135,11 @@ func (m *certManager) AddrComponent() ma.Multiaddr {
 	return m.addrComp
 }
 
-func (m *certManager) Protobuf() []byte {
-	return m.protobuf
+func (m *certManager) SerializedCertHashes() [][]byte {
+	return m.serializedCertHashes
 }
 
-func (m *certManager) cacheProtobuf() error {
+func (m *certManager) cacheSerializedCertHashes() error {
 	hashes := make([][32]byte, 0, 3)
 	if m.lastConfig != nil {
 		hashes = append(hashes, m.lastConfig.sha256)
@@ -151,19 +149,14 @@ func (m *certManager) cacheProtobuf() error {
 		hashes = append(hashes, m.nextConfig.sha256)
 	}
 
-	msg := pb.WebTransport{CertHashes: make([][]byte, 0, len(hashes))}
+	m.serializedCertHashes = m.serializedCertHashes[:0]
 	for _, certHash := range hashes {
 		h, err := multihash.Encode(certHash[:], multihash.SHA2_256)
 		if err != nil {
 			return fmt.Errorf("failed to encode certificate hash: %w", err)
 		}
-		msg.CertHashes = append(msg.CertHashes, h)
+		m.serializedCertHashes = append(m.serializedCertHashes, h)
 	}
-	msgBytes, err := msg.Marshal()
-	if err != nil {
-		return fmt.Errorf("failed to marshal WebTransport protobuf: %w", err)
-	}
-	m.protobuf = msgBytes
 	return nil
 }
 

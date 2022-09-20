@@ -99,7 +99,7 @@ func (s *secureSession) runHandshake(ctx context.Context) (err error) {
 
 		// stage 2 //
 		// Handshake Msg Len = len(DHT static key) +  MAC(static key is encrypted) + len(Payload) + MAC(payload is encrypted)
-		var ed []byte
+		var ed *pb.NoiseExtensions
 		if s.initiatorEarlyDataHandler != nil {
 			ed = s.initiatorEarlyDataHandler.Send(ctx, s.insecureConn, s.remoteID)
 		}
@@ -120,7 +120,7 @@ func (s *secureSession) runHandshake(ctx context.Context) (err error) {
 		// stage 1 //
 		// Handshake Msg Len = len(DH ephemeral key) + len(DHT static key) +  MAC(static key is encrypted) + len(Payload) +
 		// MAC(payload is encrypted)
-		var ed []byte
+		var ed *pb.NoiseExtensions
 		if s.responderEarlyDataHandler != nil {
 			ed = s.responderEarlyDataHandler.Send(ctx, s.insecureConn, s.remoteID)
 		}
@@ -224,7 +224,7 @@ func (s *secureSession) readHandshakeMessage(hs *noise.HandshakeState) ([]byte, 
 
 // generateHandshakePayload creates a libp2p handshake payload with a
 // signature of our static noise key.
-func (s *secureSession) generateHandshakePayload(localStatic noise.DHKey, data []byte) ([]byte, error) {
+func (s *secureSession) generateHandshakePayload(localStatic noise.DHKey, ext *pb.NoiseExtensions) ([]byte, error) {
 	// obtain the public key from the handshake session, so we can sign it with
 	// our libp2p secret key.
 	localKeyRaw, err := crypto.MarshalPublicKey(s.LocalPublicKey())
@@ -243,7 +243,7 @@ func (s *secureSession) generateHandshakePayload(localStatic noise.DHKey, data [
 	payloadEnc, err := proto.Marshal(&pb.NoiseHandshakePayload{
 		IdentityKey: localKeyRaw,
 		IdentitySig: signedPayload,
-		Data:        data,
+		Extensions:  ext,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error marshaling handshake payload: %w", err)
@@ -254,7 +254,7 @@ func (s *secureSession) generateHandshakePayload(localStatic noise.DHKey, data [
 // handleRemoteHandshakePayload unmarshals the handshake payload object sent
 // by the remote peer and validates the signature against the peer's static Noise key.
 // It returns the data attached to the payload.
-func (s *secureSession) handleRemoteHandshakePayload(payload []byte, remoteStatic []byte) ([]byte, error) {
+func (s *secureSession) handleRemoteHandshakePayload(payload []byte, remoteStatic []byte) (*pb.NoiseExtensions, error) {
 	// unmarshal payload
 	nhp := new(pb.NoiseHandshakePayload)
 	err := proto.Unmarshal(payload, nhp)
@@ -293,5 +293,5 @@ func (s *secureSession) handleRemoteHandshakePayload(payload []byte, remoteStati
 	// set remote peer key and id
 	s.remoteID = id
 	s.remoteKey = remotePubKey
-	return nhp.Data, nil
+	return nhp.Extensions, nil
 }

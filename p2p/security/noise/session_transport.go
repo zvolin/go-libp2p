@@ -7,6 +7,8 @@ import (
 	"github.com/libp2p/go-libp2p/core/canonicallog"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/sec"
+	"github.com/libp2p/go-libp2p/p2p/security/noise/pb"
+
 	manet "github.com/multiformats/go-multiaddr/net"
 )
 
@@ -30,12 +32,12 @@ type EarlyDataHandler interface {
 	// Send for the initiator is called for the client before sending the third
 	// handshake message. Defines the application payload for the third message.
 	// Send for the responder is called before sending the second handshake message.
-	Send(context.Context, net.Conn, peer.ID) []byte
+	Send(context.Context, net.Conn, peer.ID) *pb.NoiseExtensions
 	// Received for the initiator is called when the second handshake message
 	// from the responder is received.
 	// Received for the responder is called when the third handshake message
 	// from the initiator is received.
-	Received(context.Context, net.Conn, []byte) error
+	Received(context.Context, net.Conn, *pb.NoiseExtensions) error
 }
 
 // EarlyData sets the `EarlyDataHandler` for the initiator and responder roles.
