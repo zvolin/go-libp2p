@@ -541,3 +541,46 @@ func TestAcceptQueueFilledUp(t *testing.T) {
 	}
 	require.Error(t, err)
 }
+
+func TestSNIIsSent(t *testing.T) {
+	server, key := newIdentity(t)
+
+	sentServerNameCh := make(chan string, 1)
+	var tlsConf *tls.Config
+	tlsConf = &tls.Config{
+		GetConfigForClient: func(chi *tls.ClientHelloInfo) (*tls.Config, error) {
+			sentServerNameCh <- chi.ServerName
+			return tlsConf, nil
+		},
+	}
+	tr, err := libp2pwebtransport.New(key, nil, network.NullResourceManager, libp2pwebtransport.WithTLSConfig(tlsConf))
+	require.NoError(t, err)
+	defer tr.(io.Closer).Close()
+
+	ln1, err := tr.Listen(ma.StringCast("/ip4/127.0.0.1/udp/0/quic/webtransport"))
+	require.NoError(t, err)
+
+	_, key2 := newIdentity(t)
+	clientTr, err := libp2pwebtransport.New(key2, nil, network.NullResourceManager)
+	require.NoError(t, err)
+	defer tr.(io.Closer).Close()
+
+	beforeQuicMa, withQuicMa := ma.SplitFunc(ln1.Multiaddr(), func(c ma.Component) bool {
+		return c.Protocol().Code == ma.P_QUIC
+	})
+
+	quicComponent, restMa := ma.SplitLast(withQuicMa)
+
+	toDialMa := beforeQuicMa.Encapsulate(quicComponent).Encapsulate(ma.StringCast("/sni/example.com")).Encapsulate(restMa)
+
+	// We don't care if this dial succeeds, we just want to check if the SNI is sent to the server.
+	_, _ = clientTr.Dial(context.Background(), toDialMa, server)
+
+	select {
+	case sentServerName := <-sentServerNameCh:
+		require.Equal(t, "example.com", sentServerName)
+	case <-time.After(time.Minute):
+		t.Fatalf("Expected to get server name")
+	}
+
+}
