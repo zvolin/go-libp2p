@@ -9,13 +9,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/libp2p/go-libp2p/core/connmgr"
 	"github.com/libp2p/go-libp2p/core/network"
 	tpt "github.com/libp2p/go-libp2p/core/transport"
 	"github.com/libp2p/go-libp2p/p2p/security/noise"
 	"github.com/libp2p/go-libp2p/p2p/security/noise/pb"
 
-	"github.com/lucas-clemente/quic-go"
 	"github.com/lucas-clemente/quic-go/http3"
 	"github.com/marten-seemann/webtransport-go"
 	ma "github.com/multiformats/go-multiaddr"
@@ -28,14 +26,9 @@ const queueLen = 16
 const handshakeTimeout = 10 * time.Second
 
 type listener struct {
-	transport       tpt.Transport
-	noise           *noise.Transport
-	certManager     *certManager
+	transport       *transport
 	tlsConf         *tls.Config
 	isStaticTLSConf bool
-
-	rcmgr network.ResourceManager
-	gater connmgr.ConnectionGater
 
 	server webtransport.Server
 
@@ -52,7 +45,7 @@ type listener struct {
 
 var _ tpt.Listener = &listener{}
 
-func newListener(laddr ma.Multiaddr, transport tpt.Transport, noise *noise.Transport, certManager *certManager, tlsConf *tls.Config, quicConf *quic.Config, gater connmgr.ConnectionGater, rcmgr network.ResourceManager) (tpt.Listener, error) {
+func newListener(laddr ma.Multiaddr, t *transport, tlsConf *tls.Config) (tpt.Listener, error) {
 	network, addr, err := manet.DialArgs(laddr)
 	if err != nil {
 		return nil, err
@@ -72,24 +65,20 @@ func newListener(laddr ma.Multiaddr, transport tpt.Transport, noise *noise.Trans
 	isStaticTLSConf := tlsConf != nil
 	if tlsConf == nil {
 		tlsConf = &tls.Config{GetConfigForClient: func(*tls.ClientHelloInfo) (*tls.Config, error) {
-			return certManager.GetConfig(), nil
+			return t.certManager.GetConfig(), nil
 		}}
 	}
 	ln := &listener{
-		transport:       transport,
-		noise:           noise,
-		certManager:     certManager,
+		transport:       t,
 		tlsConf:         tlsConf,
 		isStaticTLSConf: isStaticTLSConf,
-		rcmgr:           rcmgr,
-		gater:           gater,
 		queue:           make(chan tpt.CapableConn, queueLen),
 		serverClosed:    make(chan struct{}),
 		addr:            udpConn.LocalAddr(),
 		multiaddr:       localMultiaddr,
 		server: webtransport.Server{
 			H3: http3.Server{
-				QuicConfig: quicConf,
+				QuicConfig: t.quicConfig,
 				TLSConfig:  tlsConf,
 			},
 			CheckOrigin: func(r *http.Request) bool { return true },
@@ -123,12 +112,12 @@ func (l *listener) httpHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	if l.gater != nil && !l.gater.InterceptAccept(&connMultiaddrs{local: l.multiaddr, remote: remoteMultiaddr}) {
+	if l.transport.gater != nil && !l.transport.gater.InterceptAccept(&connMultiaddrs{local: l.multiaddr, remote: remoteMultiaddr}) {
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
 
-	connScope, err := l.rcmgr.OpenConnection(network.DirInbound, false, remoteMultiaddr)
+	connScope, err := l.transport.rcmgr.OpenConnection(network.DirInbound, false, remoteMultiaddr)
 	if err != nil {
 		log.Debugw("resource manager blocked incoming connection", "addr", r.RemoteAddr, "error", err)
 		w.WriteHeader(http.StatusServiceUnavailable)
@@ -154,7 +143,7 @@ func (l *listener) httpHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	cancel()
 
-	if l.gater != nil && !l.gater.InterceptSecured(network.DirInbound, sconn.RemotePeer(), sconn) {
+	if l.transport.gater != nil && !l.transport.gater.InterceptSecured(network.DirInbound, sconn.RemotePeer(), sconn) {
 		// TODO: can we close with a specific error here?
 		sess.Close()
 		connScope.Done()
@@ -202,10 +191,10 @@ func (l *listener) handshake(ctx context.Context, sess *webtransport.Session) (*
 	}
 	var earlyData [][]byte
 	if !l.isStaticTLSConf {
-		earlyData = l.certManager.SerializedCertHashes()
+		earlyData = l.transport.certManager.SerializedCertHashes()
 	}
 
-	n, err := l.noise.WithSessionOptions(noise.EarlyData(
+	n, err := l.transport.noise.WithSessionOptions(noise.EarlyData(
 		nil,
 		newEarlyDataSender(&pb.NoiseExtensions{WebtransportCerthashes: earlyData}),
 	))
@@ -228,10 +217,10 @@ func (l *listener) Addr() net.Addr {
 }
 
 func (l *listener) Multiaddr() ma.Multiaddr {
-	if l.certManager == nil {
+	if l.transport.certManager == nil {
 		return l.multiaddr
 	}
-	return l.multiaddr.Encapsulate(l.certManager.AddrComponent())
+	return l.multiaddr.Encapsulate(l.transport.certManager.AddrComponent())
 }
 
 func (l *listener) Close() error {

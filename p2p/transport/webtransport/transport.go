@@ -294,7 +294,7 @@ func (t *transport) Listen(laddr ma.Multiaddr) (tpt.Listener, error) {
 			return nil, t.listenOnceErr
 		}
 	}
-	return newListener(laddr, t, t.noise, t.certManager, t.staticTLSConf, t.quicConfig, t.gater, t.rcmgr)
+	return newListener(laddr, t, t.staticTLSConf)
 }
 
 func (t *transport) Protocols() []int {
