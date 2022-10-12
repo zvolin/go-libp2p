@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/libp2p/go-libp2p/p2p/transport/quicutils"
+
 	"golang.org/x/crypto/hkdf"
 
 	"github.com/libp2p/go-libp2p/core/connmgr"
@@ -201,7 +203,7 @@ func NewTransport(key ic.PrivKey, psk pnet.PSK, gater connmgr.ConnectionGater, r
 		return nil, err
 	}
 	var tracers []quiclogging.Tracer
-	if qlogTracer != nil {
+	if qlogTracer := quicutils.QLOGTracer; qlogTracer != nil {
 		tracers = append(tracers, qlogTracer)
 	}
 	if cfg.metrics {
