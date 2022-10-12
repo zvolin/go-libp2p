@@ -18,7 +18,7 @@ import (
 	tpt "github.com/libp2p/go-libp2p/core/transport"
 	"github.com/libp2p/go-libp2p/p2p/security/noise"
 	"github.com/libp2p/go-libp2p/p2p/security/noise/pb"
-	"github.com/libp2p/go-libp2p/p2p/transport/quicutils"
+	"github.com/libp2p/go-libp2p/p2p/transport/internal/quicutils"
 
 	"github.com/benbjohnson/clock"
 	logging "github.com/ipfs/go-log/v2"
