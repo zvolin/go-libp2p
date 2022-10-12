@@ -9,13 +9,13 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/libp2p/go-libp2p/p2p/security/noise/pb"
-
 	"github.com/libp2p/go-libp2p/core/connmgr"
 	"github.com/libp2p/go-libp2p/core/network"
 	tpt "github.com/libp2p/go-libp2p/core/transport"
 	"github.com/libp2p/go-libp2p/p2p/security/noise"
+	"github.com/libp2p/go-libp2p/p2p/security/noise/pb"
 
+	"github.com/lucas-clemente/quic-go"
 	"github.com/lucas-clemente/quic-go/http3"
 	"github.com/marten-seemann/webtransport-go"
 	ma "github.com/multiformats/go-multiaddr"
@@ -52,7 +52,7 @@ type listener struct {
 
 var _ tpt.Listener = &listener{}
 
-func newListener(laddr ma.Multiaddr, transport tpt.Transport, noise *noise.Transport, certManager *certManager, tlsConf *tls.Config, gater connmgr.ConnectionGater, rcmgr network.ResourceManager) (tpt.Listener, error) {
+func newListener(laddr ma.Multiaddr, transport tpt.Transport, noise *noise.Transport, certManager *certManager, tlsConf *tls.Config, quicConf *quic.Config, gater connmgr.ConnectionGater, rcmgr network.ResourceManager) (tpt.Listener, error) {
 	network, addr, err := manet.DialArgs(laddr)
 	if err != nil {
 		return nil, err
@@ -88,7 +88,10 @@ func newListener(laddr ma.Multiaddr, transport tpt.Transport, noise *noise.Trans
 		addr:            udpConn.LocalAddr(),
 		multiaddr:       localMultiaddr,
 		server: webtransport.Server{
-			H3:          http3.Server{TLSConfig: tlsConf},
+			H3: http3.Server{
+				QuicConfig: quicConf,
+				TLSConfig:  tlsConf,
+			},
 			CheckOrigin: func(r *http.Request) bool { return true },
 		},
 	}
