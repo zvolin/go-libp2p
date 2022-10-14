@@ -19,6 +19,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/pnet"
 	tpt "github.com/libp2p/go-libp2p/core/transport"
 	p2ptls "github.com/libp2p/go-libp2p/p2p/security/tls"
+	"github.com/libp2p/go-libp2p/p2p/transport/internal/quicutils"
 
 	ma "github.com/multiformats/go-multiaddr"
 	mafmt "github.com/multiformats/go-multiaddr-fmt"
@@ -201,7 +202,7 @@ func NewTransport(key ic.PrivKey, psk pnet.PSK, gater connmgr.ConnectionGater, r
 		return nil, err
 	}
 	var tracers []quiclogging.Tracer
-	if qlogTracer != nil {
+	if qlogTracer := quicutils.QLOGTracer; qlogTracer != nil {
 		tracers = append(tracers, qlogTracer)
 	}
 	if cfg.metrics {

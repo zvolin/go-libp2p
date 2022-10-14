@@ -11,16 +11,18 @@ import (
 	"sync"
 	"time"
 
-	"github.com/libp2p/go-libp2p/p2p/security/noise/pb"
-
-	"github.com/benbjohnson/clock"
-	logging "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p/core/connmgr"
 	ic "github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	tpt "github.com/libp2p/go-libp2p/core/transport"
 	"github.com/libp2p/go-libp2p/p2p/security/noise"
+	"github.com/libp2p/go-libp2p/p2p/security/noise/pb"
+	"github.com/libp2p/go-libp2p/p2p/transport/internal/quicutils"
+
+	"github.com/benbjohnson/clock"
+	logging "github.com/ipfs/go-log/v2"
+	"github.com/lucas-clemente/quic-go"
 	"github.com/lucas-clemente/quic-go/http3"
 	"github.com/marten-seemann/webtransport-go"
 	ma "github.com/multiformats/go-multiaddr"
@@ -69,8 +71,9 @@ type transport struct {
 	pid     peer.ID
 	clock   clock.Clock
 
-	rcmgr network.ResourceManager
-	gater connmgr.ConnectionGater
+	quicConfig *quic.Config
+	rcmgr      network.ResourceManager
+	gater      connmgr.ConnectionGater
 
 	listenOnce    sync.Once
 	listenOnceErr error
@@ -91,11 +94,12 @@ func New(key ic.PrivKey, gater connmgr.ConnectionGater, rcmgr network.ResourceMa
 		return nil, err
 	}
 	t := &transport{
-		pid:     id,
-		privKey: key,
-		rcmgr:   rcmgr,
-		gater:   gater,
-		clock:   clock.New(),
+		pid:        id,
+		privKey:    key,
+		rcmgr:      rcmgr,
+		gater:      gater,
+		clock:      clock.New(),
+		quicConfig: &quic.Config{},
 	}
 	for _, opt := range opts {
 		if err := opt(t); err != nil {
@@ -107,6 +111,9 @@ func New(key ic.PrivKey, gater connmgr.ConnectionGater, rcmgr network.ResourceMa
 		return nil, err
 	}
 	t.noise = n
+	if qlogTracer := quicutils.QLOGTracer; qlogTracer != nil {
+		t.quicConfig.Tracer = qlogTracer
+	}
 	return t, nil
 }
 
@@ -176,7 +183,10 @@ func (t *transport) dial(ctx context.Context, addr string, sni string, certHashe
 		}
 	}
 	dialer := webtransport.Dialer{
-		RoundTripper: &http3.RoundTripper{TLSClientConfig: tlsConf},
+		RoundTripper: &http3.RoundTripper{
+			TLSClientConfig: tlsConf,
+			QuicConfig:      t.quicConfig,
+		},
 	}
 	rsp, sess, err := dialer.Dial(ctx, url, nil)
 	if err != nil {
@@ -284,7 +294,7 @@ func (t *transport) Listen(laddr ma.Multiaddr) (tpt.Listener, error) {
 			return nil, t.listenOnceErr
 		}
 	}
-	return newListener(laddr, t, t.noise, t.certManager, t.staticTLSConf, t.gater, t.rcmgr)
+	return newListener(laddr, t, t.staticTLSConf)
 }
 
 func (t *transport) Protocols() []int {
