@@ -82,6 +82,9 @@ type transport struct {
 	tlsClientConf *tls.Config
 
 	noise *noise.Transport
+
+	connMx sync.Mutex
+	conns  map[uint64]*conn // using quic-go's ConnectionTracingKey as map key
 }
 
 var _ tpt.Transport = &transport{}
@@ -94,13 +97,14 @@ func New(key ic.PrivKey, gater connmgr.ConnectionGater, rcmgr network.ResourceMa
 		return nil, err
 	}
 	t := &transport{
-		pid:        id,
-		privKey:    key,
-		rcmgr:      rcmgr,
-		gater:      gater,
-		clock:      clock.New(),
-		quicConfig: &quic.Config{},
+		pid:     id,
+		privKey: key,
+		rcmgr:   rcmgr,
+		gater:   gater,
+		clock:   clock.New(),
+		conns:   map[uint64]*conn{},
 	}
+	t.quicConfig = &quic.Config{AllowConnectionWindowIncrease: t.allowWindowIncrease}
 	for _, opt := range opts {
 		if err := opt(t); err != nil {
 			return nil, err
@@ -157,8 +161,9 @@ func (t *transport) Dial(ctx context.Context, raddr ma.Multiaddr, p peer.ID) (tp
 		scope.Done()
 		return nil, fmt.Errorf("secured connection gated")
 	}
-
-	return newConn(t, sess, sconn, scope), nil
+	conn := newConn(t, sess, sconn, scope)
+	t.addConn(sess, conn)
+	return conn, nil
 }
 
 func (t *transport) dial(ctx context.Context, addr string, sni string, certHashes []multihash.DecodedMultihash) (*webtransport.Session, error) {
@@ -311,6 +316,29 @@ func (t *transport) Close() error {
 		return t.certManager.Close()
 	}
 	return nil
+}
+
+func (t *transport) allowWindowIncrease(conn quic.Connection, size uint64) bool {
+	t.connMx.Lock()
+	defer t.connMx.Unlock()
+
+	c, ok := t.conns[conn.Context().Value(quic.ConnectionTracingKey).(uint64)]
+	if !ok {
+		return false
+	}
+	return c.allowWindowIncrease(size)
+}
+
+func (t *transport) addConn(sess *webtransport.Session, c *conn) {
+	t.connMx.Lock()
+	t.conns[sess.Context().Value(quic.ConnectionTracingKey).(uint64)] = c
+	t.connMx.Unlock()
+}
+
+func (t *transport) removeConn(sess *webtransport.Session) {
+	t.connMx.Lock()
+	delete(t.conns, sess.Context().Value(quic.ConnectionTracingKey).(uint64))
+	t.connMx.Unlock()
 }
 
 // extractSNI returns what the SNI should be for the given maddr. If there is an

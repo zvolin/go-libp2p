@@ -1,6 +1,7 @@
 package libp2pwebtransport_test
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -14,7 +15,10 @@ import (
 	"io"
 	"math/big"
 	"net"
+	"os"
+	"runtime"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -26,6 +30,7 @@ import (
 	libp2pwebtransport "github.com/libp2p/go-libp2p/p2p/transport/webtransport"
 
 	"github.com/golang/mock/gomock"
+	quicproxy "github.com/lucas-clemente/quic-go/integrationtests/tools/proxy"
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 	"github.com/multiformats/go-multibase"
@@ -582,5 +587,130 @@ func TestSNIIsSent(t *testing.T) {
 	case <-time.After(time.Minute):
 		t.Fatalf("Expected to get server name")
 	}
+}
 
+type reportingRcmgr struct {
+	network.NullResourceManager
+	report chan<- int
+}
+
+func (m *reportingRcmgr) OpenConnection(dir network.Direction, usefd bool, endpoint ma.Multiaddr) (network.ConnManagementScope, error) {
+	return &reportingScope{report: m.report}, nil
+}
+
+type reportingScope struct {
+	network.NullScope
+	report chan<- int
+}
+
+func (s *reportingScope) ReserveMemory(size int, _ uint8) error {
+	s.report <- size
+	return nil
+}
+
+func TestFlowControlWindowIncrease(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("this test is flaky on Windows")
+	}
+
+	rtt := 10 * time.Millisecond
+	timeout := 5 * time.Second
+
+	if os.Getenv("CI") != "" {
+		rtt = 40 * time.Millisecond
+		timeout = 15 * time.Second
+	}
+
+	serverID, serverKey := newIdentity(t)
+	serverWindowIncreases := make(chan int, 100)
+	serverRcmgr := &reportingRcmgr{report: serverWindowIncreases}
+	tr, err := libp2pwebtransport.New(serverKey, nil, serverRcmgr)
+	require.NoError(t, err)
+	defer tr.(io.Closer).Close()
+	ln, err := tr.Listen(ma.StringCast("/ip4/127.0.0.1/udp/0/quic/webtransport"))
+	require.NoError(t, err)
+	defer ln.Close()
+
+	go func() {
+		conn, err := ln.Accept()
+		require.NoError(t, err)
+		str, err := conn.AcceptStream()
+		require.NoError(t, err)
+		_, err = io.CopyBuffer(str, str, make([]byte, 2<<10))
+		require.NoError(t, err)
+		str.CloseWrite()
+	}()
+
+	proxy, err := quicproxy.NewQuicProxy("localhost:0", &quicproxy.Opts{
+		RemoteAddr:  ln.Addr().String(),
+		DelayPacket: func(quicproxy.Direction, []byte) time.Duration { return rtt / 2 },
+	})
+	require.NoError(t, err)
+	defer proxy.Close()
+
+	_, clientKey := newIdentity(t)
+	clientWindowIncreases := make(chan int, 100)
+	clientRcmgr := &reportingRcmgr{report: clientWindowIncreases}
+	tr2, err := libp2pwebtransport.New(clientKey, nil, clientRcmgr)
+	require.NoError(t, err)
+	defer tr2.(io.Closer).Close()
+
+	var addr ma.Multiaddr
+	for _, comp := range ma.Split(ln.Multiaddr()) {
+		if _, err := comp.ValueForProtocol(ma.P_UDP); err == nil {
+			addr = addr.Encapsulate(ma.StringCast(fmt.Sprintf("/udp/%d", proxy.LocalPort())))
+			continue
+		}
+		if addr == nil {
+			addr = comp
+			continue
+		}
+		addr = addr.Encapsulate(comp)
+	}
+
+	conn, err := tr2.Dial(context.Background(), addr, serverID)
+	require.NoError(t, err)
+	str, err := conn.OpenStream(context.Background())
+	require.NoError(t, err)
+	var increasesDone uint32 // to be used atomically
+	go func() {
+		for {
+			_, err := str.Write(bytes.Repeat([]byte{0x42}, 1<<10))
+			require.NoError(t, err)
+			if atomic.LoadUint32(&increasesDone) > 0 {
+				str.CloseWrite()
+				return
+			}
+		}
+	}()
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		_, err := io.ReadAll(str)
+		require.NoError(t, err)
+	}()
+
+	var numServerIncreases, numClientIncreases int
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+	for {
+		select {
+		case <-serverWindowIncreases:
+			numServerIncreases++
+		case <-clientWindowIncreases:
+			numClientIncreases++
+		case <-timer.C:
+			t.Fatalf("didn't receive enough window increases (client: %d, server: %d)", numClientIncreases, numServerIncreases)
+		}
+		if numClientIncreases >= 1 && numServerIncreases >= 1 {
+			atomic.AddUint32(&increasesDone, 1)
+			break
+		}
+	}
+
+	select {
+	case <-done:
+	case <-time.After(timeout):
+		t.Fatal("timeout")
+	}
 }
