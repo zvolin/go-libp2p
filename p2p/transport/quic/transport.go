@@ -189,7 +189,7 @@ func NewTransport(key ic.PrivKey, psk pnet.PSK, gater connmgr.ConnectionGater, r
 		return nil, err
 	}
 	if rcmgr == nil {
-		rcmgr = network.NullResourceManager
+		rcmgr = &network.NullResourceManager{}
 	}
 	qconfig := quicConfig.Clone()
 	keyBytes, err := key.Raw()

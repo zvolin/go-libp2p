@@ -157,8 +157,10 @@ func (l *listener) httpHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	conn := newConn(l.transport, sess, sconn, connScope)
+	l.transport.addConn(sess, conn)
 	select {
-	case l.queue <- newConn(l.transport, sess, sconn, connScope):
+	case l.queue <- conn:
 	default:
 		log.Debugw("accept queue full, dropping incoming connection", "peer", sconn.RemotePeer(), "addr", r.RemoteAddr, "error", err)
 		sess.Close()
