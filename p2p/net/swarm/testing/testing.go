@@ -99,7 +99,7 @@ func OptPeerPrivateKey(sk crypto.PrivKey) Option {
 }
 
 // GenUpgrader creates a new connection upgrader for use with this swarm.
-func GenUpgrader(t *testing.T, n *swarm.Swarm, opts ...tptu.Option) transport.Upgrader {
+func GenUpgrader(t *testing.T, n *swarm.Swarm, connGater connmgr.ConnectionGater, opts ...tptu.Option) transport.Upgrader {
 	id := n.LocalPeer()
 	pk := n.Peerstore().PrivKey(id)
 	secMuxer := new(csms.SSMuxer)
@@ -107,7 +107,7 @@ func GenUpgrader(t *testing.T, n *swarm.Swarm, opts ...tptu.Option) transport.Up
 
 	stMuxer := msmux.NewBlankTransport()
 	stMuxer.AddTransport("/yamux/1.0.0", yamux.DefaultTransport)
-	u, err := tptu.New(secMuxer, stMuxer, opts...)
+	u, err := tptu.New(secMuxer, stMuxer, nil, nil, connGater, opts...)
 	require.NoError(t, err)
 	return u
 }
@@ -145,7 +145,7 @@ func GenSwarm(t *testing.T, opts ...Option) *swarm.Swarm {
 	s, err := swarm.NewSwarm(id, ps, swarmOpts...)
 	require.NoError(t, err)
 
-	upgrader := GenUpgrader(t, s, tptu.WithConnectionGater(cfg.connectionGater))
+	upgrader := GenUpgrader(t, s, cfg.connectionGater)
 
 	if !cfg.disableTCP {
 		var tcpOpts []tcp.Option

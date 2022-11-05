@@ -183,17 +183,7 @@ func (cfg *Config) addTransports(h host.Host) error {
 	if err != nil {
 		return err
 	}
-	var opts []tptu.Option
-	if len(cfg.PSK) > 0 {
-		opts = append(opts, tptu.WithPSK(cfg.PSK))
-	}
-	if cfg.ConnectionGater != nil {
-		opts = append(opts, tptu.WithConnectionGater(cfg.ConnectionGater))
-	}
-	if cfg.ResourceManager != nil {
-		opts = append(opts, tptu.WithResourceManager(cfg.ResourceManager))
-	}
-	upgrader, err := tptu.New(secure, muxer, opts...)
+	upgrader, err := tptu.New(secure, muxer, cfg.PSK, cfg.ResourceManager, cfg.ConnectionGater)
 	if err != nil {
 		return err
 	}

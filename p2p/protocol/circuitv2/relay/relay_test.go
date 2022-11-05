@@ -53,7 +53,7 @@ func getNetHosts(t *testing.T, ctx context.Context, n int) (hosts []host.Host, u
 			t.Fatal(err)
 		}
 
-		upgrader := swarmt.GenUpgrader(t, netw)
+		upgrader := swarmt.GenUpgrader(t, netw, nil)
 		upgraders = append(upgraders, upgrader)
 
 		tpt, err := tcp.NewTCPTransport(upgrader, nil)

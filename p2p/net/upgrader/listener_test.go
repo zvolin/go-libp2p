@@ -100,7 +100,7 @@ func TestConnectionsClosedIfNotAccepted(t *testing.T) {
 		timeout = 500 * time.Millisecond
 	}
 
-	id, u := createUpgrader(t, upgrader.WithAcceptTimeout(timeout))
+	id, u := createUpgraderWithOpts(t, upgrader.WithAcceptTimeout(timeout))
 	ln := createListener(t, u)
 	defer ln.Close()
 
@@ -134,7 +134,7 @@ func TestConnectionsClosedIfNotAccepted(t *testing.T) {
 func TestFailedUpgradeOnListen(t *testing.T) {
 	require := require.New(t)
 
-	id, u := createUpgraderWithMuxer(t, &errorMuxer{})
+	id, u := createUpgraderWithMuxer(t, &errorMuxer{}, nil, nil)
 	ln := createListener(t, u)
 
 	errCh := make(chan error)
@@ -225,7 +225,7 @@ func TestConcurrentAccept(t *testing.T) {
 	var num = 3 * upgrader.AcceptQueueLength
 
 	blockingMuxer := newBlockingMuxer()
-	id, u := createUpgraderWithMuxer(t, blockingMuxer)
+	id, u := createUpgraderWithMuxer(t, blockingMuxer, nil, nil)
 	ln := createListener(t, u)
 	defer ln.Close()
 
@@ -309,7 +309,7 @@ func TestListenerConnectionGater(t *testing.T) {
 	require := require.New(t)
 
 	testGater := &testGater{}
-	id, u := createUpgrader(t, upgrader.WithConnectionGater(testGater))
+	id, u := createUpgraderWithConnGater(t, testGater)
 
 	ln := createListener(t, u)
 	defer ln.Close()
@@ -354,7 +354,7 @@ func TestListenerResourceManagement(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	rcmgr := mocknetwork.NewMockResourceManager(ctrl)
-	id, upgrader := createUpgrader(t, upgrader.WithResourceManager(rcmgr))
+	id, upgrader := createUpgraderWithResourceManager(t, rcmgr)
 	ln := createListener(t, upgrader)
 	defer ln.Close()
 
@@ -380,7 +380,7 @@ func TestListenerResourceManagementDenied(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	rcmgr := mocknetwork.NewMockResourceManager(ctrl)
-	id, upgrader := createUpgrader(t, upgrader.WithResourceManager(rcmgr))
+	id, upgrader := createUpgraderWithResourceManager(t, rcmgr)
 	ln := createListener(t, upgrader)
 
 	rcmgr.EXPECT().OpenConnection(network.DirInbound, true, gomock.Not(ln.Multiaddr())).Return(nil, errors.New("nope"))

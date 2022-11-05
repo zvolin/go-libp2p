@@ -81,7 +81,7 @@ func makeUpgrader(t *testing.T, n *Swarm) transport.Upgrader {
 
 	stMuxer := msmux.NewBlankTransport()
 	stMuxer.AddTransport("/yamux/1.0.0", yamux.DefaultTransport)
-	u, err := tptu.New(secMuxer, stMuxer)
+	u, err := tptu.New(secMuxer, stMuxer, nil, nil, nil)
 	require.NoError(t, err)
 	return u
 }

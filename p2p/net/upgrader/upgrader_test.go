@@ -6,6 +6,7 @@ import (
 	"net"
 	"testing"
 
+	"github.com/libp2p/go-libp2p/core/connmgr"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/network"
 	mocknetwork "github.com/libp2p/go-libp2p/core/network/mocks"
@@ -22,16 +23,28 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createUpgrader(t *testing.T, opts ...upgrader.Option) (peer.ID, transport.Upgrader) {
-	return createUpgraderWithMuxer(t, &negotiatingMuxer{}, opts...)
+func createUpgrader(t *testing.T) (peer.ID, transport.Upgrader) {
+	return createUpgraderWithMuxer(t, &negotiatingMuxer{}, nil, nil)
 }
 
-func createUpgraderWithMuxer(t *testing.T, muxer network.Multiplexer, opts ...upgrader.Option) (peer.ID, transport.Upgrader) {
+func createUpgraderWithConnGater(t *testing.T, connGater connmgr.ConnectionGater) (peer.ID, transport.Upgrader) {
+	return createUpgraderWithMuxer(t, &negotiatingMuxer{}, nil, connGater)
+}
+
+func createUpgraderWithResourceManager(t *testing.T, rcmgr network.ResourceManager) (peer.ID, transport.Upgrader) {
+	return createUpgraderWithMuxer(t, &negotiatingMuxer{}, rcmgr, nil)
+}
+
+func createUpgraderWithOpts(t *testing.T, opts ...upgrader.Option) (peer.ID, transport.Upgrader) {
+	return createUpgraderWithMuxer(t, &negotiatingMuxer{}, nil, nil, opts...)
+}
+
+func createUpgraderWithMuxer(t *testing.T, muxer network.Multiplexer, rcmgr network.ResourceManager, connGater connmgr.ConnectionGater, opts ...upgrader.Option) (peer.ID, transport.Upgrader) {
 	priv, _, err := test.RandTestKeyPair(crypto.Ed25519, 256)
 	require.NoError(t, err)
 	id, err := peer.IDFromPrivateKey(priv)
 	require.NoError(t, err)
-	u, err := upgrader.New(&MuxAdapter{tpt: insecure.NewWithIdentity(id, priv)}, muxer, opts...)
+	u, err := upgrader.New(&MuxAdapter{tpt: insecure.NewWithIdentity(id, priv)}, muxer, nil, rcmgr, connGater, opts...)
 	require.NoError(t, err)
 	return id, u
 }
@@ -54,7 +67,7 @@ func (m *negotiatingMuxer) NewConn(c net.Conn, isServer bool, scope network.Peer
 	return yamux.DefaultTransport.NewConn(c, isServer, scope)
 }
 
-// blockingMuxer blocks the muxer negotiation until the contain chan is closed
+// blockingMuxer blocks the muxer negotiation until the contained chan is closed
 type blockingMuxer struct {
 	unblock chan struct{}
 }
@@ -120,7 +133,7 @@ func TestOutboundConnectionGating(t *testing.T) {
 	defer ln.Close()
 
 	testGater := &testGater{}
-	_, dialUpgrader := createUpgrader(t, upgrader.WithConnectionGater(testGater))
+	_, dialUpgrader := createUpgraderWithConnGater(t, testGater)
 	conn, err := dial(t, dialUpgrader, ln.Multiaddr(), id, &network.NullScope{})
 	require.NoError(err)
 	require.NotNil(conn)
@@ -164,7 +177,7 @@ func TestOutboundResourceManagement(t *testing.T) {
 	})
 
 	t.Run("failed negotiation", func(t *testing.T) {
-		id, upgrader := createUpgraderWithMuxer(t, &errorMuxer{})
+		id, upgrader := createUpgraderWithMuxer(t, &errorMuxer{}, nil, nil)
 		ln := createListener(t, upgrader)
 		defer ln.Close()
 
