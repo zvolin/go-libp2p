@@ -22,7 +22,6 @@ var (
 	// interfaces
 	hostType      = reflect.TypeOf((*host.Host)(nil)).Elem()
 	networkType   = reflect.TypeOf((*network.Network)(nil)).Elem()
-	transportType = reflect.TypeOf((*transport.Transport)(nil)).Elem()
 	muxType       = reflect.TypeOf((*network.Multiplexer)(nil)).Elem()
 	securityType  = reflect.TypeOf((*sec.SecureTransport)(nil)).Elem()
 	privKeyType   = reflect.TypeOf((*crypto.PrivKey)(nil)).Elem()

@@ -16,6 +16,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/peerstore"
 	"github.com/libp2p/go-libp2p/core/pnet"
+	"github.com/libp2p/go-libp2p/core/transport"
 	"github.com/libp2p/go-libp2p/p2p/host/autorelay"
 	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
 	relayv2 "github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/relay"
@@ -23,6 +24,7 @@ import (
 
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
+	"go.uber.org/fx"
 )
 
 // ListenAddrStrings configures libp2p to listen on the given (unparsed)
@@ -124,14 +126,23 @@ func Muxer(name string, tpt interface{}) Option {
 // * Public Key
 // * Address filter (filter.Filter)
 // * Peerstore
-func Transport(tpt interface{}, opts ...interface{}) Option {
-	tptc, err := config.TransportConstructor(tpt, opts...)
-	err = traceError(err, 1)
+func Transport[F any](tpt F) Option {
 	return func(cfg *Config) error {
-		if err != nil {
-			return err
-		}
-		cfg.Transports = append(cfg.Transports, tptc)
+		cfg.Transports = append(cfg.Transports, fx.Provide(
+			fx.Annotate(
+				tpt,
+				fx.As(new(transport.Transport)),
+				fx.ResultTags(`group:"transport"`),
+			),
+		))
+		return nil
+	}
+}
+
+func TransportWithOptions[F any, Opt any](tpt F, opts ...Opt) Option {
+	return func(cfg *Config) error {
+		cfg.Transports = append(cfg.Transports, fx.Provide(fx.Annotate(tpt, fx.ResultTags(`group:"transport"`))))
+		cfg.Transports = append(cfg.Transports, fx.Supply(opts))
 		return nil
 	}
 }
@@ -412,7 +423,7 @@ var NoListenAddrs = func(cfg *Config) error {
 // This will both clear any configured transports (specified in prior libp2p
 // options) and prevent libp2p from applying the default transports.
 var NoTransports = func(cfg *Config) error {
-	cfg.Transports = []config.TptC{}
+	cfg.Transports = []fx.Option{}
 	return nil
 }
 
