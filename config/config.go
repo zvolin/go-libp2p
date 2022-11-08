@@ -73,7 +73,7 @@ type Config struct {
 	PeerKey crypto.PrivKey
 
 	Transports         []fx.Option
-	Muxers             []MsMuxC
+	Muxers             []Muxer
 	SecurityTransports []fx.Option
 	Insecure           bool
 	PSK                pnet.PSK
@@ -171,8 +171,8 @@ func (cfg *Config) addTransports(h host.Host) error {
 	}
 
 	muxers := make([]protocol.ID, 0, len(cfg.Muxers))
-	for _, muxc := range cfg.Muxers {
-		muxers = append(muxers, protocol.ID(muxc.ID))
+	for _, m := range cfg.Muxers {
+		muxers = append(muxers, m.ID)
 	}
 
 	var security []fx.Option
@@ -181,7 +181,7 @@ func (cfg *Config) addTransports(h host.Host) error {
 	} else {
 		security = cfg.SecurityTransports
 	}
-	muxer, err := makeMuxer(h, cfg.Muxers)
+	muxer, err := makeMuxer(cfg.Muxers)
 	if err != nil {
 		return err
 	}

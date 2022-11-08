@@ -100,25 +100,11 @@ var NoSecurity Option = func(cfg *Config) error {
 	return nil
 }
 
-// Muxer configures libp2p to use the given stream multiplexer (or stream
-// multiplexer constructor).
-//
-// Name is the protocol name.
-//
-// The transport can be a constructed mux.Transport or a function taking any
-// subset of this libp2p node's:
-// * Peer ID
-// * Host
-// * Network
-// * Peerstore
-func Muxer(name string, tpt interface{}) Option {
-	mtpt, err := config.MuxerConstructor(tpt)
-	err = traceError(err, 1)
+// Muxer configures libp2p to use the given stream multiplexer.
+// name is the protocol name.
+func Muxer(name string, muxer network.Multiplexer) Option {
 	return func(cfg *Config) error {
-		if err != nil {
-			return err
-		}
-		cfg.Muxers = append(cfg.Muxers, config.MsMuxC{MuxC: mtpt, ID: name})
+		cfg.Muxers = append(cfg.Muxers, config.Muxer{Multiplexer: muxer, ID: protocol.ID(name)})
 		return nil
 	}
 }
