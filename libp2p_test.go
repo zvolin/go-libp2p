@@ -12,10 +12,13 @@ import (
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/transport"
+	"github.com/libp2p/go-libp2p/p2p/net/swarm"
 	"github.com/libp2p/go-libp2p/p2p/security/noise"
 	tls "github.com/libp2p/go-libp2p/p2p/security/tls"
+	quic "github.com/libp2p/go-libp2p/p2p/transport/quic"
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
 
+	ma "github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/require"
 )
 
@@ -166,6 +169,32 @@ func TestChainOptions(t *testing.T) {
 			t.Errorf("expected opt %d, got opt %d", i, x)
 		}
 	}
+}
+
+func TestTransportConstructorTCP(t *testing.T) {
+	h, err := New(
+		Transport(tcp.NewTCPTransport),
+		DisableRelay(),
+	)
+	require.NoError(t, err)
+	defer h.Close()
+	require.NoError(t, h.Network().Listen(ma.StringCast("/ip4/127.0.0.1/tcp/0")))
+	err = h.Network().Listen(ma.StringCast("/ip4/127.0.0.1/udp/0/quic"))
+	require.Error(t, err)
+	require.Contains(t, err.Error(), swarm.ErrNoTransport.Error())
+}
+
+func TestTransportConstructorQUIC(t *testing.T) {
+	h, err := New(
+		Transport(quic.NewTransport),
+		DisableRelay(),
+	)
+	require.NoError(t, err)
+	defer h.Close()
+	require.NoError(t, h.Network().Listen(ma.StringCast("/ip4/127.0.0.1/udp/0/quic")))
+	err = h.Network().Listen(ma.StringCast("/ip4/127.0.0.1/tcp/0"))
+	require.Error(t, err)
+	require.Contains(t, err.Error(), swarm.ErrNoTransport.Error())
 }
 
 func TestSecurityConstructor(t *testing.T) {

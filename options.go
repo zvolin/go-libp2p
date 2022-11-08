@@ -4,8 +4,11 @@ package libp2p
 // those are in defaults.go).
 
 import (
+	"crypto/rand"
+	"encoding/binary"
 	"errors"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/libp2p/go-libp2p/config"
@@ -124,23 +127,42 @@ func Muxer(name string, muxer network.Multiplexer) Option {
 // * Public Key
 // * Address filter (filter.Filter)
 // * Peerstore
-func Transport[F any](tpt F) Option {
+func Transport(constructor interface{}, opts ...interface{}) Option {
 	return func(cfg *Config) error {
+		// generate a random identifier, so that fx can associate the constructor with its options
+		b := make([]byte, 8)
+		rand.Read(b)
+		id := binary.BigEndian.Uint64(b)
+
+		tag := fmt.Sprintf(`group:"transportopt_%d"`, id)
+
+		typ := reflect.ValueOf(constructor).Type()
+		numParams := typ.NumIn()
+		isVariadic := typ.IsVariadic()
+		var params []string
+		if isVariadic && len(opts) > 0 {
+			// If there are transport options, apply the tag.
+			// Since options are variadic, they have to be the last argument of the constructor.
+			params = make([]string, numParams)
+			params[len(params)-1] = tag
+		}
+
 		cfg.Transports = append(cfg.Transports, fx.Provide(
 			fx.Annotate(
-				tpt,
+				constructor,
+				fx.ParamTags(params...),
 				fx.As(new(transport.Transport)),
 				fx.ResultTags(`group:"transport"`),
 			),
 		))
-		return nil
-	}
-}
-
-func TransportWithOptions[F any, Opt any](tpt F, opts ...Opt) Option {
-	return func(cfg *Config) error {
-		cfg.Transports = append(cfg.Transports, fx.Provide(fx.Annotate(tpt, fx.ResultTags(`group:"transport"`))))
-		cfg.Transports = append(cfg.Transports, fx.Supply(opts))
+		for _, opt := range opts {
+			cfg.Transports = append(cfg.Transports, fx.Supply(
+				fx.Annotate(
+					opt,
+					fx.ResultTags(tag),
+				),
+			))
+		}
 		return nil
 	}
 }
