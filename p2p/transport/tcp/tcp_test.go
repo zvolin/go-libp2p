@@ -153,6 +153,6 @@ func makeInsecureMuxer(t *testing.T) (peer.ID, sec.SecureMuxer) {
 	id, err := peer.IDFromPrivateKey(priv)
 	require.NoError(t, err)
 	var secMuxer csms.SSMuxer
-	secMuxer.AddTransport(insecure.ID, insecure.NewWithIdentity(id, priv))
+	secMuxer.AddTransport(insecure.ID, insecure.NewWithIdentity(insecure.ID, id, priv))
 	return id, &secMuxer
 }

@@ -103,7 +103,7 @@ func GenUpgrader(t *testing.T, n *swarm.Swarm, connGater connmgr.ConnectionGater
 	id := n.LocalPeer()
 	pk := n.Peerstore().PrivKey(id)
 	secMuxer := new(csms.SSMuxer)
-	secMuxer.AddTransport(insecure.ID, insecure.NewWithIdentity(id, pk))
+	secMuxer.AddTransport(insecure.ID, insecure.NewWithIdentity(insecure.ID, id, pk))
 
 	stMuxer := msmux.NewBlankTransport()
 	stMuxer.AddTransport("/yamux/1.0.0", yamux.DefaultTransport)

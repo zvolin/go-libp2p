@@ -13,8 +13,8 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/peerstore"
 	"github.com/libp2p/go-libp2p/core/pnet"
+	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/libp2p/go-libp2p/core/routing"
-	"github.com/libp2p/go-libp2p/core/sec"
 	"github.com/libp2p/go-libp2p/core/transport"
 	"github.com/libp2p/go-libp2p/p2p/host/autonat"
 	"github.com/libp2p/go-libp2p/p2p/host/autorelay"
@@ -74,7 +74,7 @@ type Config struct {
 
 	Transports         []fx.Option
 	Muxers             []MsMuxC
-	SecurityTransports []MsSecC
+	SecurityTransports []fx.Option
 	Insecure           bool
 	PSK                pnet.PSK
 
@@ -169,15 +169,17 @@ func (cfg *Config) addTransports(h host.Host) error {
 		// Should probably skip this if no transports.
 		return fmt.Errorf("swarm does not support transports")
 	}
-	var secure sec.SecureMuxer
+
+	muxers := make([]protocol.ID, 0, len(cfg.Muxers))
+	for _, muxc := range cfg.Muxers {
+		muxers = append(muxers, protocol.ID(muxc.ID))
+	}
+
+	var security []fx.Option
 	if cfg.Insecure {
-		secure = makeInsecureTransport(h.ID(), cfg.PeerKey)
+		security = append(security, fx.Provide(makeInsecureTransport))
 	} else {
-		var err error
-		secure, err = makeSecurityMuxer(h, cfg.SecurityTransports, cfg.Muxers)
-		if err != nil {
-			return err
-		}
+		security = cfg.SecurityTransports
 	}
 	muxer, err := makeMuxer(h, cfg.Muxers)
 	if err != nil {
@@ -185,9 +187,14 @@ func (cfg *Config) addTransports(h host.Host) error {
 	}
 
 	fxopts := []fx.Option{
+		fx.NopLogger,
 		fx.Provide(tptu.New),
-		fx.Provide(func() sec.SecureMuxer { return secure }),
 		fx.Provide(func() network.Multiplexer { return muxer }),
+		fx.Provide(fx.Annotate(
+			makeSecurityMuxer,
+			fx.ParamTags(`group:"security"`),
+		)),
+		fx.Supply(muxers),
 		fx.Provide(func() host.Host { return h }),
 		fx.Provide(func() crypto.PrivKey { return h.Peerstore().PrivKey(h.ID()) }),
 		fx.Provide(func() connmgr.ConnectionGater { return cfg.ConnectionGater }),
@@ -196,6 +203,9 @@ func (cfg *Config) addTransports(h host.Host) error {
 		fx.Provide(func() *madns.Resolver { return cfg.MultiaddrResolver }),
 	}
 	fxopts = append(fxopts, cfg.Transports...)
+	if !cfg.Insecure {
+		fxopts = append(fxopts, security...)
+	}
 
 	fxopts = append(fxopts, fx.Invoke(
 		fx.Annotate(

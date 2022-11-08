@@ -61,7 +61,7 @@ func newTestTransport(t *testing.T, typ, bits int) *Transport {
 	require.NoError(t, err)
 	id, err := peer.IDFromPublicKey(pub)
 	require.NoError(t, err)
-	return NewWithIdentity(id, priv)
+	return NewWithIdentity("/test/1.0.0", id, priv)
 }
 
 // Create a new pair of connected TCP sockets.

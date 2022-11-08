@@ -26,21 +26,25 @@ const ID = "/tls/1.0.0"
 type Transport struct {
 	identity *Identity
 
-	localPeer peer.ID
-	privKey   ci.PrivKey
-	muxers    []protocol.ID
+	localPeer  peer.ID
+	privKey    ci.PrivKey
+	muxers     []protocol.ID
+	protocolID protocol.ID
 }
 
+var _ sec.SecureTransport = &Transport{}
+
 // New creates a TLS encrypted transport
-func New(key ci.PrivKey, muxers []protocol.ID) (*Transport, error) {
-	id, err := peer.IDFromPrivateKey(key)
+func New(id protocol.ID, key ci.PrivKey, muxers []protocol.ID) (*Transport, error) {
+	localPeer, err := peer.IDFromPrivateKey(key)
 	if err != nil {
 		return nil, err
 	}
 	t := &Transport{
-		localPeer: id,
-		privKey:   key,
-		muxers:    muxers,
+		protocolID: id,
+		localPeer:  localPeer,
+		privKey:    key,
+		muxers:     muxers,
 	}
 
 	identity, err := NewIdentity(key)
@@ -50,8 +54,6 @@ func New(key ci.PrivKey, muxers []protocol.ID) (*Transport, error) {
 	t.identity = identity
 	return t, nil
 }
-
-var _ sec.SecureTransport = &Transport{}
 
 // SecureInbound runs the TLS handshake as a server.
 // If p is empty, connections from any peer are accepted.
@@ -147,4 +149,8 @@ func (t *Transport) setupConn(tlsConn *tls.Conn, remotePubKey ci.PubKey) (sec.Se
 		remotePubKey:    remotePubKey,
 		connectionState: network.ConnectionState{NextProto: nextProto},
 	}, nil
+}
+
+func (t *Transport) ID() protocol.ID {
+	return t.protocolID
 }

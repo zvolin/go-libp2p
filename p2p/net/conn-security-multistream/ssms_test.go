@@ -44,8 +44,8 @@ func TestCommonProto(t *testing.T) {
 
 	var at, bt SSMuxer
 
-	atInsecure := insecure.NewWithIdentity(idA, privA)
-	btInsecure := insecure.NewWithIdentity(idB, privB)
+	atInsecure := insecure.NewWithIdentity(insecure.ID, idA, privA)
+	btInsecure := insecure.NewWithIdentity(insecure.ID, idB, privB)
 	at.AddTransport("/plaintext/1.0.0", atInsecure)
 	bt.AddTransport("/plaintext/1.1.0", btInsecure)
 	bt.AddTransport("/plaintext/1.0.0", btInsecure)
@@ -88,8 +88,8 @@ func TestNoCommonProto(t *testing.T) {
 	privB, idB := newPeer(t)
 
 	var at, bt SSMuxer
-	atInsecure := insecure.NewWithIdentity(idA, privA)
-	btInsecure := insecure.NewWithIdentity(idB, privB)
+	atInsecure := insecure.NewWithIdentity(insecure.ID, idA, privA)
+	btInsecure := insecure.NewWithIdentity(insecure.ID, idB, privB)
 
 	at.AddTransport("/plaintext/1.0.0", atInsecure)
 	bt.AddTransport("/plaintext/1.1.0", btInsecure)

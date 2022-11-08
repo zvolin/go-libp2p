@@ -6,6 +6,7 @@ import (
 
 	"github.com/libp2p/go-libp2p/core/canonicallog"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/libp2p/go-libp2p/core/sec"
 	"github.com/libp2p/go-libp2p/p2p/security/noise/pb"
 
@@ -71,6 +72,8 @@ type SessionTransport struct {
 	prologue           []byte
 	disablePeerIDCheck bool
 
+	protocolID protocol.ID
+
 	initiatorEarlyDataHandler, responderEarlyDataHandler EarlyDataHandler
 }
 
@@ -91,4 +94,8 @@ func (i *SessionTransport) SecureInbound(ctx context.Context, insecure net.Conn,
 // SecureOutbound runs the Noise handshake as the initiator.
 func (i *SessionTransport) SecureOutbound(ctx context.Context, insecure net.Conn, p peer.ID) (sec.SecureConn, error) {
 	return newSecureSession(i.t, ctx, insecure, p, i.prologue, i.initiatorEarlyDataHandler, i.responderEarlyDataHandler, true, !i.disablePeerIDCheck)
+}
+
+func (i *SessionTransport) ID() protocol.ID {
+	return i.protocolID
 }

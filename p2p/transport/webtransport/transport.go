@@ -110,7 +110,7 @@ func New(key ic.PrivKey, gater connmgr.ConnectionGater, rcmgr network.ResourceMa
 			return nil, err
 		}
 	}
-	n, err := noise.New(key, nil)
+	n, err := noise.New(noise.ID, key, nil)
 	if err != nil {
 		return nil, err
 	}

@@ -12,6 +12,8 @@ import (
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/transport"
+	"github.com/libp2p/go-libp2p/p2p/security/noise"
+	tls "github.com/libp2p/go-libp2p/p2p/security/tls"
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
 
 	"github.com/stretchr/testify/require"
@@ -164,4 +166,43 @@ func TestChainOptions(t *testing.T) {
 			t.Errorf("expected opt %d, got opt %d", i, x)
 		}
 	}
+}
+
+func TestSecurityConstructor(t *testing.T) {
+	h, err := New(
+		Transport(tcp.NewTCPTransport),
+		Security("/noisy", noise.New),
+		Security("/tls", tls.New),
+		DefaultListenAddrs,
+		DisableRelay(),
+	)
+	require.NoError(t, err)
+	defer h.Close()
+
+	h1, err := New(
+		NoListenAddrs,
+		Transport(tcp.NewTCPTransport),
+		Security("/noise", noise.New), // different name
+		DisableRelay(),
+	)
+	require.NoError(t, err)
+	defer h1.Close()
+
+	h2, err := New(
+		NoListenAddrs,
+		Transport(tcp.NewTCPTransport),
+		Security("/noisy", noise.New),
+		DisableRelay(),
+	)
+	require.NoError(t, err)
+	defer h2.Close()
+
+	ai := peer.AddrInfo{
+		ID:    h.ID(),
+		Addrs: h.Addrs(),
+	}
+	err = h1.Connect(context.Background(), ai)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "failed to negotiate security protocol")
+	require.NoError(t, h2.Connect(context.Background(), ai))
 }

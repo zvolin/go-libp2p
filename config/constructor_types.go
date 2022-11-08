@@ -12,7 +12,6 @@ import (
 	"github.com/libp2p/go-libp2p/core/peerstore"
 	"github.com/libp2p/go-libp2p/core/pnet"
 	"github.com/libp2p/go-libp2p/core/protocol"
-	"github.com/libp2p/go-libp2p/core/sec"
 	"github.com/libp2p/go-libp2p/core/transport"
 
 	madns "github.com/multiformats/go-multiaddr-dns"
@@ -23,7 +22,6 @@ var (
 	hostType      = reflect.TypeOf((*host.Host)(nil)).Elem()
 	networkType   = reflect.TypeOf((*network.Network)(nil)).Elem()
 	muxType       = reflect.TypeOf((*network.Multiplexer)(nil)).Elem()
-	securityType  = reflect.TypeOf((*sec.SecureTransport)(nil)).Elem()
 	privKeyType   = reflect.TypeOf((*crypto.PrivKey)(nil)).Elem()
 	pubKeyType    = reflect.TypeOf((*crypto.PubKey)(nil)).Elem()
 	pstoreType    = reflect.TypeOf((*peerstore.Peerstore)(nil)).Elem()

@@ -16,6 +16,8 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/peerstore"
 	"github.com/libp2p/go-libp2p/core/pnet"
+	"github.com/libp2p/go-libp2p/core/protocol"
+	"github.com/libp2p/go-libp2p/core/sec"
 	"github.com/libp2p/go-libp2p/core/transport"
 	"github.com/libp2p/go-libp2p/p2p/host/autorelay"
 	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
@@ -63,17 +65,27 @@ func ListenAddrs(addrs ...ma.Multiaddr) Option {
 // * Host
 // * Network
 // * Peerstore
-func Security(name string, tpt interface{}) Option {
-	stpt, err := config.SecurityConstructor(tpt)
-	err = traceError(err, 1)
+func Security(name string, constructor interface{}) Option {
 	return func(cfg *Config) error {
-		if err != nil {
-			return err
-		}
 		if cfg.Insecure {
 			return fmt.Errorf("cannot use security transports with an insecure libp2p configuration")
 		}
-		cfg.SecurityTransports = append(cfg.SecurityTransports, config.MsSecC{SecC: stpt, ID: name})
+		fxName := fmt.Sprintf(`name:"%s"`, name)
+		// provide the name of the security transport
+		cfg.SecurityTransports = append(cfg.SecurityTransports,
+			fx.Provide(fx.Annotate(
+				func() protocol.ID { return protocol.ID(name) },
+				fx.ResultTags(fxName),
+			)),
+		)
+		cfg.SecurityTransports = append(cfg.SecurityTransports,
+			fx.Provide(fx.Annotate(
+				constructor,
+				fx.ParamTags(fxName),
+				fx.As(new(sec.SecureTransport)),
+				fx.ResultTags(`group:"security"`),
+			)),
+		)
 		return nil
 	}
 }

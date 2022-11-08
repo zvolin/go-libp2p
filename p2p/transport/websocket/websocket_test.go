@@ -67,7 +67,7 @@ func newInsecureMuxer(t *testing.T) (peer.ID, sec.SecureMuxer) {
 		t.Fatal(err)
 	}
 	var secMuxer csms.SSMuxer
-	secMuxer.AddTransport(insecure.ID, insecure.NewWithIdentity(id, priv))
+	secMuxer.AddTransport(insecure.ID, insecure.NewWithIdentity(insecure.ID, id, priv))
 	return id, &secMuxer
 }
 
@@ -82,7 +82,7 @@ func newSecureMuxer(t *testing.T) (peer.ID, sec.SecureMuxer) {
 		t.Fatal(err)
 	}
 	var secMuxer csms.SSMuxer
-	noiseTpt, err := noise.New(priv, nil)
+	noiseTpt, err := noise.New(noise.ID, priv, nil)
 	require.NoError(t, err)
 	secMuxer.AddTransport(noise.ID, noiseTpt)
 	return id, &secMuxer
