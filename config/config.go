@@ -28,13 +28,11 @@ import (
 	relayv2 "github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/relay"
 	"github.com/libp2p/go-libp2p/p2p/protocol/holepunch"
 
-	logging "github.com/ipfs/go-log/v2"
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
 	"go.uber.org/fx"
+	"go.uber.org/fx/fxevent"
 )
-
-var log = logging.Logger("p2p-config")
 
 // AddrsFactory is a function that takes a set of multiaddrs we're listening on and
 // returns the set of multiaddrs we should advertise to the network.
@@ -187,7 +185,7 @@ func (cfg *Config) addTransports(h host.Host) error {
 	}
 
 	fxopts := []fx.Option{
-		fx.NopLogger,
+		fx.WithLogger(func() fxevent.Logger { return getFXLogger() }),
 		fx.Provide(tptu.New),
 		fx.Provide(func() network.Multiplexer { return muxer }),
 		fx.Provide(fx.Annotate(
