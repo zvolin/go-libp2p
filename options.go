@@ -139,6 +139,19 @@ func Transport(constructor interface{}, opts ...interface{}) Option {
 		typ := reflect.ValueOf(constructor).Type()
 		numParams := typ.NumIn()
 		isVariadic := typ.IsVariadic()
+
+		if !isVariadic && len(opts) > 0 {
+			return errors.New("transport constructor doesn't take any options")
+		}
+		if isVariadic && numParams >= 1 {
+			paramType := typ.In(numParams - 1).Elem()
+			for _, opt := range opts {
+				if typ := reflect.TypeOf(opt); !typ.AssignableTo(paramType) {
+					return fmt.Errorf("transport option of type %s not assignable to %s", typ, paramType)
+				}
+			}
+		}
+
 		var params []string
 		if isVariadic && len(opts) > 0 {
 			// If there are transport options, apply the tag.
