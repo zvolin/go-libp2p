@@ -27,17 +27,17 @@ var msg = []byte("relay works!")
 func testSetupRelay(t *testing.T) []host.Host {
 	hosts := getNetHosts(t, 3)
 
-	err := AddRelayTransport(hosts[0], swarmt.GenUpgrader(t, hosts[0].Network().(*swarm.Swarm)))
+	err := AddRelayTransport(hosts[0], swarmt.GenUpgrader(t, hosts[0].Network().(*swarm.Swarm), nil))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = AddRelayTransport(hosts[1], swarmt.GenUpgrader(t, hosts[1].Network().(*swarm.Swarm)), OptHop)
+	err = AddRelayTransport(hosts[1], swarmt.GenUpgrader(t, hosts[1].Network().(*swarm.Swarm), nil), OptHop)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = AddRelayTransport(hosts[2], swarmt.GenUpgrader(t, hosts[2].Network().(*swarm.Swarm)))
+	err = AddRelayTransport(hosts[2], swarmt.GenUpgrader(t, hosts[2].Network().(*swarm.Swarm), nil))
 	if err != nil {
 		t.Fatal(err)
 	}

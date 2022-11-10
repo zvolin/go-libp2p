@@ -13,8 +13,8 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/peerstore"
 	"github.com/libp2p/go-libp2p/core/pnet"
+	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/libp2p/go-libp2p/core/routing"
-	"github.com/libp2p/go-libp2p/core/sec"
 	"github.com/libp2p/go-libp2p/core/transport"
 	"github.com/libp2p/go-libp2p/p2p/host/autonat"
 	"github.com/libp2p/go-libp2p/p2p/host/autorelay"
@@ -28,12 +28,11 @@ import (
 	relayv2 "github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/relay"
 	"github.com/libp2p/go-libp2p/p2p/protocol/holepunch"
 
-	logging "github.com/ipfs/go-log/v2"
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
+	"go.uber.org/fx"
+	"go.uber.org/fx/fxevent"
 )
-
-var log = logging.Logger("p2p-config")
 
 // AddrsFactory is a function that takes a set of multiaddrs we're listening on and
 // returns the set of multiaddrs we should advertise to the network.
@@ -71,9 +70,9 @@ type Config struct {
 
 	PeerKey crypto.PrivKey
 
-	Transports         []TptC
-	Muxers             []MsMuxC
-	SecurityTransports []MsSecC
+	Transports         []fx.Option
+	Muxers             []Muxer
+	SecurityTransports []fx.Option
 	Insecure           bool
 	PSK                pnet.PSK
 
@@ -168,51 +167,65 @@ func (cfg *Config) addTransports(h host.Host) error {
 		// Should probably skip this if no transports.
 		return fmt.Errorf("swarm does not support transports")
 	}
-	var secure sec.SecureMuxer
+
+	muxers := make([]protocol.ID, 0, len(cfg.Muxers))
+	for _, m := range cfg.Muxers {
+		muxers = append(muxers, m.ID)
+	}
+
+	var security []fx.Option
 	if cfg.Insecure {
-		secure = makeInsecureTransport(h.ID(), cfg.PeerKey)
+		security = append(security, fx.Provide(makeInsecureTransport))
 	} else {
-		var err error
-		secure, err = makeSecurityMuxer(h, cfg.SecurityTransports, cfg.Muxers)
-		if err != nil {
-			return err
-		}
+		security = cfg.SecurityTransports
 	}
-	muxer, err := makeMuxer(h, cfg.Muxers)
+	muxer, err := makeMuxer(cfg.Muxers)
 	if err != nil {
 		return err
-	}
-	var opts []tptu.Option
-	if len(cfg.PSK) > 0 {
-		opts = append(opts, tptu.WithPSK(cfg.PSK))
-	}
-	if cfg.ConnectionGater != nil {
-		opts = append(opts, tptu.WithConnectionGater(cfg.ConnectionGater))
-	}
-	if cfg.ResourceManager != nil {
-		opts = append(opts, tptu.WithResourceManager(cfg.ResourceManager))
-	}
-	upgrader, err := tptu.New(secure, muxer, opts...)
-	if err != nil {
-		return err
-	}
-	tpts, err := makeTransports(h, upgrader, cfg.ConnectionGater, cfg.PSK, cfg.ResourceManager, cfg.MultiaddrResolver, cfg.Transports)
-	if err != nil {
-		return err
-	}
-	for _, t := range tpts {
-		if err := swrm.AddTransport(t); err != nil {
-			return err
-		}
 	}
 
+	fxopts := []fx.Option{
+		fx.WithLogger(func() fxevent.Logger { return getFXLogger() }),
+		fx.Provide(tptu.New),
+		fx.Provide(func() network.Multiplexer { return muxer }),
+		fx.Provide(fx.Annotate(
+			makeSecurityMuxer,
+			fx.ParamTags(`group:"security"`),
+		)),
+		fx.Supply(muxers),
+		fx.Provide(func() host.Host { return h }),
+		fx.Provide(func() crypto.PrivKey { return h.Peerstore().PrivKey(h.ID()) }),
+		fx.Provide(func() connmgr.ConnectionGater { return cfg.ConnectionGater }),
+		fx.Provide(func() pnet.PSK { return cfg.PSK }),
+		fx.Provide(func() network.ResourceManager { return cfg.ResourceManager }),
+		fx.Provide(func() *madns.Resolver { return cfg.MultiaddrResolver }),
+	}
+	fxopts = append(fxopts, cfg.Transports...)
+	if !cfg.Insecure {
+		fxopts = append(fxopts, security...)
+	}
+
+	fxopts = append(fxopts, fx.Invoke(
+		fx.Annotate(
+			func(tpts []transport.Transport) error {
+				for _, t := range tpts {
+					if err := swrm.AddTransport(t); err != nil {
+						return err
+					}
+				}
+				return nil
+			},
+			fx.ParamTags(`group:"transport"`),
+		)),
+	)
 	if cfg.Relay {
-		if err := circuitv2.AddTransport(h, upgrader); err != nil {
-			h.Close()
-			return err
-		}
+		fxopts = append(fxopts, fx.Invoke(circuitv2.AddTransport))
 	}
-
+	app := fx.New(fxopts...)
+	if err := app.Err(); err != nil {
+		h.Close()
+		return err
+	}
 	return nil
 }
 

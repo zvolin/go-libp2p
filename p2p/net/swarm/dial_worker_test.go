@@ -77,11 +77,11 @@ func makeUpgrader(t *testing.T, n *Swarm) transport.Upgrader {
 	id := n.LocalPeer()
 	pk := n.Peerstore().PrivKey(id)
 	secMuxer := new(csms.SSMuxer)
-	secMuxer.AddTransport(insecure.ID, insecure.NewWithIdentity(id, pk))
+	secMuxer.AddTransport(insecure.ID, insecure.NewWithIdentity(insecure.ID, id, pk))
 
 	stMuxer := msmux.NewBlankTransport()
 	stMuxer.AddTransport("/yamux/1.0.0", yamux.DefaultTransport)
-	u, err := tptu.New(secMuxer, stMuxer)
+	u, err := tptu.New(secMuxer, stMuxer, nil, nil, nil)
 	require.NoError(t, err)
 	return u
 }

@@ -12,8 +12,13 @@ import (
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/transport"
+	"github.com/libp2p/go-libp2p/p2p/net/swarm"
+	"github.com/libp2p/go-libp2p/p2p/security/noise"
+	tls "github.com/libp2p/go-libp2p/p2p/security/tls"
+	quic "github.com/libp2p/go-libp2p/p2p/transport/quic"
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
 
+	ma "github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/require"
 )
 
@@ -164,4 +169,123 @@ func TestChainOptions(t *testing.T) {
 			t.Errorf("expected opt %d, got opt %d", i, x)
 		}
 	}
+}
+
+func TestTransportConstructorTCP(t *testing.T) {
+	h, err := New(
+		Transport(tcp.NewTCPTransport),
+		DisableRelay(),
+	)
+	require.NoError(t, err)
+	defer h.Close()
+	require.NoError(t, h.Network().Listen(ma.StringCast("/ip4/127.0.0.1/tcp/0")))
+	err = h.Network().Listen(ma.StringCast("/ip4/127.0.0.1/udp/0/quic"))
+	require.Error(t, err)
+	require.Contains(t, err.Error(), swarm.ErrNoTransport.Error())
+}
+
+func TestTransportConstructorQUIC(t *testing.T) {
+	h, err := New(
+		Transport(quic.NewTransport, quic.DisableReuseport()),
+		DisableRelay(),
+	)
+	require.NoError(t, err)
+	defer h.Close()
+	require.NoError(t, h.Network().Listen(ma.StringCast("/ip4/127.0.0.1/udp/0/quic")))
+	err = h.Network().Listen(ma.StringCast("/ip4/127.0.0.1/tcp/0"))
+	require.Error(t, err)
+	require.Contains(t, err.Error(), swarm.ErrNoTransport.Error())
+}
+
+type mockTransport struct{}
+
+func (m mockTransport) Dial(context.Context, ma.Multiaddr, peer.ID) (transport.CapableConn, error) {
+	panic("implement me")
+}
+
+func (m mockTransport) CanDial(ma.Multiaddr) bool                       { panic("implement me") }
+func (m mockTransport) Listen(ma.Multiaddr) (transport.Listener, error) { panic("implement me") }
+func (m mockTransport) Protocols() []int                                { return []int{1337} }
+func (m mockTransport) Proxy() bool                                     { panic("implement me") }
+
+var _ transport.Transport = &mockTransport{}
+
+func TestTransportConstructorWithoutOpts(t *testing.T) {
+	t.Run("successful", func(t *testing.T) {
+		var called bool
+		constructor := func() transport.Transport {
+			called = true
+			return &mockTransport{}
+		}
+
+		h, err := New(
+			Transport(constructor),
+			DisableRelay(),
+		)
+		require.NoError(t, err)
+		require.True(t, called, "expected constructor to be called")
+		defer h.Close()
+	})
+
+	t.Run("with options", func(t *testing.T) {
+		var called bool
+		constructor := func() transport.Transport {
+			called = true
+			return &mockTransport{}
+		}
+
+		_, err := New(
+			Transport(constructor, tcp.DisableReuseport()),
+			DisableRelay(),
+		)
+		require.EqualError(t, err, "transport constructor doesn't take any options")
+		require.False(t, called, "didn't expected constructor to be called")
+	})
+}
+
+func TestTransportConstructorWithWrongOpts(t *testing.T) {
+	_, err := New(
+		Transport(quic.NewTransport, tcp.DisableReuseport()),
+		DisableRelay(),
+	)
+	require.EqualError(t, err, "transport option of type tcp.Option not assignable to libp2pquic.Option")
+}
+
+func TestSecurityConstructor(t *testing.T) {
+	h, err := New(
+		Transport(tcp.NewTCPTransport),
+		Security("/noisy", noise.New),
+		Security("/tls", tls.New),
+		DefaultListenAddrs,
+		DisableRelay(),
+	)
+	require.NoError(t, err)
+	defer h.Close()
+
+	h1, err := New(
+		NoListenAddrs,
+		Transport(tcp.NewTCPTransport),
+		Security("/noise", noise.New), // different name
+		DisableRelay(),
+	)
+	require.NoError(t, err)
+	defer h1.Close()
+
+	h2, err := New(
+		NoListenAddrs,
+		Transport(tcp.NewTCPTransport),
+		Security("/noisy", noise.New),
+		DisableRelay(),
+	)
+	require.NoError(t, err)
+	defer h2.Close()
+
+	ai := peer.AddrInfo{
+		ID:    h.ID(),
+		Addrs: h.Addrs(),
+	}
+	err = h1.Connect(context.Background(), ai)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "failed to negotiate security protocol")
+	require.NoError(t, h2.Connect(context.Background(), ai))
 }

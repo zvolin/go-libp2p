@@ -9,5 +9,5 @@ import (
 func TestGenSwarm(t *testing.T) {
 	swarm := GenSwarm(t)
 	require.NoError(t, swarm.Close())
-	GenUpgrader(t, swarm)
+	GenUpgrader(t, swarm, nil)
 }

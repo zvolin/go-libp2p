@@ -27,7 +27,7 @@ func StartServer() error {
 		return err
 	}
 	fmt.Printf(" Peer ID: %s\n", id.Pretty())
-	tp, err := libp2ptls.New(priv, nil)
+	tp, err := libp2ptls.New(libp2ptls.ID, priv, nil)
 	if err != nil {
 		return err
 	}

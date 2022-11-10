@@ -15,24 +15,21 @@ import (
 )
 
 // ID is the protocol ID for noise
-const (
-	ID          = "/noise"
-	maxProtoNum = 100
-)
+const ID = "/noise"
+const maxProtoNum = 100
 
-var _ sec.SecureTransport = &Transport{}
-
-// Transport implements the interface sec.SecureTransport
-// https://godoc.org/github.com/libp2p/go-libp2p/core/sec#SecureConn
 type Transport struct {
+	protocolID protocol.ID
 	localID    peer.ID
 	privateKey crypto.PrivKey
 	muxers     []string
 }
 
+var _ sec.SecureTransport = &Transport{}
+
 // New creates a new Noise transport using the given private key as its
 // libp2p identity key.
-func New(privkey crypto.PrivKey, muxers []protocol.ID) (*Transport, error) {
+func New(id protocol.ID, privkey crypto.PrivKey, muxers []protocol.ID) (*Transport, error) {
 	localID, err := peer.IDFromPrivateKey(privkey)
 	if err != nil {
 		return nil, err
@@ -44,6 +41,7 @@ func New(privkey crypto.PrivKey, muxers []protocol.ID) (*Transport, error) {
 	}
 
 	return &Transport{
+		protocolID: id,
 		localID:    localID,
 		privateKey: privkey,
 		muxers:     smuxers,
@@ -75,13 +73,17 @@ func (t *Transport) SecureOutbound(ctx context.Context, insecure net.Conn, p pee
 }
 
 func (t *Transport) WithSessionOptions(opts ...SessionOption) (*SessionTransport, error) {
-	st := &SessionTransport{t: t}
+	st := &SessionTransport{t: t, protocolID: t.protocolID}
 	for _, opt := range opts {
 		if err := opt(st); err != nil {
 			return nil, err
 		}
 	}
 	return st, nil
+}
+
+func (t *Transport) ID() protocol.ID {
+	return t.protocolID
 }
 
 func matchMuxers(initiatorMuxers, responderMuxers []string) string {

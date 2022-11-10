@@ -30,30 +30,9 @@ const defaultAcceptTimeout = 15 * time.Second
 
 type Option func(*upgrader) error
 
-func WithPSK(psk ipnet.PSK) Option {
-	return func(u *upgrader) error {
-		u.psk = psk
-		return nil
-	}
-}
-
 func WithAcceptTimeout(t time.Duration) Option {
 	return func(u *upgrader) error {
 		u.acceptTimeout = t
-		return nil
-	}
-}
-
-func WithConnectionGater(g connmgr.ConnectionGater) Option {
-	return func(u *upgrader) error {
-		u.connGater = g
-		return nil
-	}
-}
-
-func WithResourceManager(m network.ResourceManager) Option {
-	return func(u *upgrader) error {
-		u.rcmgr = m
 		return nil
 	}
 }
@@ -78,11 +57,14 @@ type upgrader struct {
 
 var _ transport.Upgrader = &upgrader{}
 
-func New(secureMuxer sec.SecureMuxer, muxer network.Multiplexer, opts ...Option) (transport.Upgrader, error) {
+func New(secureMuxer sec.SecureMuxer, muxer network.Multiplexer, psk ipnet.PSK, rcmgr network.ResourceManager, connGater connmgr.ConnectionGater, opts ...Option) (transport.Upgrader, error) {
 	u := &upgrader{
 		secure:        secureMuxer,
 		muxer:         muxer,
 		acceptTimeout: defaultAcceptTimeout,
+		rcmgr:         rcmgr,
+		connGater:     connGater,
+		psk:           psk,
 	}
 	for _, opt := range opts {
 		if err := opt(u); err != nil {

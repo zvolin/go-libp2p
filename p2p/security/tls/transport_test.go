@@ -126,9 +126,9 @@ func TestHandshakeSucceeds(t *testing.T) {
 	}
 
 	// Use standard transports with default TLS configuration
-	clientTransport, err := New(clientKey, nil)
+	clientTransport, err := New(ID, clientKey, nil)
 	require.NoError(t, err)
-	serverTransport, err := New(serverKey, nil)
+	serverTransport, err := New(ID, serverKey, nil)
 	require.NoError(t, err)
 
 	t.Run("standard TLS with extension not critical", func(t *testing.T) {
@@ -240,9 +240,9 @@ func TestHandshakeWithNextProtoSucceeds(t *testing.T) {
 
 	// Iterate through the NextProto combinations.
 	for _, test := range tests {
-		clientTransport, err := New(clientKey, test.clientProtos)
+		clientTransport, err := New(ID, clientKey, test.clientProtos)
 		require.NoError(t, err)
-		serverTransport, err := New(serverKey, test.serverProtos)
+		serverTransport, err := New(ID, serverKey, test.serverProtos)
 		require.NoError(t, err)
 
 		t.Run("TLS handshake with ALPN extension", func(t *testing.T) {
@@ -268,9 +268,9 @@ func TestHandshakeConnectionCancellations(t *testing.T) {
 	_, clientKey := createPeer(t)
 	serverID, serverKey := createPeer(t)
 
-	clientTransport, err := New(clientKey, nil)
+	clientTransport, err := New(ID, clientKey, nil)
 	require.NoError(t, err)
-	serverTransport, err := New(serverKey, nil)
+	serverTransport, err := New(ID, serverKey, nil)
 	require.NoError(t, err)
 
 	t.Run("cancel outgoing connection", func(t *testing.T) {
@@ -320,9 +320,9 @@ func TestPeerIDMismatch(t *testing.T) {
 	_, clientKey := createPeer(t)
 	serverID, serverKey := createPeer(t)
 
-	serverTransport, err := New(serverKey, nil)
+	serverTransport, err := New(ID, serverKey, nil)
 	require.NoError(t, err)
-	clientTransport, err := New(clientKey, nil)
+	clientTransport, err := New(ID, clientKey, nil)
 	require.NoError(t, err)
 
 	t.Run("for outgoing connections", func(t *testing.T) {
@@ -597,9 +597,9 @@ func TestInvalidCerts(t *testing.T) {
 		tr := transforms[i]
 
 		t.Run(fmt.Sprintf("client offending: %s", tr.name), func(t *testing.T) {
-			serverTransport, err := New(serverKey, nil)
+			serverTransport, err := New(ID, serverKey, nil)
 			require.NoError(t, err)
-			clientTransport, err := New(clientKey, nil)
+			clientTransport, err := New(ID, clientKey, nil)
 			require.NoError(t, err)
 			tr.apply(clientTransport.identity)
 
@@ -640,10 +640,10 @@ func TestInvalidCerts(t *testing.T) {
 		})
 
 		t.Run(fmt.Sprintf("server offending: %s", tr.name), func(t *testing.T) {
-			serverTransport, err := New(serverKey, nil)
+			serverTransport, err := New(ID, serverKey, nil)
 			require.NoError(t, err)
 			tr.apply(serverTransport.identity)
-			clientTransport, err := New(clientKey, nil)
+			clientTransport, err := New(ID, clientKey, nil)
 			require.NoError(t, err)
 
 			clientInsecureConn, serverInsecureConn := connect(t)

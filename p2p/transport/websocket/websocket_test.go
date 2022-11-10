@@ -39,7 +39,7 @@ import (
 func newUpgrader(t *testing.T) (peer.ID, transport.Upgrader) {
 	t.Helper()
 	id, m := newInsecureMuxer(t)
-	u, err := tptu.New(m, yamux.DefaultTransport)
+	u, err := tptu.New(m, yamux.DefaultTransport, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,7 +49,7 @@ func newUpgrader(t *testing.T) (peer.ID, transport.Upgrader) {
 func newSecureUpgrader(t *testing.T) (peer.ID, transport.Upgrader) {
 	t.Helper()
 	id, m := newSecureMuxer(t)
-	u, err := tptu.New(m, yamux.DefaultTransport)
+	u, err := tptu.New(m, yamux.DefaultTransport, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,7 +67,7 @@ func newInsecureMuxer(t *testing.T) (peer.ID, sec.SecureMuxer) {
 		t.Fatal(err)
 	}
 	var secMuxer csms.SSMuxer
-	secMuxer.AddTransport(insecure.ID, insecure.NewWithIdentity(id, priv))
+	secMuxer.AddTransport(insecure.ID, insecure.NewWithIdentity(insecure.ID, id, priv))
 	return id, &secMuxer
 }
 
@@ -82,7 +82,7 @@ func newSecureMuxer(t *testing.T) (peer.ID, sec.SecureMuxer) {
 		t.Fatal(err)
 	}
 	var secMuxer csms.SSMuxer
-	noiseTpt, err := noise.New(priv, nil)
+	noiseTpt, err := noise.New(noise.ID, priv, nil)
 	require.NoError(t, err)
 	secMuxer.AddTransport(noise.ID, noiseTpt)
 	return id, &secMuxer

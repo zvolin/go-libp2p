@@ -7,6 +7,7 @@ import (
 
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/protocol"
 )
 
 // SecureConn is an authenticated, encrypted connection.
@@ -24,6 +25,9 @@ type SecureTransport interface {
 
 	// SecureOutbound secures an outbound connection.
 	SecureOutbound(ctx context.Context, insecure net.Conn, p peer.ID) (SecureConn, error)
+
+	// ID is the protocol ID of the security protocol.
+	ID() protocol.ID
 }
 
 // A SecureMuxer is a wrapper around SecureTransport which can select security protocols
