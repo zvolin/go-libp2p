@@ -4,11 +4,13 @@ import (
 	"context"
 	"crypto/sha256"
 	"crypto/tls"
+	"encoding/binary"
 	"fmt"
 	"sync"
 	"time"
 
 	"github.com/benbjohnson/clock"
+	ic "github.com/libp2p/go-libp2p/core/crypto"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/multiformats/go-multihash"
 )
@@ -17,6 +19,7 @@ import (
 // When we generate a certificate, the NotBefore time is set to clockSkewAllowance before the current time.
 // Similarly, we stop using a certificate one clockSkewAllowance before its expiry time.
 const clockSkewAllowance = time.Hour
+const validityMinusTwoSkew = certValidity - (2 * clockSkewAllowance)
 
 type certConfig struct {
 	tlsConf *tls.Config
@@ -26,8 +29,8 @@ type certConfig struct {
 func (c *certConfig) Start() time.Time { return c.tlsConf.Certificates[0].Leaf.NotBefore }
 func (c *certConfig) End() time.Time   { return c.tlsConf.Certificates[0].Leaf.NotAfter }
 
-func newCertConfig(start, end time.Time) (*certConfig, error) {
-	conf, err := getTLSConf(start, end)
+func newCertConfig(key ic.PrivKey, start, end time.Time) (*certConfig, error) {
+	conf, err := getTLSConf(key, start, end)
 	if err != nil {
 		return nil, err
 	}
@@ -57,32 +60,58 @@ type certManager struct {
 	serializedCertHashes [][]byte
 }
 
-func newCertManager(clock clock.Clock) (*certManager, error) {
+func newCertManager(hostKey ic.PrivKey, clock clock.Clock) (*certManager, error) {
 	m := &certManager{clock: clock}
 	m.ctx, m.ctxCancel = context.WithCancel(context.Background())
-	if err := m.init(); err != nil {
+	if err := m.init(hostKey); err != nil {
 		return nil, err
 	}
 
-	m.background()
+	m.background(hostKey)
 	return m, nil
 }
 
-func (m *certManager) init() error {
-	start := m.clock.Now().Add(-clockSkewAllowance)
-	var err error
-	m.nextConfig, err = newCertConfig(start, start.Add(certValidity))
+// getCurrentTimeBucket returns the canonical start time of the given time as
+// bucketed by ranges of certValidity since unix epoch (plus an offset). This
+// lets you get the same time ranges across reboots without having to persist
+// state.
+// ```
+// ... v--- epoch + offset
+// ... |--------|    |--------|        ...
+// ...        |--------|    |--------| ...
+// ```
+func getCurrentBucketStartTime(now time.Time, offset time.Duration) time.Time {
+	currentBucket := (now.UnixMilli() - offset.Milliseconds()) / validityMinusTwoSkew.Milliseconds()
+	return time.UnixMilli(offset.Milliseconds() + currentBucket*validityMinusTwoSkew.Milliseconds())
+}
+
+func (m *certManager) init(hostKey ic.PrivKey) error {
+	start := m.clock.Now()
+	pubkeyBytes, err := hostKey.GetPublic().Raw()
 	if err != nil {
 		return err
 	}
-	return m.rollConfig()
+
+	// We want to add a random offset to each start time so that not all certs
+	// rotate at the same time across the network. The offset represents moving
+	// the bucket start time some `offset` earlier.
+	offset := (time.Duration(binary.LittleEndian.Uint16(pubkeyBytes)) * time.Minute) % certValidity
+
+	// We want the certificate have been valid for at least one clockSkewAllowance
+	start = start.Add(-clockSkewAllowance)
+	startTime := getCurrentBucketStartTime(start, offset)
+	m.nextConfig, err = newCertConfig(hostKey, startTime, startTime.Add(certValidity))
+	if err != nil {
+		return err
+	}
+	return m.rollConfig(hostKey)
 }
 
-func (m *certManager) rollConfig() error {
+func (m *certManager) rollConfig(hostKey ic.PrivKey) error {
 	// We stop using the current certificate clockSkewAllowance before its expiry time.
 	// At this point, the next certificate needs to be valid for one clockSkewAllowance.
 	nextStart := m.nextConfig.End().Add(-2 * clockSkewAllowance)
-	c, err := newCertConfig(nextStart, nextStart.Add(certValidity))
+	c, err := newCertConfig(hostKey, nextStart, nextStart.Add(certValidity))
 	if err != nil {
 		return err
 	}
@@ -95,7 +124,7 @@ func (m *certManager) rollConfig() error {
 	return m.cacheAddrComponent()
 }
 
-func (m *certManager) background() {
+func (m *certManager) background(hostKey ic.PrivKey) {
 	d := m.currentConfig.End().Add(-clockSkewAllowance).Sub(m.clock.Now())
 	log.Debugw("setting timer", "duration", d.String())
 	t := m.clock.Timer(d)
@@ -111,7 +140,7 @@ func (m *certManager) background() {
 				return
 			case now := <-t.C:
 				m.mx.Lock()
-				if err := m.rollConfig(); err != nil {
+				if err := m.rollConfig(hostKey); err != nil {
 					log.Errorw("rolling config failed", "error", err)
 				}
 				d := m.currentConfig.End().Add(-clockSkewAllowance).Sub(now)
