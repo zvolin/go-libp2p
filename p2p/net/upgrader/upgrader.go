@@ -250,26 +250,27 @@ func (u *upgrader) setupMuxer(ctx context.Context, conn sec.SecureConn, server b
 		return protocol.ID(muxerSelected), c, nil
 	}
 
-	done := make(chan struct{})
+	type result struct {
+		smconn  network.MuxedConn
+		muxerID protocol.ID
+		err     error
+	}
 
-	var smconn network.MuxedConn
-	var muxerID protocol.ID
-	var err error
+	done := make(chan result, 1)
 	// TODO: The muxer should take a context.
 	go func() {
-		defer close(done)
-		var m *StreamMuxer
-		m, err = u.negotiateMuxer(conn, server)
+		m, err := u.negotiateMuxer(conn, server)
 		if err != nil {
+			done <- result{err: err}
 			return
 		}
-		muxerID = m.ID
-		smconn, err = m.Muxer.NewConn(conn, server, scope)
+		smconn, err := m.Muxer.NewConn(conn, server, scope)
+		done <- result{smconn: smconn, muxerID: m.ID, err: err}
 	}()
 
 	select {
-	case <-done:
-		return muxerID, smconn, err
+	case r := <-done:
+		return r.muxerID, r.smconn, r.err
 	case <-ctx.Done():
 		// interrupt this process
 		conn.Close()
