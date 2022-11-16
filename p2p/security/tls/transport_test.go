@@ -185,14 +185,41 @@ type testcase struct {
 
 func TestHandshakeWithNextProtoSucceeds(t *testing.T) {
 	tests := []testcase{
-		{clientProtos: nil, serverProtos: nil, expectedResult: ""},
-		{clientProtos: []protocol.ID{"muxer1", "muxer2"}, serverProtos: []protocol.ID{"muxer2", "muxer1"}, expectedResult: "muxer2"},
-		{clientProtos: []protocol.ID{"muxer1", "muxer2", "libp2p"}, serverProtos: []protocol.ID{"muxer2", "muxer1", "libp2p"}, expectedResult: "muxer2"},
-		{clientProtos: []protocol.ID{"muxer1", "libp2p"}, serverProtos: []protocol.ID{"libp2p"}, expectedResult: ""},
-		{clientProtos: []protocol.ID{"libp2p"}, serverProtos: []protocol.ID{"libp2p"}, expectedResult: ""},
-		{clientProtos: []protocol.ID{"muxer1"}, serverProtos: []protocol.ID{}, expectedResult: ""},
-		{clientProtos: []protocol.ID{}, serverProtos: []protocol.ID{"muxer1"}, expectedResult: ""},
-		{clientProtos: []protocol.ID{"muxer2"}, serverProtos: []protocol.ID{"muxer1"}, expectedResult: ""},
+		{
+			clientProtos:   []protocol.ID{"muxer1", "muxer2"},
+			serverProtos:   []protocol.ID{"muxer2", "muxer1"},
+			expectedResult: "muxer1",
+		},
+		{
+			clientProtos:   []protocol.ID{"muxer1", "muxer2", "libp2p"},
+			serverProtos:   []protocol.ID{"muxer2", "muxer1", "libp2p"},
+			expectedResult: "muxer1",
+		},
+		{
+			clientProtos:   []protocol.ID{"muxer1", "libp2p"},
+			serverProtos:   []protocol.ID{"libp2p"},
+			expectedResult: "",
+		},
+		{
+			clientProtos:   []protocol.ID{"libp2p"},
+			serverProtos:   []protocol.ID{"libp2p"},
+			expectedResult: "",
+		},
+		{
+			clientProtos:   []protocol.ID{"muxer1"},
+			serverProtos:   []protocol.ID{},
+			expectedResult: "",
+		},
+		{
+			clientProtos:   []protocol.ID{},
+			serverProtos:   []protocol.ID{"muxer1"},
+			expectedResult: "",
+		},
+		{
+			clientProtos:   []protocol.ID{"muxer2"},
+			serverProtos:   []protocol.ID{"muxer1"},
+			expectedResult: "",
+		},
 	}
 
 	clientID, clientKey := createPeer(t)

@@ -68,7 +68,26 @@ func (t *Transport) SecureInbound(ctx context.Context, insecure net.Conn, p peer
 	for _, muxer := range t.muxers {
 		muxers = append(muxers, string(muxer))
 	}
-	// Prepend the prefered muxers list to TLS config.
+	// TLS' ALPN selection lets the server select the protocol, preferring the server's preferences.
+	// We want to prefer the client's preference though.
+	getConfigForClient := config.GetConfigForClient
+	config.GetConfigForClient = func(info *tls.ClientHelloInfo) (*tls.Config, error) {
+	alpnLoop:
+		for _, proto := range info.SupportedProtos {
+			for _, m := range muxers {
+				if m == proto {
+					// Match found. Select this muxer, as it's the client's preference.
+					// There's no need to add the "libp2p" entry here.
+					config.NextProtos = []string{proto}
+					break alpnLoop
+				}
+			}
+		}
+		if getConfigForClient != nil {
+			return getConfigForClient(info)
+		}
+		return config, nil
+	}
 	config.NextProtos = append(muxers, config.NextProtos...)
 	cs, err := t.handshake(ctx, tls.Server(insecure, config), keyCh)
 	if err != nil {
