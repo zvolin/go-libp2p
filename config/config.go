@@ -182,6 +182,7 @@ func (cfg *Config) addTransports(h host.Host) error {
 			fx.ParamTags(`group:"security"`),
 		)),
 		fx.Supply(cfg.Muxers),
+		fx.Supply(h.ID()),
 		fx.Provide(func() host.Host { return h }),
 		fx.Provide(func() crypto.PrivKey { return h.Peerstore().PrivKey(h.ID()) }),
 		fx.Provide(func() connmgr.ConnectionGater { return cfg.ConnectionGater }),
