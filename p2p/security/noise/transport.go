@@ -88,10 +88,10 @@ func (t *Transport) ID() protocol.ID {
 }
 
 func matchMuxers(initiatorMuxers, responderMuxers []string) string {
-	for _, muxer := range responderMuxers {
-		for _, initMuxer := range initiatorMuxers {
-			if initMuxer == muxer {
-				return muxer
+	for _, initMuxer := range initiatorMuxers {
+		for _, respMuxer := range responderMuxers {
+			if initMuxer == respMuxer {
+				return initMuxer
 			}
 		}
 	}
