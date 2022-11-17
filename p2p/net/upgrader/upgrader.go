@@ -171,7 +171,7 @@ func (u *upgrader) upgrade(ctx context.Context, t transport.Transport, maconn ma
 		}
 	}
 
-	smconn, err := u.setupMuxer(ctx, sconn, server, connScope.PeerScope())
+	muxer, smconn, err := u.setupMuxer(ctx, sconn, server, connScope.PeerScope())
 	if err != nil {
 		sconn.Close()
 		return nil, fmt.Errorf("failed to negotiate stream multiplexer: %s", err)
@@ -184,6 +184,7 @@ func (u *upgrader) upgrade(ctx context.Context, t transport.Transport, maconn ma
 		transport:      t,
 		stat:           stat,
 		scope:          connScope,
+		muxer:          muxer,
 	}
 	return tc, nil
 }
@@ -234,40 +235,47 @@ func (u *upgrader) getMuxerByID(id string) *StreamMuxer {
 	return nil
 }
 
-func (u *upgrader) setupMuxer(ctx context.Context, conn sec.SecureConn, server bool, scope network.PeerScope) (network.MuxedConn, error) {
+func (u *upgrader) setupMuxer(ctx context.Context, conn sec.SecureConn, server bool, scope network.PeerScope) (protocol.ID, network.MuxedConn, error) {
 	muxerSelected := conn.ConnState().NextProto
 	// Use muxer selected from security handshake if available. Otherwise fall back to multistream-selection.
 	if len(muxerSelected) > 0 {
 		m := u.getMuxerByID(muxerSelected)
 		if m == nil {
-			return nil, fmt.Errorf("selected a muxer we don't know: %s", muxerSelected)
+			return "", nil, fmt.Errorf("selected a muxer we don't know: %s", muxerSelected)
 		}
-		return m.Muxer.NewConn(conn, server, scope)
+		c, err := m.Muxer.NewConn(conn, server, scope)
+		if err != nil {
+			return "", nil, err
+		}
+		return protocol.ID(muxerSelected), c, nil
 	}
 
-	done := make(chan struct{})
+	type result struct {
+		smconn  network.MuxedConn
+		muxerID protocol.ID
+		err     error
+	}
 
-	var smconn network.MuxedConn
-	var err error
+	done := make(chan result, 1)
 	// TODO: The muxer should take a context.
 	go func() {
-		defer close(done)
-		var m *StreamMuxer
-		m, err = u.negotiateMuxer(conn, server)
+		m, err := u.negotiateMuxer(conn, server)
 		if err != nil {
+			done <- result{err: err}
 			return
 		}
-		smconn, err = m.Muxer.NewConn(conn, server, scope)
+		smconn, err := m.Muxer.NewConn(conn, server, scope)
+		done <- result{smconn: smconn, muxerID: m.ID, err: err}
 	}()
 
 	select {
-	case <-done:
-		return smconn, err
+	case r := <-done:
+		return r.muxerID, r.smconn, r.err
 	case <-ctx.Done():
 		// interrupt this process
 		conn.Close()
 		// wait to finish
 		<-done
-		return nil, ctx.Err()
+		return "", nil, ctx.Err()
 	}
 }
