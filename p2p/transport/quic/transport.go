@@ -149,6 +149,8 @@ type transport struct {
 	holePunchingMx sync.Mutex
 	holePunching   map[holePunchKey]*activeHolePunch
 
+	enableDraft29 bool
+
 	connMx sync.Mutex
 	conns  map[quic.Connection]*conn
 }
@@ -192,6 +194,10 @@ func NewTransport(key ic.PrivKey, psk pnet.PSK, gater connmgr.ConnectionGater, r
 		rcmgr = &network.NullResourceManager{}
 	}
 	qconfig := quicConfig.Clone()
+	if cfg.disableDraft29 {
+		qconfig.Versions = []quic.VersionNumber{quic.Version1}
+	}
+
 	keyBytes, err := key.Raw()
 	if err != nil {
 		return nil, err
@@ -214,14 +220,15 @@ func NewTransport(key ic.PrivKey, psk pnet.PSK, gater connmgr.ConnectionGater, r
 	}
 
 	tr := &transport{
-		privKey:      key,
-		localPeer:    localPeer,
-		identity:     identity,
-		connManager:  connManager,
-		gater:        gater,
-		rcmgr:        rcmgr,
-		conns:        make(map[quic.Connection]*conn),
-		holePunching: make(map[holePunchKey]*activeHolePunch),
+		privKey:       key,
+		localPeer:     localPeer,
+		identity:      identity,
+		connManager:   connManager,
+		gater:         gater,
+		rcmgr:         rcmgr,
+		conns:         make(map[quic.Connection]*conn),
+		holePunching:  make(map[holePunchKey]*activeHolePunch),
+		enableDraft29: !cfg.disableDraft29,
 	}
 	qconfig.AllowConnectionWindowIncrease = tr.allowWindowIncrease
 	tr.serverConfig = qconfig
@@ -231,6 +238,10 @@ func NewTransport(key ic.PrivKey, psk pnet.PSK, gater connmgr.ConnectionGater, r
 
 // Dial dials a new QUIC connection
 func (t *transport) Dial(ctx context.Context, raddr ma.Multiaddr, p peer.ID) (tpt.CapableConn, error) {
+	_, v, err := fromQuicMultiaddr(raddr)
+	if err != nil {
+		return nil, err
+	}
 	netw, host, err := manet.DialArgs(raddr)
 	if err != nil {
 		return nil, err
@@ -239,7 +250,7 @@ func (t *transport) Dial(ctx context.Context, raddr ma.Multiaddr, p peer.ID) (tp
 	if err != nil {
 		return nil, err
 	}
-	remoteMultiaddr, err := toQuicMultiaddr(addr)
+	remoteMultiaddr, err := toQuicMultiaddr(addr, v)
 	if err != nil {
 		return nil, err
 	}
@@ -262,7 +273,18 @@ func (t *transport) Dial(ctx context.Context, raddr ma.Multiaddr, p peer.ID) (tp
 	if err != nil {
 		return nil, err
 	}
-	qconn, err := quicDialContext(ctx, pconn, addr, host, tlsConf, t.clientConfig)
+
+	clientConfig := t.clientConfig.Clone()
+	if v == quic.Version1 {
+		// The endpoint has explicit support for version 1, so we'll only use that version.
+		clientConfig.Versions = []quic.VersionNumber{quic.Version1}
+	} else if v == quic.VersionDraft29 {
+		clientConfig.Versions = []quic.VersionNumber{quic.VersionDraft29}
+	} else {
+		return nil, errors.New("unknown QUIC version")
+	}
+
+	qconn, err := quicDialContext(ctx, pconn, addr, host, tlsConf, clientConfig)
 	if err != nil {
 		scope.Done()
 		pconn.DecreaseCount()
@@ -280,7 +302,7 @@ func (t *transport) Dial(ctx context.Context, raddr ma.Multiaddr, p peer.ID) (tp
 		return nil, errors.New("p2p/transport/quic BUG: expected remote pub key to be set")
 	}
 
-	localMultiaddr, err := toQuicMultiaddr(pconn.LocalAddr())
+	localMultiaddr, err := toQuicMultiaddr(pconn.LocalAddr(), v)
 	if err != nil {
 		qconn.CloseWithError(0, "")
 		return nil, err
@@ -394,7 +416,7 @@ loop:
 }
 
 // Don't use mafmt.QUIC as we don't want to dial DNS addresses. Just /ip{4,6}/udp/quic
-var dialMatcher = mafmt.And(mafmt.IP, mafmt.Base(ma.P_UDP), mafmt.Base(ma.P_QUIC))
+var dialMatcher = mafmt.And(mafmt.IP, mafmt.Base(ma.P_UDP), mafmt.Or(mafmt.Base(ma.P_QUIC), mafmt.Base(ma.P_QUIC_V1)))
 
 // CanDial determines if we can dial to an address
 func (t *transport) CanDial(addr ma.Multiaddr) bool {
@@ -403,6 +425,14 @@ func (t *transport) CanDial(addr ma.Multiaddr) bool {
 
 // Listen listens for new QUIC connections on the passed multiaddr.
 func (t *transport) Listen(addr ma.Multiaddr) (tpt.Listener, error) {
+	_, v, err := fromQuicMultiaddr(addr)
+	if err != nil {
+		return nil, err
+	}
+	if v == quic.VersionDraft29 && !t.enableDraft29 {
+		return nil, errors.New("can't listen on `/quic` multiaddr (QUIC draft 29 version) when draft 29 support is disabled")
+	}
+
 	lnet, host, err := manet.DialArgs(addr)
 	if err != nil {
 		return nil, err
@@ -415,7 +445,7 @@ func (t *transport) Listen(addr ma.Multiaddr) (tpt.Listener, error) {
 	if err != nil {
 		return nil, err
 	}
-	ln, err := newListener(conn, t, t.localPeer, t.privKey, t.identity, t.rcmgr)
+	ln, err := newListener(conn, t, t.localPeer, t.privKey, t.identity, t.rcmgr, t.enableDraft29)
 	if err != nil {
 		if !t.connManager.reuseportEnable {
 			conn.Close()
@@ -447,7 +477,10 @@ func (t *transport) Proxy() bool {
 
 // Protocols returns the set of protocols handled by this transport.
 func (t *transport) Protocols() []int {
-	return []int{ma.P_QUIC}
+	if t.enableDraft29 {
+		return []int{ma.P_QUIC, ma.P_QUIC_V1}
+	}
+	return []int{ma.P_QUIC_V1}
 }
 
 func (t *transport) String() string {

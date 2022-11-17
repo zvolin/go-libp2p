@@ -37,23 +37,27 @@ func (s *Swarm) Listen(addrs ...ma.Multiaddr) error {
 	return nil
 }
 
-// ListenClose stop and delete listeners for all of the given addresses.
+// ListenClose stop and delete listeners for all of the given addresses. If an
+// any address belongs to one of the addreses a Listener provides, then the
+// Listener will close for *all* addresses it provides. For example if you close
+// and address with `/quic`, then the QUIC listener will close and also close
+// any `/quic-v1` address.
 func (s *Swarm) ListenClose(addrs ...ma.Multiaddr) {
-	var listenersToClose []transport.Listener
+	listenersToClose := make(map[transport.Listener]struct{}, len(addrs))
 
 	s.listeners.Lock()
 	for l := range s.listeners.m {
-		if !containsMultiaddr(addrs, l.Multiaddr()) {
+		if !containsSomeMultiaddr(addrs, l.Multiaddrs()) {
 			continue
 		}
 
 		delete(s.listeners.m, l)
-		listenersToClose = append(listenersToClose, l)
+		listenersToClose[l] = struct{}{}
 	}
 	s.listeners.cacheEOL = time.Time{}
 	s.listeners.Unlock()
 
-	for _, l := range listenersToClose {
+	for l := range listenersToClose {
 		l.Close()
 	}
 }
@@ -92,11 +96,13 @@ func (s *Swarm) AddListenAddr(a ma.Multiaddr) error {
 	s.listeners.cacheEOL = time.Time{}
 	s.listeners.Unlock()
 
-	maddr := list.Multiaddr()
+	maddrs := list.Multiaddrs()
 
 	// signal to our notifiees on listen.
 	s.notifyAll(func(n network.Notifiee) {
-		n.Listen(s, maddr)
+		for _, maddr := range maddrs {
+			n.Listen(s, maddr)
+		}
 	})
 
 	go func() {
@@ -116,7 +122,9 @@ func (s *Swarm) AddListenAddr(a ma.Multiaddr) error {
 
 			// signal to our notifiees on listen close.
 			s.notifyAll(func(n network.Notifiee) {
-				n.ListenClose(s, maddr)
+				for _, maddr := range maddrs {
+					n.ListenClose(s, maddr)
+				}
 			})
 			s.refs.Done()
 		}()
@@ -147,11 +155,16 @@ func (s *Swarm) AddListenAddr(a ma.Multiaddr) error {
 	return nil
 }
 
-func containsMultiaddr(addrs []ma.Multiaddr, addr ma.Multiaddr) bool {
-	for _, a := range addrs {
-		if addr == a {
+func containsSomeMultiaddr(hayStack []ma.Multiaddr, needles []ma.Multiaddr) bool {
+	seenSet := make(map[string]struct{}, len(needles))
+	for _, a := range needles {
+		seenSet[string(a.Bytes())] = struct{}{}
+	}
+	for _, a := range hayStack {
+		if _, found := seenSet[string(a.Bytes())]; found {
 			return true
 		}
 	}
 	return false
+
 }

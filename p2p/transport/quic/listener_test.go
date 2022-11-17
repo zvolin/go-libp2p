@@ -66,7 +66,12 @@ func TestListenAddr(t *testing.T) {
 		defer ln.Close()
 		port := ln.Addr().(*net.UDPAddr).Port
 		require.NotZero(t, port)
-		require.Equal(t, ln.Multiaddr().String(), fmt.Sprintf("/ip4/127.0.0.1/udp/%d/quic", port))
+		var multiaddrsStrings []string
+		for _, a := range ln.Multiaddrs() {
+			multiaddrsStrings = append(multiaddrsStrings, a.String())
+		}
+		require.Contains(t, multiaddrsStrings, fmt.Sprintf("/ip4/127.0.0.1/udp/%d/quic", port))
+		require.Contains(t, multiaddrsStrings, fmt.Sprintf("/ip4/127.0.0.1/udp/%d/quic-v1", port))
 	})
 
 	t.Run("for IPv6", func(t *testing.T) {
@@ -76,7 +81,12 @@ func TestListenAddr(t *testing.T) {
 		defer ln.Close()
 		port := ln.Addr().(*net.UDPAddr).Port
 		require.NotZero(t, port)
-		require.Equal(t, ln.Multiaddr().String(), fmt.Sprintf("/ip6/::/udp/%d/quic", port))
+		var multiaddrsStrings []string
+		for _, a := range ln.Multiaddrs() {
+			multiaddrsStrings = append(multiaddrsStrings, a.String())
+		}
+		require.Contains(t, multiaddrsStrings, fmt.Sprintf("/ip6/::/udp/%d/quic", port))
+		require.Contains(t, multiaddrsStrings, fmt.Sprintf("/ip6/::/udp/%d/quic-v1", port))
 	})
 }
 

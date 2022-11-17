@@ -16,9 +16,9 @@ func (s *Swarm) ListenAddresses() []ma.Multiaddr {
 }
 
 func (s *Swarm) listenAddressesNoLock() []ma.Multiaddr {
-	addrs := make([]ma.Multiaddr, 0, len(s.listeners.m))
+	addrs := make([]ma.Multiaddr, 0, len(s.listeners.m)+10) // A bit extra so we may avoid an extra allocation in the for loop below.
 	for l := range s.listeners.m {
-		addrs = append(addrs, l.Multiaddr())
+		addrs = append(addrs, l.Multiaddrs()...)
 	}
 	return addrs
 }
