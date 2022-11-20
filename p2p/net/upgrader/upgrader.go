@@ -152,7 +152,7 @@ func (u *upgrader) upgrade(ctx context.Context, t transport.Transport, maconn ma
 		return nil, ipnet.ErrNotInPrivateNetwork
 	}
 
-	sconn, server, err := u.setupSecurity(ctx, conn, p, dir)
+	sconn, security, server, err := u.setupSecurity(ctx, conn, p, dir)
 	if err != nil {
 		conn.Close()
 		return nil, fmt.Errorf("failed to negotiate security protocol: %s", err)
@@ -193,24 +193,25 @@ func (u *upgrader) upgrade(ctx context.Context, t transport.Transport, maconn ma
 		stat:           stat,
 		scope:          connScope,
 		muxer:          muxer,
+		security:       security,
 	}
 	return tc, nil
 }
 
-func (u *upgrader) setupSecurity(ctx context.Context, conn net.Conn, p peer.ID, dir network.Direction) (sec.SecureConn, bool, error) {
+func (u *upgrader) setupSecurity(ctx context.Context, conn net.Conn, p peer.ID, dir network.Direction) (sec.SecureConn, protocol.ID, bool, error) {
 	isServer := dir == network.DirInbound
 	var st sec.SecureTransport
 	var err error
 	st, isServer, err = u.negotiateSecurity(ctx, conn, isServer)
 	if err != nil {
-		return nil, false, err
+		return nil, "", false, err
 	}
 	if isServer {
 		sconn, err := st.SecureInbound(ctx, conn, p)
-		return sconn, true, err
+		return sconn, st.ID(), true, err
 	}
 	sconn, err := st.SecureOutbound(ctx, conn, p)
-	return sconn, false, err
+	return sconn, st.ID(), false, err
 }
 
 func (u *upgrader) negotiateMuxer(nc net.Conn, isServer bool) (*StreamMuxer, error) {
