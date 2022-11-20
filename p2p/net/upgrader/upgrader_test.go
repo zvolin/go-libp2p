@@ -2,6 +2,7 @@ package upgrader_test
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"net"
 	"testing"
@@ -11,8 +12,8 @@ import (
 	"github.com/libp2p/go-libp2p/core/network"
 	mocknetwork "github.com/libp2p/go-libp2p/core/network/mocks"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/sec"
 	"github.com/libp2p/go-libp2p/core/sec/insecure"
-	"github.com/libp2p/go-libp2p/core/test"
 	"github.com/libp2p/go-libp2p/core/transport"
 	"github.com/libp2p/go-libp2p/p2p/muxer/yamux"
 	"github.com/libp2p/go-libp2p/p2p/net/upgrader"
@@ -39,12 +40,18 @@ func createUpgraderWithOpts(t *testing.T, opts ...upgrader.Option) (peer.ID, tra
 	return createUpgraderWithMuxers(t, []upgrader.StreamMuxer{{ID: "negotiate", Muxer: &negotiatingMuxer{}}}, nil, nil, opts...)
 }
 
-func createUpgraderWithMuxers(t *testing.T, muxers []upgrader.StreamMuxer, rcmgr network.ResourceManager, connGater connmgr.ConnectionGater, opts ...upgrader.Option) (peer.ID, transport.Upgrader) {
-	priv, _, err := test.RandTestKeyPair(crypto.Ed25519, 256)
+func newPeer(t *testing.T) (peer.ID, crypto.PrivKey) {
+	t.Helper()
+	priv, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	require.NoError(t, err)
 	id, err := peer.IDFromPrivateKey(priv)
 	require.NoError(t, err)
-	u, err := upgrader.New(&MuxAdapter{tpt: insecure.NewWithIdentity(insecure.ID, id, priv)}, muxers, nil, rcmgr, connGater, opts...)
+	return id, priv
+}
+
+func createUpgraderWithMuxers(t *testing.T, muxers []upgrader.StreamMuxer, rcmgr network.ResourceManager, connGater connmgr.ConnectionGater, opts ...upgrader.Option) (peer.ID, transport.Upgrader) {
+	id, priv := newPeer(t)
+	u, err := upgrader.New([]sec.SecureTransport{insecure.NewWithIdentity(insecure.ID, id, priv)}, muxers, nil, rcmgr, connGater, opts...)
 	require.NoError(t, err)
 	return id, u
 }
@@ -193,9 +200,5 @@ func TestOutboundResourceManagement(t *testing.T) {
 		_, dialUpgrader := createUpgrader(t)
 		_, err := dial(t, dialUpgrader, ln.Multiaddrs()[0], id, connScope)
 		require.Error(t, err)
-	})
-
-	t.Run("blocked by the resource manager", func(t *testing.T) {
-
 	})
 }

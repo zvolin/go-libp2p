@@ -13,7 +13,6 @@ import (
 	"github.com/libp2p/go-libp2p/core/sec/insecure"
 	"github.com/libp2p/go-libp2p/core/transport"
 	"github.com/libp2p/go-libp2p/p2p/muxer/yamux"
-	csms "github.com/libp2p/go-libp2p/p2p/net/conn-security-multistream"
 	tptu "github.com/libp2p/go-libp2p/p2p/net/upgrader"
 	ttransport "github.com/libp2p/go-libp2p/p2p/transport/testsuite"
 
@@ -148,13 +147,11 @@ func TestTcpTransportCantListenUtp(t *testing.T) {
 	envReuseportVal = true
 }
 
-func makeInsecureMuxer(t *testing.T) (peer.ID, sec.SecureMuxer) {
+func makeInsecureMuxer(t *testing.T) (peer.ID, []sec.SecureTransport) {
 	t.Helper()
 	priv, _, err := crypto.GenerateKeyPair(crypto.Ed25519, 256)
 	require.NoError(t, err)
 	id, err := peer.IDFromPrivateKey(priv)
 	require.NoError(t, err)
-	var secMuxer csms.SSMuxer
-	secMuxer.AddTransport(insecure.ID, insecure.NewWithIdentity(insecure.ID, id, priv))
-	return id, &secMuxer
+	return id, []sec.SecureTransport{insecure.NewWithIdentity(insecure.ID, id, priv)}
 }
