@@ -3,7 +3,6 @@ package csms
 import (
 	"context"
 	"fmt"
-	"log"
 	"net"
 
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -57,23 +56,15 @@ func (sm *SSMuxer) SecureOutbound(ctx context.Context, insecure net.Conn, p peer
 		return nil, false, err
 	}
 
-	var sconn sec.SecureConn
 	if server {
-		sconn, err = tpt.SecureInbound(ctx, insecure, p)
+		sconn, err := tpt.SecureInbound(ctx, insecure, p)
 		if err != nil {
 			return nil, false, fmt.Errorf("failed to secure inbound connection: %s", err)
 		}
-		// ensure the correct peer connected to us
-		if sconn.RemotePeer() != p {
-			sconn.Close()
-			log.Printf("Handshake failed to properly authenticate peer. Authenticated %s, expected %s.", sconn.RemotePeer(), p)
-			return nil, false, fmt.Errorf("unexpected peer")
-		}
-	} else {
-		sconn, err = tpt.SecureOutbound(ctx, insecure, p)
+		return sconn, true, nil
 	}
-
-	return sconn, server, err
+	sconn, err := tpt.SecureOutbound(ctx, insecure, p)
+	return sconn, false, err
 }
 
 func (sm *SSMuxer) selectProto(ctx context.Context, insecure net.Conn, server bool) (sec.SecureTransport, bool, error) {
