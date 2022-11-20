@@ -39,7 +39,7 @@ type ConnectionState struct {
 	// The next protocol used for stream muxer selection. This is derived from
 	// security protocol handshake, for example, Noise handshake payload or
 	// TLS/ALPN negotiation.
-	NextProto string
+	StreamMultiplexer string
 }
 
 // ConnSecurity is the interface that one can mix into a connection interface to

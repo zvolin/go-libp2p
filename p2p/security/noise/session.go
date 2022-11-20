@@ -136,7 +136,7 @@ func (s *secureSession) Close() error {
 
 func SessionWithConnState(s *secureSession, muxer string) *secureSession {
 	if s != nil {
-		s.connectionState.NextProto = muxer
+		s.connectionState.StreamMultiplexer = muxer
 	}
 	return s
 }

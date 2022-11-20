@@ -54,5 +54,5 @@ func (t *transportConn) Close() error {
 }
 
 func (t *transportConn) ConnState() network.ConnectionState {
-	return network.ConnectionState{NextProto: string(t.muxer)}
+	return network.ConnectionState{StreamMultiplexer: string(t.muxer)}
 }
