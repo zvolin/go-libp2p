@@ -14,6 +14,8 @@ import (
 	"github.com/libp2p/go-libp2p/core/peerstore"
 	"github.com/libp2p/go-libp2p/core/pnet"
 	"github.com/libp2p/go-libp2p/core/routing"
+	"github.com/libp2p/go-libp2p/core/sec"
+	"github.com/libp2p/go-libp2p/core/sec/insecure"
 	"github.com/libp2p/go-libp2p/core/transport"
 	"github.com/libp2p/go-libp2p/p2p/host/autonat"
 	"github.com/libp2p/go-libp2p/p2p/host/autorelay"
@@ -167,20 +169,9 @@ func (cfg *Config) addTransports(h host.Host) error {
 		return fmt.Errorf("swarm does not support transports")
 	}
 
-	var security []fx.Option
-	if cfg.Insecure {
-		security = append(security, fx.Provide(makeInsecureTransport))
-	} else {
-		security = cfg.SecurityTransports
-	}
-
 	fxopts := []fx.Option{
 		fx.WithLogger(func() fxevent.Logger { return getFXLogger() }),
-		fx.Provide(tptu.New),
-		fx.Provide(fx.Annotate(
-			makeSecurityMuxer,
-			fx.ParamTags(`group:"security"`),
-		)),
+		fx.Provide(fx.Annotate(tptu.New, fx.ParamTags(`group:"security"`))),
 		fx.Supply(cfg.Muxers),
 		fx.Supply(h.ID()),
 		fx.Provide(func() host.Host { return h }),
@@ -191,8 +182,19 @@ func (cfg *Config) addTransports(h host.Host) error {
 		fx.Provide(func() *madns.Resolver { return cfg.MultiaddrResolver }),
 	}
 	fxopts = append(fxopts, cfg.Transports...)
-	if !cfg.Insecure {
-		fxopts = append(fxopts, security...)
+	if cfg.Insecure {
+		fxopts = append(fxopts,
+			fx.Provide(
+				fx.Annotate(
+					func(id peer.ID, priv crypto.PrivKey) sec.SecureTransport {
+						return insecure.NewWithIdentity(insecure.ID, id, priv)
+					},
+					fx.ResultTags(`group:"security"`),
+				),
+			),
+		)
+	} else {
+		fxopts = append(fxopts, cfg.SecurityTransports...)
 	}
 
 	fxopts = append(fxopts, fx.Invoke(

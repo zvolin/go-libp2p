@@ -255,7 +255,7 @@ func TestHandshakeWithNextProtoSucceeds(t *testing.T) {
 		require.Equal(t, serverConn.RemotePeer(), clientID)
 		require.True(t, clientConn.RemotePublicKey().Equals(serverKey.GetPublic()), "server public key mismatch")
 		require.True(t, serverConn.RemotePublicKey().Equals(clientKey.GetPublic()), "client public key mismatch")
-		require.Equal(t, clientConn.ConnState().NextProto, expectedMuxer)
+		require.Equal(t, clientConn.ConnState().StreamMultiplexer, expectedMuxer)
 		// exchange some data
 		_, err = serverConn.Write([]byte("foobar"))
 		require.NoError(t, err)
@@ -265,7 +265,7 @@ func TestHandshakeWithNextProtoSucceeds(t *testing.T) {
 		require.Equal(t, string(b), "foobar")
 	}
 
-	// Iterate through the NextProto combinations.
+	// Iterate through the StreamMultiplexer combinations.
 	for _, test := range tests {
 		clientMuxers := make([]tptu.StreamMuxer, 0, len(test.clientProtos))
 		for _, id := range test.clientProtos {

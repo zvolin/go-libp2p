@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"net"
 	"os"
 	"sync"
 	"sync/atomic"
@@ -15,6 +14,7 @@ import (
 	mocknetwork "github.com/libp2p/go-libp2p/core/network/mocks"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/sec"
+	"github.com/libp2p/go-libp2p/core/sec/insecure"
 	"github.com/libp2p/go-libp2p/core/transport"
 	"github.com/libp2p/go-libp2p/p2p/net/upgrader"
 
@@ -23,22 +23,6 @@ import (
 	manet "github.com/multiformats/go-multiaddr/net"
 	"github.com/stretchr/testify/require"
 )
-
-type MuxAdapter struct {
-	tpt sec.SecureTransport
-}
-
-var _ sec.SecureMuxer = &MuxAdapter{}
-
-func (mux *MuxAdapter) SecureInbound(ctx context.Context, insecure net.Conn, p peer.ID) (sec.SecureConn, bool, error) {
-	sconn, err := mux.tpt.SecureInbound(ctx, insecure, p)
-	return sconn, true, err
-}
-
-func (mux *MuxAdapter) SecureOutbound(ctx context.Context, insecure net.Conn, p peer.ID) (sec.SecureConn, bool, error) {
-	sconn, err := mux.tpt.SecureOutbound(ctx, insecure, p)
-	return sconn, false, err
-}
 
 func createListener(t *testing.T, u transport.Upgrader) transport.Listener {
 	t.Helper()
@@ -399,5 +383,35 @@ func TestListenerResourceManagementDenied(t *testing.T) {
 	case <-time.After(50 * time.Millisecond):
 	}
 	require.NoError(t, ln.Close())
+	<-done
+}
+
+func TestNoCommonSecurityProto(t *testing.T) {
+	idA, privA := newPeer(t)
+	idB, privB := newPeer(t)
+	atInsecure := insecure.NewWithIdentity("/plaintext1", idA, privA)
+	btInsecure := insecure.NewWithIdentity("/plaintext2", idB, privB)
+
+	ua, err := upgrader.New([]sec.SecureTransport{atInsecure}, []upgrader.StreamMuxer{{ID: "negotiate", Muxer: &negotiatingMuxer{}}}, nil, nil, nil)
+	require.NoError(t, err)
+	ub, err := upgrader.New([]sec.SecureTransport{btInsecure}, []upgrader.StreamMuxer{{ID: "negotiate", Muxer: &negotiatingMuxer{}}}, nil, nil, nil)
+	require.NoError(t, err)
+
+	ln := createListener(t, ua)
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		ln.Accept()
+	}()
+
+	_, err = dial(t, ub, ln.Multiaddrs()[0], idA, &network.NullScope{})
+	require.EqualError(t, err, "failed to negotiate security protocol: protocol not supported")
+	select {
+	case <-done:
+		t.Fatal("didn't expect to accept a connection")
+	case <-time.After(50 * time.Millisecond):
+	}
+
+	ln.Close()
 	<-done
 }

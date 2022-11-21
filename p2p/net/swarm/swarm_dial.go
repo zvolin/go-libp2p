@@ -269,6 +269,13 @@ func (s *Swarm) dialPeer(ctx context.Context, p peer.ID) (*Conn, error) {
 
 	conn, err = s.dsync.Dial(ctx, p)
 	if err == nil {
+		// Ensure we connected to the correct peer.
+		// This was most likely already checked by the security protocol, but it doesn't hurt do it again here.
+		if conn.RemotePeer() != p {
+			conn.Close()
+			log.Errorw("Handshake failed to properly authenticate peer", "authenticated", conn.RemotePeer(), "expected", p)
+			return nil, fmt.Errorf("unexpected peer")
+		}
 		return conn, nil
 	}
 

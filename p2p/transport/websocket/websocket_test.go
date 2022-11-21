@@ -27,7 +27,6 @@ import (
 	"github.com/libp2p/go-libp2p/core/test"
 	"github.com/libp2p/go-libp2p/core/transport"
 	"github.com/libp2p/go-libp2p/p2p/muxer/yamux"
-	csms "github.com/libp2p/go-libp2p/p2p/net/conn-security-multistream"
 	tptu "github.com/libp2p/go-libp2p/p2p/net/upgrader"
 	"github.com/libp2p/go-libp2p/p2p/security/noise"
 	ttransport "github.com/libp2p/go-libp2p/p2p/transport/testsuite"
@@ -56,22 +55,16 @@ func newSecureUpgrader(t *testing.T) (peer.ID, transport.Upgrader) {
 	return id, u
 }
 
-func newInsecureMuxer(t *testing.T) (peer.ID, sec.SecureMuxer) {
+func newInsecureMuxer(t *testing.T) (peer.ID, []sec.SecureTransport) {
 	t.Helper()
 	priv, _, err := test.RandTestKeyPair(crypto.Ed25519, 256)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	id, err := peer.IDFromPrivateKey(priv)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var secMuxer csms.SSMuxer
-	secMuxer.AddTransport(insecure.ID, insecure.NewWithIdentity(insecure.ID, id, priv))
-	return id, &secMuxer
+	require.NoError(t, err)
+	return id, []sec.SecureTransport{insecure.NewWithIdentity(insecure.ID, id, priv)}
 }
 
-func newSecureMuxer(t *testing.T) (peer.ID, sec.SecureMuxer) {
+func newSecureMuxer(t *testing.T) (peer.ID, []sec.SecureTransport) {
 	t.Helper()
 	priv, _, err := test.RandTestKeyPair(crypto.Ed25519, 256)
 	if err != nil {
@@ -81,11 +74,9 @@ func newSecureMuxer(t *testing.T) (peer.ID, sec.SecureMuxer) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var secMuxer csms.SSMuxer
 	noiseTpt, err := noise.New(noise.ID, priv, nil)
 	require.NoError(t, err)
-	secMuxer.AddTransport(noise.ID, noiseTpt)
-	return id, &secMuxer
+	return id, []sec.SecureTransport{noiseTpt}
 }
 
 func lastComponent(t *testing.T, a ma.Multiaddr) ma.Multiaddr {

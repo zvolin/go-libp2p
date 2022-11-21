@@ -34,12 +34,12 @@ type Conn interface {
 	GetStreams() []Stream
 }
 
-// ConnectionState holds extra information releated to the ConnSecurity entity.
+// ConnectionState holds information about the connection.
 type ConnectionState struct {
-	// The next protocol used for stream muxer selection. This is derived from
-	// security protocol handshake, for example, Noise handshake payload or
-	// TLS/ALPN negotiation.
-	NextProto string
+	// The stream multiplexer used on this connection (if any).
+	StreamMultiplexer string
+	// The security protocol used on this connection (if any).
+	Security string
 }
 
 // ConnSecurity is the interface that one can mix into a connection interface to

@@ -12,11 +12,11 @@ import (
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/peerstore"
+	"github.com/libp2p/go-libp2p/core/sec"
 	"github.com/libp2p/go-libp2p/core/sec/insecure"
 	"github.com/libp2p/go-libp2p/core/transport"
 	"github.com/libp2p/go-libp2p/p2p/host/peerstore/pstoremem"
 	"github.com/libp2p/go-libp2p/p2p/muxer/yamux"
-	csms "github.com/libp2p/go-libp2p/p2p/net/conn-security-multistream"
 	tptu "github.com/libp2p/go-libp2p/p2p/net/upgrader"
 	quic "github.com/libp2p/go-libp2p/p2p/transport/quic"
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
@@ -75,10 +75,9 @@ func makeSwarm(t *testing.T) *Swarm {
 func makeUpgrader(t *testing.T, n *Swarm) transport.Upgrader {
 	id := n.LocalPeer()
 	pk := n.Peerstore().PrivKey(id)
-	secMuxer := new(csms.SSMuxer)
-	secMuxer.AddTransport(insecure.ID, insecure.NewWithIdentity(insecure.ID, id, pk))
+	st := insecure.NewWithIdentity(insecure.ID, id, pk)
 
-	u, err := tptu.New(secMuxer, []tptu.StreamMuxer{{ID: "/yamux/1.0.0", Muxer: yamux.DefaultTransport}}, nil, nil, nil)
+	u, err := tptu.New([]sec.SecureTransport{st}, []tptu.StreamMuxer{{ID: "/yamux/1.0.0", Muxer: yamux.DefaultTransport}}, nil, nil, nil)
 	require.NoError(t, err)
 	return u
 }
