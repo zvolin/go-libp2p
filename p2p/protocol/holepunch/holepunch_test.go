@@ -424,6 +424,7 @@ func mkHostWithStaticAutoRelay(t *testing.T, relay host.Host) host.Host {
 			autorelay.WithStaticRelays([]peer.AddrInfo{pi}),
 		),
 		libp2p.ForceReachabilityPrivate(),
+		libp2p.ResourceManager(&network.NullResourceManager{}),
 	)
 	require.NoError(t, err)
 
@@ -443,7 +444,11 @@ func makeRelayedHosts(t *testing.T, h1opt, h2opt []holepunch.Option, addHolePunc
 	t.Helper()
 	h1, _ = mkHostWithHolePunchSvc(t, h1opt...)
 	var err error
-	relay, err = libp2p.New(libp2p.ListenAddrs(ma.StringCast("/ip4/127.0.0.1/tcp/0")), libp2p.DisableRelay())
+	relay, err = libp2p.New(
+		libp2p.ListenAddrs(ma.StringCast("/ip4/127.0.0.1/tcp/0")),
+		libp2p.DisableRelay(),
+		libp2p.ResourceManager(&network.NullResourceManager{}),
+	)
 	require.NoError(t, err)
 
 	_, err = relayv1.NewRelay(relay)
@@ -483,6 +488,7 @@ func mkHostWithHolePunchSvc(t *testing.T, opts ...holepunch.Option) (host.Host, 
 	h, err := libp2p.New(
 		libp2p.ListenAddrs(ma.StringCast("/ip4/127.0.0.1/tcp/0"), ma.StringCast("/ip6/::1/tcp/0")),
 		libp2p.ForceReachabilityPrivate(),
+		libp2p.ResourceManager(&network.NullResourceManager{}),
 	)
 	require.NoError(t, err)
 	hps, err := holepunch.NewService(h, newMockIDService(t, h), opts...)
