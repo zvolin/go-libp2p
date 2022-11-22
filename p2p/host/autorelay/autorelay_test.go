@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p"
+	"github.com/libp2p/go-libp2p/core/event"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -319,7 +320,10 @@ func TestRelayV1(t *testing.T) {
 		)
 		defer h.Close()
 
-		require.Eventually(t, func() bool { return numRelays(h) > 0 }, 3*time.Second, 100*time.Millisecond)
+		addrUpdated, err := h.EventBus().Subscribe(new(event.EvtLocalAddressesUpdated))
+		require.NoError(t, err)
+
+		expectDeltaInAddrUpdated(t, addrUpdated, 1)
 	})
 }
 
@@ -457,6 +461,40 @@ func TestIncorrectInit(t *testing.T) {
 	_ = newPrivateNode(t)
 }
 
+func expectDeltaInAddrUpdated(t *testing.T, addrUpdated event.Subscription, expectedDelta int) {
+	t.Helper()
+	delta := 0
+	for {
+		select {
+		case evAny := <-addrUpdated.Out():
+			ev := evAny.(event.EvtLocalAddressesUpdated)
+			for _, updatedAddr := range ev.Removed {
+				if updatedAddr.Action == event.Removed {
+					if _, err := updatedAddr.Address.ValueForProtocol(ma.P_CIRCUIT); err == nil {
+						delta--
+						if delta == expectedDelta {
+							return
+						}
+					}
+				}
+			}
+			for _, updatedAddr := range ev.Current {
+				if updatedAddr.Action == event.Added {
+					if _, err := updatedAddr.Address.ValueForProtocol(ma.P_CIRCUIT); err == nil {
+						delta++
+						if delta == expectedDelta {
+							return
+						}
+					}
+				}
+			}
+		case <-time.After(10 * time.Second):
+			t.Fatal("timeout waiting for address updated event")
+		}
+	}
+
+}
+
 func TestReconnectToStaticRelays(t *testing.T) {
 	cl := clock.NewMock()
 	var staticRelays []peer.AddrInfo
@@ -476,8 +514,12 @@ func TestReconnectToStaticRelays(t *testing.T) {
 
 	defer h.Close()
 
+	addrUpdated, err := h.EventBus().Subscribe(new(event.EvtLocalAddressesUpdated))
+	require.NoError(t, err)
+
+	expectDeltaInAddrUpdated(t, addrUpdated, 1)
+
 	cl.Add(time.Minute)
-	require.Eventually(t, func() bool { return numRelays(h) == 1 }, 10*time.Second, 50*time.Millisecond)
 
 	relaysInUse := usedRelays(h)
 	oldRelay := relaysInUse[0]
@@ -488,5 +530,5 @@ func TestReconnectToStaticRelays(t *testing.T) {
 	}
 
 	cl.Add(time.Hour)
-	require.Eventually(t, func() bool { return numRelays(h) == 1 }, 10*time.Second, 100*time.Millisecond)
+	expectDeltaInAddrUpdated(t, addrUpdated, -1)
 }
