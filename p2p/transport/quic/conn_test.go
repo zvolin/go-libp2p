@@ -13,6 +13,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/libp2p/go-libp2p/p2p/transport/quicreuse"
+
 	ic "github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/network"
 	mocknetwork "github.com/libp2p/go-libp2p/core/network/mocks"
@@ -30,12 +32,12 @@ import (
 
 type connTestCase struct {
 	Name    string
-	Options []Option
+	Options []quicreuse.Option
 }
 
 var connTestCases = []*connTestCase{
-	{"reuseport_on", []Option{DisableDraft29()}},
-	{"reuseport_off", []Option{DisableReuseport(), DisableDraft29()}},
+	{"reuseport_on", []quicreuse.Option{quicreuse.DisableDraft29()}},
+	{"reuseport_off", []quicreuse.Option{quicreuse.DisableReuseport(), quicreuse.DisableDraft29()}},
 }
 
 func createPeer(t *testing.T) (peer.ID, ic.PrivKey) {
@@ -66,6 +68,14 @@ func runServer(t *testing.T, tr tpt.Transport, addr string) tpt.Listener {
 	return ln
 }
 
+func newConnManager(t *testing.T, opts ...quicreuse.Option) *quicreuse.ConnManager {
+	t.Helper()
+	cm, err := quicreuse.NewConnManager([32]byte{}, opts...)
+	require.NoError(t, err)
+	t.Cleanup(func() { cm.Close() })
+	return cm
+}
+
 func TestHandshake(t *testing.T) {
 	for _, tc := range connTestCases {
 		t.Run(tc.Name, func(t *testing.T) {
@@ -77,12 +87,13 @@ func TestHandshake(t *testing.T) {
 func testHandshake(t *testing.T, tc *connTestCase) {
 	serverID, serverKey := createPeer(t)
 	clientID, clientKey := createPeer(t)
-	serverTransport, err := NewTransport(serverKey, nil, nil, nil, tc.Options...)
+
+	serverTransport, err := NewTransport(serverKey, newConnManager(t, tc.Options...), nil, nil, nil)
 	require.NoError(t, err)
 	defer serverTransport.(io.Closer).Close()
 
 	handshake := func(t *testing.T, ln tpt.Listener) {
-		clientTransport, err := NewTransport(clientKey, nil, nil, nil, tc.Options...)
+		clientTransport, err := NewTransport(clientKey, newConnManager(t, tc.Options...), nil, nil, nil)
 		require.NoError(t, err)
 		defer clientTransport.(io.Closer).Close()
 		conn, err := clientTransport.Dial(context.Background(), ln.Multiaddrs()[0], serverID)
@@ -132,7 +143,7 @@ func testResourceManagerSuccess(t *testing.T, tc *connTestCase) {
 	defer ctrl.Finish()
 
 	serverRcmgr := mocknetwork.NewMockResourceManager(ctrl)
-	serverTransport, err := NewTransport(serverKey, nil, nil, serverRcmgr, tc.Options...)
+	serverTransport, err := NewTransport(serverKey, newConnManager(t, tc.Options...), nil, nil, serverRcmgr)
 	require.NoError(t, err)
 	defer serverTransport.(io.Closer).Close()
 	ln, err := serverTransport.Listen(ma.StringCast("/ip4/127.0.0.1/udp/0/quic-v1"))
@@ -140,7 +151,7 @@ func testResourceManagerSuccess(t *testing.T, tc *connTestCase) {
 	defer ln.Close()
 
 	clientRcmgr := mocknetwork.NewMockResourceManager(ctrl)
-	clientTransport, err := NewTransport(clientKey, nil, nil, clientRcmgr, tc.Options...)
+	clientTransport, err := NewTransport(clientKey, newConnManager(t, tc.Options...), nil, nil, clientRcmgr)
 	require.NoError(t, err)
 	defer clientTransport.(io.Closer).Close()
 
@@ -181,7 +192,7 @@ func testResourceManagerDialDenied(t *testing.T, tc *connTestCase) {
 	defer ctrl.Finish()
 
 	rcmgr := mocknetwork.NewMockResourceManager(ctrl)
-	clientTransport, err := NewTransport(clientKey, nil, nil, rcmgr, tc.Options...)
+	clientTransport, err := NewTransport(clientKey, newConnManager(t, tc.Options...), nil, nil, rcmgr)
 	require.NoError(t, err)
 	defer clientTransport.(io.Closer).Close()
 
@@ -214,7 +225,7 @@ func testResourceManagerAcceptDenied(t *testing.T, tc *connTestCase) {
 	defer ctrl.Finish()
 
 	clientRcmgr := mocknetwork.NewMockResourceManager(ctrl)
-	clientTransport, err := NewTransport(clientKey, nil, nil, clientRcmgr, tc.Options...)
+	clientTransport, err := NewTransport(clientKey, newConnManager(t, tc.Options...), nil, nil, clientRcmgr)
 	require.NoError(t, err)
 	defer clientTransport.(io.Closer).Close()
 
@@ -226,7 +237,7 @@ func testResourceManagerAcceptDenied(t *testing.T, tc *connTestCase) {
 		serverConnScope.EXPECT().SetPeer(clientID).Return(rerr),
 		serverConnScope.EXPECT().Done(),
 	)
-	serverTransport, err := NewTransport(serverKey, nil, nil, serverRcmgr, tc.Options...)
+	serverTransport, err := NewTransport(serverKey, newConnManager(t, tc.Options...), nil, nil, serverRcmgr)
 	require.NoError(t, err)
 	defer serverTransport.(io.Closer).Close()
 	ln, err := serverTransport.Listen(ma.StringCast("/ip4/127.0.0.1/udp/0/quic-v1"))
@@ -269,13 +280,13 @@ func testStreams(t *testing.T, tc *connTestCase) {
 	serverID, serverKey := createPeer(t)
 	_, clientKey := createPeer(t)
 
-	serverTransport, err := NewTransport(serverKey, nil, nil, nil, tc.Options...)
+	serverTransport, err := NewTransport(serverKey, newConnManager(t, tc.Options...), nil, nil, nil)
 	require.NoError(t, err)
 	defer serverTransport.(io.Closer).Close()
 	ln := runServer(t, serverTransport, "/ip4/127.0.0.1/udp/0/quic-v1")
 	defer ln.Close()
 
-	clientTransport, err := NewTransport(clientKey, nil, nil, nil, tc.Options...)
+	clientTransport, err := NewTransport(clientKey, newConnManager(t, tc.Options...), nil, nil, nil)
 	require.NoError(t, err)
 	defer clientTransport.(io.Closer).Close()
 	conn, err := clientTransport.Dial(context.Background(), ln.Multiaddrs()[0], serverID)
@@ -310,12 +321,12 @@ func testHandshakeFailPeerIDMismatch(t *testing.T, tc *connTestCase) {
 	_, clientKey := createPeer(t)
 	thirdPartyID, _ := createPeer(t)
 
-	serverTransport, err := NewTransport(serverKey, nil, nil, nil, tc.Options...)
+	serverTransport, err := NewTransport(serverKey, newConnManager(t, tc.Options...), nil, nil, nil)
 	require.NoError(t, err)
 	defer serverTransport.(io.Closer).Close()
 	ln := runServer(t, serverTransport, "/ip4/127.0.0.1/udp/0/quic-v1")
 
-	clientTransport, err := NewTransport(clientKey, nil, nil, nil, tc.Options...)
+	clientTransport, err := NewTransport(clientKey, newConnManager(t, tc.Options...), nil, nil, nil)
 	require.NoError(t, err)
 	// dial, but expect the wrong peer ID
 	_, err = clientTransport.Dial(context.Background(), ln.Multiaddrs()[0], thirdPartyID)
@@ -356,7 +367,7 @@ func testConnectionGating(t *testing.T, tc *connTestCase) {
 	cg := NewMockConnectionGater(mockCtrl)
 
 	t.Run("accepted connections", func(t *testing.T) {
-		serverTransport, err := NewTransport(serverKey, nil, cg, nil, tc.Options...)
+		serverTransport, err := NewTransport(serverKey, newConnManager(t, tc.Options...), nil, cg, nil)
 		defer serverTransport.(io.Closer).Close()
 		require.NoError(t, err)
 		ln := runServer(t, serverTransport, "/ip4/127.0.0.1/udp/0/quic-v1")
@@ -371,7 +382,7 @@ func testConnectionGating(t *testing.T, tc *connTestCase) {
 			require.NoError(t, err)
 		}()
 
-		clientTransport, err := NewTransport(clientKey, nil, nil, nil, tc.Options...)
+		clientTransport, err := NewTransport(clientKey, newConnManager(t, tc.Options...), nil, nil, nil)
 		require.NoError(t, err)
 		defer clientTransport.(io.Closer).Close()
 		// make sure that connection attempts fails
@@ -386,7 +397,6 @@ func testConnectionGating(t *testing.T, tc *connTestCase) {
 		// now allow the address and make sure the connection goes through
 		cg.EXPECT().InterceptAccept(gomock.Any()).Return(true)
 		cg.EXPECT().InterceptSecured(gomock.Any(), gomock.Any(), gomock.Any()).Return(true)
-		clientTransport.(*transport).clientConfig.HandshakeIdleTimeout = 2 * time.Second
 		conn, err = clientTransport.Dial(context.Background(), ln.Multiaddrs()[0], serverID)
 		require.NoError(t, err)
 		defer conn.Close()
@@ -401,7 +411,7 @@ func testConnectionGating(t *testing.T, tc *connTestCase) {
 	})
 
 	t.Run("secured connections", func(t *testing.T) {
-		serverTransport, err := NewTransport(serverKey, nil, nil, nil, tc.Options...)
+		serverTransport, err := NewTransport(serverKey, newConnManager(t, tc.Options...), nil, nil, nil)
 		require.NoError(t, err)
 		defer serverTransport.(io.Closer).Close()
 		ln := runServer(t, serverTransport, "/ip4/127.0.0.1/udp/0/quic-v1")
@@ -410,7 +420,7 @@ func testConnectionGating(t *testing.T, tc *connTestCase) {
 		cg := NewMockConnectionGater(mockCtrl)
 		cg.EXPECT().InterceptSecured(gomock.Any(), gomock.Any(), gomock.Any())
 
-		clientTransport, err := NewTransport(clientKey, nil, cg, nil, tc.Options...)
+		clientTransport, err := NewTransport(clientKey, newConnManager(t, tc.Options...), nil, cg, nil)
 		require.NoError(t, err)
 		defer clientTransport.(io.Closer).Close()
 
@@ -421,7 +431,6 @@ func testConnectionGating(t *testing.T, tc *connTestCase) {
 
 		// now allow the peerId and make sure the connection goes through
 		cg.EXPECT().InterceptSecured(gomock.Any(), gomock.Any(), gomock.Any()).Return(true)
-		clientTransport.(*transport).clientConfig.HandshakeIdleTimeout = 2 * time.Second
 		conn, err := clientTransport.Dial(context.Background(), ln.Multiaddrs()[0], serverID)
 		require.NoError(t, err)
 		conn.Close()
@@ -441,12 +450,12 @@ func testDialTwo(t *testing.T, tc *connTestCase) {
 	_, clientKey := createPeer(t)
 	serverID2, serverKey2 := createPeer(t)
 
-	serverTransport, err := NewTransport(serverKey, nil, nil, nil, tc.Options...)
+	serverTransport, err := NewTransport(serverKey, newConnManager(t, tc.Options...), nil, nil, nil)
 	require.NoError(t, err)
 	defer serverTransport.(io.Closer).Close()
 	ln1 := runServer(t, serverTransport, "/ip4/127.0.0.1/udp/0/quic-v1")
 	defer ln1.Close()
-	serverTransport2, err := NewTransport(serverKey2, nil, nil, nil, tc.Options...)
+	serverTransport2, err := NewTransport(serverKey2, newConnManager(t, tc.Options...), nil, nil, nil)
 	require.NoError(t, err)
 	defer serverTransport2.(io.Closer).Close()
 	ln2 := runServer(t, serverTransport2, "/ip4/127.0.0.1/udp/0/quic-v1")
@@ -472,7 +481,7 @@ func testDialTwo(t *testing.T, tc *connTestCase) {
 		}
 	}()
 
-	clientTransport, err := NewTransport(clientKey, nil, nil, nil, tc.Options...)
+	clientTransport, err := NewTransport(clientKey, newConnManager(t, tc.Options...), nil, nil, nil)
 	require.NoError(t, err)
 	defer clientTransport.(io.Closer).Close()
 	c1, err := clientTransport.Dial(context.Background(), ln1.Multiaddrs()[0], serverID)
@@ -517,41 +526,28 @@ func TestStatelessReset(t *testing.T) {
 }
 
 func testStatelessReset(t *testing.T, tc *connTestCase) {
-	origGarbageCollectInterval := garbageCollectInterval
-	origMaxUnusedDuration := maxUnusedDuration
-
-	garbageCollectInterval = 50 * time.Millisecond
-	maxUnusedDuration = 0
-
-	t.Cleanup(func() {
-		garbageCollectInterval = origGarbageCollectInterval
-		maxUnusedDuration = origMaxUnusedDuration
-	})
-
 	serverID, serverKey := createPeer(t)
 	_, clientKey := createPeer(t)
 
-	serverTransport, err := NewTransport(serverKey, nil, nil, nil, tc.Options...)
+	serverTransport, err := NewTransport(serverKey, newConnManager(t, tc.Options...), nil, nil, nil)
 	require.NoError(t, err)
 	defer serverTransport.(io.Closer).Close()
 	ln := runServer(t, serverTransport, "/ip4/127.0.0.1/udp/0/quic-v1")
 
 	var drop uint32
-	serverPort := ln.Addr().(*net.UDPAddr).Port
+	dropCallback := func(quicproxy.Direction, []byte) bool { return atomic.LoadUint32(&drop) > 0 }
 	proxy, err := quicproxy.NewQuicProxy("localhost:0", &quicproxy.Opts{
-		RemoteAddr: fmt.Sprintf("localhost:%d", serverPort),
-		DropPacket: func(quicproxy.Direction, []byte) bool {
-			return atomic.LoadUint32(&drop) > 0
-		},
+		RemoteAddr: fmt.Sprintf("localhost:%d", ln.Addr().(*net.UDPAddr).Port),
+		DropPacket: dropCallback,
 	})
 	require.NoError(t, err)
-	defer proxy.Close()
+	proxyLocalAddr := proxy.LocalAddr()
 
 	// establish a connection
-	clientTransport, err := NewTransport(clientKey, nil, nil, nil, tc.Options...)
+	clientTransport, err := NewTransport(clientKey, newConnManager(t, tc.Options...), nil, nil, nil)
 	require.NoError(t, err)
 	defer clientTransport.(io.Closer).Close()
-	proxyAddr, err := toQuicMultiaddr(proxy.LocalAddr(), quic.Version1)
+	proxyAddr, err := quicreuse.ToQuicMultiaddr(proxy.LocalAddr(), quic.Version1)
 	require.NoError(t, err)
 	conn, err := clientTransport.Dial(context.Background(), proxyAddr, serverID)
 	require.NoError(t, err)
@@ -577,17 +573,22 @@ func testStatelessReset(t *testing.T, tc *connTestCase) {
 	atomic.StoreUint32(&drop, 1)
 	ln.Close()
 	(<-connChan).Close()
+	proxy.Close()
 
-	// The kernel might take a while to free up the UPD port.
-	// Retry starting the listener until we're successful (with a 3s timeout).
-	require.Eventually(t, func() bool {
-		var err error
-		ln, err = serverTransport.Listen(ma.StringCast(fmt.Sprintf("/ip4/127.0.0.1/udp/%d/quic-v1", serverPort)))
-		return err == nil
-	}, 3*time.Second, 50*time.Millisecond)
+	// Start another listener (on a different port).
+	ln, err = serverTransport.Listen(ma.StringCast("/ip4/127.0.0.1/udp/0/quic-v1"))
+	require.NoError(t, err)
 	defer ln.Close()
 	// Now that the new server is up, re-enable packet forwarding.
 	atomic.StoreUint32(&drop, 0)
+
+	// Recreate the proxy, such that its client-facing port stays constant.
+	proxy, err = quicproxy.NewQuicProxy(proxyLocalAddr.String(), &quicproxy.Opts{
+		RemoteAddr: fmt.Sprintf("localhost:%d", ln.Addr().(*net.UDPAddr).Port),
+		DropPacket: dropCallback,
+	})
+	require.NoError(t, err)
+	defer proxy.Close()
 
 	// Trigger something (not too small) to be sent, so that we receive the stateless reset.
 	// The new server doesn't have any state for the previously established connection.
@@ -597,7 +598,8 @@ func testStatelessReset(t *testing.T, tc *connTestCase) {
 		_, rerr = str.Read([]byte{0, 0})
 	}
 	require.Error(t, rerr)
-	require.Contains(t, rerr.Error(), "received a stateless reset")
+	var statelessResetErr *quic.StatelessResetError
+	require.ErrorAs(t, rerr, &statelessResetErr)
 }
 
 // Hole punching is only expected to work with reuseport enabled.
@@ -606,7 +608,7 @@ func TestHolePunching(t *testing.T) {
 	serverID, serverKey := createPeer(t)
 	clientID, clientKey := createPeer(t)
 
-	t1, err := NewTransport(serverKey, nil, nil, nil)
+	t1, err := NewTransport(serverKey, newConnManager(t), nil, nil, nil)
 	require.NoError(t, err)
 	defer t1.(io.Closer).Close()
 	laddr, err := ma.NewMultiaddr("/ip4/127.0.0.1/udp/0/quic-v1")
@@ -620,7 +622,7 @@ func TestHolePunching(t *testing.T) {
 		require.Error(t, err, "didn't expect to accept any connections")
 	}()
 
-	t2, err := NewTransport(clientKey, nil, nil, nil)
+	t2, err := NewTransport(clientKey, newConnManager(t), nil, nil, nil)
 	require.NoError(t, err)
 	defer t2.(io.Closer).Close()
 	ln2, err := t2.Listen(laddr)
@@ -679,7 +681,7 @@ func TestHolePunching(t *testing.T) {
 func TestGetErrorWhenListeningWithDraft29WhenDisabled(t *testing.T) {
 	_, serverKey := createPeer(t)
 
-	t1, err := NewTransport(serverKey, nil, nil, nil, DisableDraft29())
+	t1, err := NewTransport(serverKey, newConnManager(t, quicreuse.DisableDraft29()), nil, nil, nil)
 	require.NoError(t, err)
 	defer t1.(io.Closer).Close()
 	laddr, err := ma.NewMultiaddr("/ip4/127.0.0.1/udp/0/quic")
@@ -710,12 +712,12 @@ func TestClientCanDialDifferentQUICVersions(t *testing.T) {
 			serverID, serverKey := createPeer(t)
 			_, clientKey := createPeer(t)
 
-			var serverOpts []Option
+			var serverOpts []quicreuse.Option
 			if tc.serverDisablesDraft29 {
-				serverOpts = append(serverOpts, DisableDraft29())
+				serverOpts = append(serverOpts, quicreuse.DisableDraft29())
 			}
 
-			t1, err := NewTransport(serverKey, nil, nil, nil, serverOpts...)
+			t1, err := NewTransport(serverKey, newConnManager(t, serverOpts...), nil, nil, nil)
 			require.NoError(t, err)
 			defer t1.(io.Closer).Close()
 			laddr, err := ma.NewMultiaddr("/ip4/127.0.0.1/udp/0/quic-v1")
@@ -723,14 +725,14 @@ func TestClientCanDialDifferentQUICVersions(t *testing.T) {
 			ln1, err := t1.Listen(laddr)
 			require.NoError(t, err)
 
-			t2, err := NewTransport(clientKey, nil, nil, nil)
+			t2, err := NewTransport(clientKey, newConnManager(t), nil, nil, nil)
 			require.NoError(t, err)
 			defer t2.(io.Closer).Close()
 
 			ctx := context.Background()
 
 			for _, a := range ln1.Multiaddrs() {
-				_, v, err := fromQuicMultiaddr(a)
+				_, v, err := quicreuse.FromQuicMultiaddr(a)
 				require.NoError(t, err)
 
 				done := make(chan struct{})
@@ -740,9 +742,9 @@ func TestClientCanDialDifferentQUICVersions(t *testing.T) {
 					require.NoError(t, err)
 					defer conn.Close()
 
-					_, versionConnLocal, err := fromQuicMultiaddr(conn.LocalMultiaddr())
+					_, versionConnLocal, err := quicreuse.FromQuicMultiaddr(conn.LocalMultiaddr())
 					require.NoError(t, err)
-					_, versionConnRemote, err := fromQuicMultiaddr(conn.RemoteMultiaddr())
+					_, versionConnRemote, err := quicreuse.FromQuicMultiaddr(conn.RemoteMultiaddr())
 					require.NoError(t, err)
 
 					require.Equal(t, v, versionConnLocal)
@@ -751,9 +753,9 @@ func TestClientCanDialDifferentQUICVersions(t *testing.T) {
 
 				conn, err := t2.Dial(ctx, a, serverID)
 				require.NoError(t, err)
-				_, versionConnLocal, err := fromQuicMultiaddr(conn.LocalMultiaddr())
+				_, versionConnLocal, err := quicreuse.FromQuicMultiaddr(conn.LocalMultiaddr())
 				require.NoError(t, err)
-				_, versionConnRemote, err := fromQuicMultiaddr(conn.RemoteMultiaddr())
+				_, versionConnRemote, err := quicreuse.FromQuicMultiaddr(conn.RemoteMultiaddr())
 				require.NoError(t, err)
 
 				require.Equal(t, v, versionConnLocal)

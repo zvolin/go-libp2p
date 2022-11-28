@@ -173,7 +173,7 @@ func TestChainOptions(t *testing.T) {
 
 func TestTransportConstructorTCP(t *testing.T) {
 	h, err := New(
-		Transport(tcp.NewTCPTransport),
+		Transport(tcp.NewTCPTransport, tcp.DisableReuseport()),
 		DisableRelay(),
 	)
 	require.NoError(t, err)
@@ -186,7 +186,7 @@ func TestTransportConstructorTCP(t *testing.T) {
 
 func TestTransportConstructorQUIC(t *testing.T) {
 	h, err := New(
-		Transport(quic.NewTransport, quic.DisableReuseport()),
+		Transport(quic.NewTransport),
 		DisableRelay(),
 	)
 	require.NoError(t, err)
@@ -248,7 +248,7 @@ func TestTransportConstructorWithWrongOpts(t *testing.T) {
 		Transport(quic.NewTransport, tcp.DisableReuseport()),
 		DisableRelay(),
 	)
-	require.EqualError(t, err, "transport option of type tcp.Option not assignable to libp2pquic.Option")
+	require.EqualError(t, err, "transport constructor doesn't take any options")
 }
 
 func TestSecurityConstructor(t *testing.T) {

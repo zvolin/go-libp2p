@@ -2,7 +2,6 @@ package libp2pquic
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"net"
 
@@ -11,17 +10,15 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	tpt "github.com/libp2p/go-libp2p/core/transport"
 	p2ptls "github.com/libp2p/go-libp2p/p2p/security/tls"
+	"github.com/libp2p/go-libp2p/p2p/transport/quicreuse"
 
 	"github.com/lucas-clemente/quic-go"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
-var quicListen = quic.Listen // so we can mock it in tests
-
 // A listener listens for QUIC connections.
 type listener struct {
-	quicListener    quic.Listener
-	conn            pConn
+	reuseListener   quicreuse.Listener
 	transport       *transport
 	rcmgr           network.ResourceManager
 	privKey         ic.PrivKey
@@ -31,38 +28,19 @@ type listener struct {
 
 var _ tpt.Listener = &listener{}
 
-func newListener(pconn pConn, t *transport, localPeer peer.ID, key ic.PrivKey, identity *p2ptls.Identity, rcmgr network.ResourceManager, enableDraft29 bool) (tpt.Listener, error) {
-	var tlsConf tls.Config
-	tlsConf.GetConfigForClient = func(_ *tls.ClientHelloInfo) (*tls.Config, error) {
-		// return a tls.Config that verifies the peer's certificate chain.
-		// Note that since we have no way of associating an incoming QUIC connection with
-		// the peer ID calculated here, we don't actually receive the peer's public key
-		// from the key chan.
-		conf, _ := identity.ConfigForPeer("")
-		return conf, nil
-	}
-	ln, err := quicListen(pconn, &tlsConf, t.serverConfig)
-	if err != nil {
-		return nil, err
-	}
-	localMultiaddr, err := toQuicMultiaddr(ln.Addr(), quic.Version1)
-	if err != nil {
-		return nil, err
-	}
-
-	localMultiaddrs := map[quic.VersionNumber]ma.Multiaddr{quic.Version1: localMultiaddr}
-
-	if enableDraft29 {
-		localMultiaddr, err := toQuicMultiaddr(ln.Addr(), quic.VersionDraft29)
-		if err != nil {
-			return nil, err
+func newListener(ln quicreuse.Listener, t *transport, localPeer peer.ID, key ic.PrivKey, rcmgr network.ResourceManager) (tpt.Listener, error) {
+	localMultiaddrs := make(map[quic.VersionNumber]ma.Multiaddr)
+	for _, addr := range ln.Multiaddrs() {
+		if _, err := addr.ValueForProtocol(ma.P_QUIC); err == nil {
+			localMultiaddrs[quic.VersionDraft29] = addr
 		}
-		localMultiaddrs[quic.VersionDraft29] = localMultiaddr
+		if _, err := addr.ValueForProtocol(ma.P_QUIC_V1); err == nil {
+			localMultiaddrs[quic.Version1] = addr
+		}
 	}
 
 	return &listener{
-		conn:            pconn,
-		quicListener:    ln,
+		reuseListener:   ln,
 		transport:       t,
 		rcmgr:           rcmgr,
 		privKey:         key,
@@ -74,13 +52,13 @@ func newListener(pconn pConn, t *transport, localPeer peer.ID, key ic.PrivKey, i
 // Accept accepts new connections.
 func (l *listener) Accept() (tpt.CapableConn, error) {
 	for {
-		qconn, err := l.quicListener.Accept(context.Background())
+		qconn, err := l.reuseListener.Accept(context.Background())
 		if err != nil {
 			return nil, err
 		}
 		c, err := l.setupConn(qconn)
 		if err != nil {
-			qconn.CloseWithError(0, err.Error())
+			qconn.CloseWithError(1, err.Error())
 			continue
 		}
 		if l.transport.gater != nil && !(l.transport.gater.InterceptAccept(c) && l.transport.gater.InterceptSecured(network.DirInbound, c.remotePeerID, c)) {
@@ -109,7 +87,7 @@ func (l *listener) Accept() (tpt.CapableConn, error) {
 }
 
 func (l *listener) setupConn(qconn quic.Connection) (*conn, error) {
-	remoteMultiaddr, err := toQuicMultiaddr(qconn.RemoteAddr(), qconn.ConnectionState().Version)
+	remoteMultiaddr, err := quicreuse.ToQuicMultiaddr(qconn.RemoteAddr(), qconn.ConnectionState().Version)
 	if err != nil {
 		return nil, err
 	}
@@ -144,10 +122,8 @@ func (l *listener) setupConn(qconn quic.Connection) (*conn, error) {
 		return nil, errors.New("unknown QUIC version:" + qconn.ConnectionState().Version.String())
 	}
 
-	l.conn.IncreaseCount()
 	return &conn{
 		quicConn:        qconn,
-		pconn:           l.conn,
 		transport:       l.transport,
 		scope:           connScope,
 		localPeer:       l.localPeer,
@@ -161,23 +137,12 @@ func (l *listener) setupConn(qconn quic.Connection) (*conn, error) {
 
 // Close closes the listener.
 func (l *listener) Close() error {
-	defer l.conn.DecreaseCount()
-
-	if err := l.quicListener.Close(); err != nil {
-		return err
-	}
-
-	if _, ok := l.conn.(*noreuseConn); ok {
-		// if we use a `noreuseConn`, close the underlying connection
-		return l.conn.Close()
-	}
-
-	return nil
+	return l.reuseListener.Close()
 }
 
 // Addr returns the address of this listener.
 func (l *listener) Addr() net.Addr {
-	return l.quicListener.Addr()
+	return l.reuseListener.Addr()
 }
 
 // Multiaddr returns the multiaddress of this listener.

@@ -2,15 +2,15 @@ package libp2pquic
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
-	"io"
 	"math/rand"
 	"net"
 	"sync"
 	"time"
 
-	"golang.org/x/crypto/hkdf"
+	manet "github.com/multiformats/go-multiaddr/net"
 
 	"github.com/libp2p/go-libp2p/core/connmgr"
 	ic "github.com/libp2p/go-libp2p/core/crypto"
@@ -19,137 +19,34 @@ import (
 	"github.com/libp2p/go-libp2p/core/pnet"
 	tpt "github.com/libp2p/go-libp2p/core/transport"
 	p2ptls "github.com/libp2p/go-libp2p/p2p/security/tls"
-	"github.com/libp2p/go-libp2p/p2p/transport/internal/quicutils"
+	"github.com/libp2p/go-libp2p/p2p/transport/quicreuse"
 
 	ma "github.com/multiformats/go-multiaddr"
 	mafmt "github.com/multiformats/go-multiaddr-fmt"
-	manet "github.com/multiformats/go-multiaddr/net"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/lucas-clemente/quic-go"
-	quiclogging "github.com/lucas-clemente/quic-go/logging"
-	"github.com/minio/sha256-simd"
 )
 
 var log = logging.Logger("quic-transport")
 
 var ErrHolePunching = errors.New("hole punching attempted; no active dial")
 
-var quicDialContext = quic.DialContext // so we can mock it in tests
-
 var HolePunchTimeout = 5 * time.Second
 
-var quicConfig = &quic.Config{
-	MaxIncomingStreams:         256,
-	MaxIncomingUniStreams:      -1,             // disable unidirectional streams
-	MaxStreamReceiveWindow:     10 * (1 << 20), // 10 MB
-	MaxConnectionReceiveWindow: 15 * (1 << 20), // 15 MB
-	RequireAddressValidation: func(net.Addr) bool {
-		// TODO(#1535): require source address validation when under load
-		return false
-	},
-	KeepAlivePeriod: 15 * time.Second,
-	Versions:        []quic.VersionNumber{quic.VersionDraft29, quic.Version1},
-}
-
-const statelessResetKeyInfo = "libp2p quic stateless reset key"
 const errorCodeConnectionGating = 0x47415445 // GATE in ASCII
-
-type noreuseConn struct {
-	*net.UDPConn
-}
-
-func (c *noreuseConn) IncreaseCount() {}
-func (c *noreuseConn) DecreaseCount() {}
-
-type connManager struct {
-	reuseUDP4       *reuse
-	reuseUDP6       *reuse
-	reuseportEnable bool
-}
-
-func newConnManager(reuseport bool) (*connManager, error) {
-	reuseUDP4 := newReuse()
-	reuseUDP6 := newReuse()
-	return &connManager{
-		reuseUDP4:       reuseUDP4,
-		reuseUDP6:       reuseUDP6,
-		reuseportEnable: reuseport,
-	}, nil
-}
-
-func (c *connManager) getReuse(network string) (*reuse, error) {
-	switch network {
-	case "udp4":
-		return c.reuseUDP4, nil
-	case "udp6":
-		return c.reuseUDP6, nil
-	default:
-		return nil, errors.New("invalid network: must be either udp4 or udp6")
-	}
-}
-
-func (c *connManager) Listen(network string, laddr *net.UDPAddr) (pConn, error) {
-	if c.reuseportEnable {
-		reuse, err := c.getReuse(network)
-		if err != nil {
-			return nil, err
-		}
-		return reuse.Listen(network, laddr)
-	}
-
-	conn, err := net.ListenUDP(network, laddr)
-	if err != nil {
-		return nil, err
-	}
-	return &noreuseConn{conn}, nil
-}
-
-func (c *connManager) Dial(network string, raddr *net.UDPAddr) (pConn, error) {
-	if c.reuseportEnable {
-		reuse, err := c.getReuse(network)
-		if err != nil {
-			return nil, err
-		}
-		return reuse.Dial(network, raddr)
-	}
-
-	var laddr *net.UDPAddr
-	switch network {
-	case "udp4":
-		laddr = &net.UDPAddr{IP: net.IPv4zero, Port: 0}
-	case "udp6":
-		laddr = &net.UDPAddr{IP: net.IPv6zero, Port: 0}
-	}
-	conn, err := net.ListenUDP(network, laddr)
-	if err != nil {
-		return nil, err
-	}
-	return &noreuseConn{conn}, nil
-}
-
-func (c *connManager) Close() error {
-	if err := c.reuseUDP6.Close(); err != nil {
-		return err
-	}
-	return c.reuseUDP4.Close()
-}
 
 // The Transport implements the tpt.Transport interface for QUIC connections.
 type transport struct {
-	privKey      ic.PrivKey
-	localPeer    peer.ID
-	identity     *p2ptls.Identity
-	connManager  *connManager
-	serverConfig *quic.Config
-	clientConfig *quic.Config
-	gater        connmgr.ConnectionGater
-	rcmgr        network.ResourceManager
+	privKey     ic.PrivKey
+	localPeer   peer.ID
+	identity    *p2ptls.Identity
+	connManager *quicreuse.ConnManager
+	gater       connmgr.ConnectionGater
+	rcmgr       network.ResourceManager
 
 	holePunchingMx sync.Mutex
 	holePunching   map[holePunchKey]*activeHolePunch
-
-	enableDraft29 bool
 
 	connMx sync.Mutex
 	conns  map[quic.Connection]*conn
@@ -168,12 +65,7 @@ type activeHolePunch struct {
 }
 
 // NewTransport creates a new QUIC transport
-func NewTransport(key ic.PrivKey, psk pnet.PSK, gater connmgr.ConnectionGater, rcmgr network.ResourceManager, opts ...Option) (tpt.Transport, error) {
-	var cfg config
-	if err := cfg.apply(opts...); err != nil {
-		return nil, fmt.Errorf("unable to apply quic-tpt option(s): %w", err)
-	}
-
+func NewTransport(key ic.PrivKey, connManager *quicreuse.ConnManager, psk pnet.PSK, gater connmgr.ConnectionGater, rcmgr network.ResourceManager) (tpt.Transport, error) {
 	if len(psk) > 0 {
 		log.Error("QUIC doesn't support private networks yet.")
 		return nil, errors.New("QUIC doesn't support private networks yet")
@@ -186,77 +78,28 @@ func NewTransport(key ic.PrivKey, psk pnet.PSK, gater connmgr.ConnectionGater, r
 	if err != nil {
 		return nil, err
 	}
-	connManager, err := newConnManager(!cfg.disableReuseport)
-	if err != nil {
-		return nil, err
-	}
+
 	if rcmgr == nil {
 		rcmgr = &network.NullResourceManager{}
 	}
-	qconfig := quicConfig.Clone()
-	if cfg.disableDraft29 {
-		qconfig.Versions = []quic.VersionNumber{quic.Version1}
-	}
 
-	keyBytes, err := key.Raw()
-	if err != nil {
-		return nil, err
-	}
-	keyReader := hkdf.New(sha256.New, keyBytes, nil, []byte(statelessResetKeyInfo))
-	var statelessResetKey quic.StatelessResetKey
-	if _, err := io.ReadFull(keyReader, statelessResetKey[:]); err != nil {
-		return nil, err
-	}
-	qconfig.StatelessResetKey = &statelessResetKey
-	var tracers []quiclogging.Tracer
-	if qlogTracer := quicutils.QLOGTracer; qlogTracer != nil {
-		tracers = append(tracers, qlogTracer)
-	}
-	if cfg.metrics {
-		tracers = append(tracers, &metricsTracer{})
-	}
-	if len(tracers) > 0 {
-		qconfig.Tracer = quiclogging.NewMultiplexedTracer(tracers...)
-	}
-
-	tr := &transport{
-		privKey:       key,
-		localPeer:     localPeer,
-		identity:      identity,
-		connManager:   connManager,
-		gater:         gater,
-		rcmgr:         rcmgr,
-		conns:         make(map[quic.Connection]*conn),
-		holePunching:  make(map[holePunchKey]*activeHolePunch),
-		enableDraft29: !cfg.disableDraft29,
-	}
-	qconfig.AllowConnectionWindowIncrease = tr.allowWindowIncrease
-	tr.serverConfig = qconfig
-	tr.clientConfig = qconfig.Clone()
-	return tr, nil
+	return &transport{
+		privKey:      key,
+		localPeer:    localPeer,
+		identity:     identity,
+		connManager:  connManager,
+		gater:        gater,
+		rcmgr:        rcmgr,
+		conns:        make(map[quic.Connection]*conn),
+		holePunching: make(map[holePunchKey]*activeHolePunch),
+	}, nil
 }
 
 // Dial dials a new QUIC connection
 func (t *transport) Dial(ctx context.Context, raddr ma.Multiaddr, p peer.ID) (tpt.CapableConn, error) {
-	_, v, err := fromQuicMultiaddr(raddr)
-	if err != nil {
-		return nil, err
-	}
-	netw, host, err := manet.DialArgs(raddr)
-	if err != nil {
-		return nil, err
-	}
-	addr, err := net.ResolveUDPAddr(netw, host)
-	if err != nil {
-		return nil, err
-	}
-	remoteMultiaddr, err := toQuicMultiaddr(addr, v)
-	if err != nil {
-		return nil, err
-	}
 	tlsConf, keyCh := t.identity.ConfigForPeer(p)
 	if ok, isClient, _ := network.GetSimultaneousConnect(ctx); ok && !isClient {
-		return t.holePunch(ctx, netw, addr, p)
+		return t.holePunch(ctx, raddr, p)
 	}
 
 	scope, err := t.rcmgr.OpenConnection(network.DirOutbound, false, raddr)
@@ -269,27 +112,11 @@ func (t *transport) Dial(ctx context.Context, raddr ma.Multiaddr, p peer.ID) (tp
 		scope.Done()
 		return nil, err
 	}
-	pconn, err := t.connManager.Dial(netw, addr)
+	pconn, err := t.connManager.DialQUIC(ctx, raddr, tlsConf, t.allowWindowIncrease)
 	if err != nil {
 		return nil, err
 	}
 
-	clientConfig := t.clientConfig.Clone()
-	if v == quic.Version1 {
-		// The endpoint has explicit support for version 1, so we'll only use that version.
-		clientConfig.Versions = []quic.VersionNumber{quic.Version1}
-	} else if v == quic.VersionDraft29 {
-		clientConfig.Versions = []quic.VersionNumber{quic.VersionDraft29}
-	} else {
-		return nil, errors.New("unknown QUIC version")
-	}
-
-	qconn, err := quicDialContext(ctx, pconn, addr, host, tlsConf, clientConfig)
-	if err != nil {
-		scope.Done()
-		pconn.DecreaseCount()
-		return nil, err
-	}
 	// Should be ready by this point, don't block.
 	var remotePubKey ic.PubKey
 	select {
@@ -297,19 +124,18 @@ func (t *transport) Dial(ctx context.Context, raddr ma.Multiaddr, p peer.ID) (tp
 	default:
 	}
 	if remotePubKey == nil {
-		pconn.DecreaseCount()
+		pconn.CloseWithError(1, "")
 		scope.Done()
 		return nil, errors.New("p2p/transport/quic BUG: expected remote pub key to be set")
 	}
 
-	localMultiaddr, err := toQuicMultiaddr(pconn.LocalAddr(), v)
+	localMultiaddr, err := quicreuse.ToQuicMultiaddr(pconn.LocalAddr(), pconn.ConnectionState().Version)
 	if err != nil {
-		qconn.CloseWithError(0, "")
+		pconn.CloseWithError(1, "")
 		return nil, err
 	}
 	c := &conn{
-		quicConn:        qconn,
-		pconn:           pconn,
+		quicConn:        pconn,
 		transport:       t,
 		scope:           scope,
 		privKey:         t.privKey,
@@ -317,13 +143,13 @@ func (t *transport) Dial(ctx context.Context, raddr ma.Multiaddr, p peer.ID) (tp
 		localMultiaddr:  localMultiaddr,
 		remotePubKey:    remotePubKey,
 		remotePeerID:    p,
-		remoteMultiaddr: remoteMultiaddr,
+		remoteMultiaddr: raddr,
 	}
 	if t.gater != nil && !t.gater.InterceptSecured(network.DirOutbound, p, c) {
-		qconn.CloseWithError(errorCodeConnectionGating, "connection gated")
+		pconn.CloseWithError(errorCodeConnectionGating, "connection gated")
 		return nil, fmt.Errorf("secured connection gated")
 	}
-	t.addConn(qconn, c)
+	t.addConn(pconn, c)
 	return c, nil
 }
 
@@ -339,7 +165,15 @@ func (t *transport) removeConn(conn quic.Connection) {
 	t.connMx.Unlock()
 }
 
-func (t *transport) holePunch(ctx context.Context, network string, addr *net.UDPAddr, p peer.ID) (tpt.CapableConn, error) {
+func (t *transport) holePunch(ctx context.Context, raddr ma.Multiaddr, p peer.ID) (tpt.CapableConn, error) {
+	network, saddr, err := manet.DialArgs(raddr)
+	if err != nil {
+		return nil, err
+	}
+	addr, err := net.ResolveUDPAddr(network, saddr)
+	if err != nil {
+		return nil, err
+	}
 	pconn, err := t.connManager.Dial(network, addr)
 	if err != nil {
 		return nil, err
@@ -425,35 +259,27 @@ func (t *transport) CanDial(addr ma.Multiaddr) bool {
 
 // Listen listens for new QUIC connections on the passed multiaddr.
 func (t *transport) Listen(addr ma.Multiaddr) (tpt.Listener, error) {
-	_, v, err := fromQuicMultiaddr(addr)
-	if err != nil {
-		return nil, err
+	var tlsConf tls.Config
+	tlsConf.GetConfigForClient = func(_ *tls.ClientHelloInfo) (*tls.Config, error) {
+		// return a tls.Config that verifies the peer's certificate chain.
+		// Note that since we have no way of associating an incoming QUIC connection with
+		// the peer ID calculated here, we don't actually receive the peer's public key
+		// from the key chan.
+		conf, _ := t.identity.ConfigForPeer("")
+		return conf, nil
 	}
-	if v == quic.VersionDraft29 && !t.enableDraft29 {
-		return nil, errors.New("can't listen on `/quic` multiaddr (QUIC draft 29 version) when draft 29 support is disabled")
-	}
+	tlsConf.NextProtos = []string{"libp2p"}
 
-	lnet, host, err := manet.DialArgs(addr)
+	ln, err := t.connManager.ListenQUIC(addr, &tlsConf, t.allowWindowIncrease)
 	if err != nil {
 		return nil, err
 	}
-	laddr, err := net.ResolveUDPAddr(lnet, host)
+	l, err := newListener(ln, t, t.localPeer, t.privKey, t.rcmgr)
 	if err != nil {
+		_ = ln.Close()
 		return nil, err
 	}
-	conn, err := t.connManager.Listen(lnet, laddr)
-	if err != nil {
-		return nil, err
-	}
-	ln, err := newListener(conn, t, t.localPeer, t.privKey, t.identity, t.rcmgr, t.enableDraft29)
-	if err != nil {
-		if !t.connManager.reuseportEnable {
-			conn.Close()
-		}
-		conn.DecreaseCount()
-		return nil, err
-	}
-	return ln, nil
+	return l, nil
 }
 
 func (t *transport) allowWindowIncrease(conn quic.Connection, size uint64) bool {
@@ -477,10 +303,7 @@ func (t *transport) Proxy() bool {
 
 // Protocols returns the set of protocols handled by this transport.
 func (t *transport) Protocols() []int {
-	if t.enableDraft29 {
-		return []int{ma.P_QUIC, ma.P_QUIC_V1}
-	}
-	return []int{ma.P_QUIC_V1}
+	return t.connManager.Protocols()
 }
 
 func (t *transport) String() string {
@@ -488,5 +311,5 @@ func (t *transport) String() string {
 }
 
 func (t *transport) Close() error {
-	return t.connManager.Close()
+	return nil
 }
