@@ -85,7 +85,9 @@ func (c *aggregatingCollector) RemoveConn(id string) {
 
 var collector *aggregatingCollector
 
-func init() {
+var initMetricsOnce sync.Once
+
+func initMetrics() {
 	const (
 		direction = "direction"
 		encLevel  = "encryption_level"
@@ -172,6 +174,11 @@ type metricsTracer struct {
 }
 
 var _ logging.Tracer = &metricsTracer{}
+
+func newMetricsTracer() *metricsTracer {
+	initMetricsOnce.Do(func() { initMetrics() })
+	return &metricsTracer{}
+}
 
 func (m *metricsTracer) TracerForConnection(_ context.Context, p logging.Perspective, connID logging.ConnectionID) logging.ConnectionTracer {
 	return &metricsConnTracer{perspective: p, connID: connID}
