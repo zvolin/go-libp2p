@@ -13,8 +13,8 @@ import (
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/peerstore"
+	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/libp2p/go-libp2p/core/record"
-
 	"github.com/libp2p/go-libp2p/p2p/host/eventbus"
 	pb "github.com/libp2p/go-libp2p/p2p/protocol/identify/pb"
 
@@ -372,7 +372,7 @@ func (ids *idService) identifyConn(c network.Conn) error {
 		return err
 	}
 
-	return ids.handleIdentifyResponse(s)
+	return ids.handleIdentifyResponse(s, false)
 }
 
 func (ids *idService) sendIdentifyResp(s network.Stream) {
@@ -413,7 +413,7 @@ func (ids *idService) sendIdentifyResp(s network.Stream) {
 	log.Debugf("%s sent message to %s %s", ID, c.RemotePeer(), c.RemoteMultiaddr())
 }
 
-func (ids *idService) handleIdentifyResponse(s network.Stream) error {
+func (ids *idService) handleIdentifyResponse(s network.Stream, isPush bool) error {
 	if err := s.Scope().SetService(ServiceName); err != nil {
 		log.Warnf("error attaching stream to identify service: %s", err)
 		s.Reset()
@@ -444,7 +444,7 @@ func (ids *idService) handleIdentifyResponse(s network.Stream) error {
 
 	log.Debugf("%s received message from %s %s", s.Protocol(), c.RemotePeer(), c.RemoteMultiaddr())
 
-	ids.consumeMessage(mes, c)
+	ids.consumeMessage(mes, c, isPush)
 
 	return nil
 }
@@ -566,11 +566,49 @@ func (ids *idService) getSignedRecord(snapshot *identifySnapshot) []byte {
 	return recBytes
 }
 
-func (ids *idService) consumeMessage(mes *pb.Identify, c network.Conn) {
+// diff takes two slices of strings (a and b) and computes which elements were added and removed in b
+func diff(a, b []string) (added, removed []string) {
+	// This is O(n^2), but it's fine because the slices are small.
+	for _, x := range b {
+		var found bool
+		for _, y := range a {
+			if x == y {
+				found = true
+				break
+			}
+		}
+		if !found {
+			added = append(added, x)
+		}
+	}
+	for _, x := range a {
+		var found bool
+		for _, y := range b {
+			if x == y {
+				found = true
+				break
+			}
+		}
+		if !found {
+			removed = append(removed, x)
+		}
+	}
+	return
+}
+
+func (ids *idService) consumeMessage(mes *pb.Identify, c network.Conn, isPush bool) {
 	p := c.RemotePeer()
 
-	// mes.Protocols
+	supported, _ := ids.Host.Peerstore().GetProtocols(p)
+	added, removed := diff(supported, mes.Protocols)
 	ids.Host.Peerstore().SetProtocols(p, mes.Protocols...)
+	if isPush {
+		ids.emitters.evtPeerProtocolsUpdated.Emit(event.EvtPeerProtocolsUpdated{
+			Peer:    p,
+			Added:   protocol.ConvertFromStrings(added),
+			Removed: protocol.ConvertFromStrings(removed),
+		})
+	}
 
 	// mes.ObservedAddr
 	ids.consumeObservedAddress(mes.GetObservedAddr(), c)
@@ -598,7 +636,6 @@ func (ids *idService) consumeMessage(mes *pb.Identify, c network.Conn) {
 
 	// add certified addresses for the peer, if they sent us a signed peer record
 	// otherwise use the unsigned addresses.
-	var signedPeerRecord *record.Envelope
 	signedPeerRecord, err := signedPeerRecordFromMessage(mes)
 	if err != nil {
 		log.Errorf("error getting peer record from Identify message: %v", err)
