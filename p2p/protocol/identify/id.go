@@ -115,7 +115,7 @@ type idService struct {
 	addPeerHandlerCh chan addPeerHandlerReq
 	rmPeerHandlerCh  chan rmPeerHandlerReq
 
-	// pushSemaphore limits the push/delta concurrency to avoid storms
+	// pushSemaphore limits the push concurrency to avoid storms
 	// that clog the transient scope.
 	pushSemaphore chan struct{}
 }
@@ -154,9 +154,6 @@ func NewIDService(h host.Host, opts ...Option) (*idService, error) {
 	}
 	s.ctx, s.ctxCancel = context.WithCancel(context.Background())
 
-	// handle local protocol handler updates, and push deltas to peers.
-	var err error
-
 	observedAddrs, err := NewObservedAddrManager(h)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create observed address manager: %s", err)
@@ -180,7 +177,6 @@ func NewIDService(h host.Host, opts ...Option) (*idService, error) {
 	}
 
 	// register protocols that do not depend on peer records.
-	h.SetStreamHandler(IDDelta, s.deltaHandler)
 	h.SetStreamHandler(ID, s.sendIdentifyResp)
 	h.SetStreamHandler(IDPush, s.pushHandler)
 
@@ -269,20 +265,18 @@ func (ids *idService) loop() {
 					select {
 					case phs[pid].pushCh <- struct{}{}:
 					default:
-						log.Debugf("dropping addr updated message for %s as buffer full", pid.Pretty())
+						log.Debugf("dropping addr updated message for %s as buffer full", pid)
 					}
 				}
-
 			case event.EvtLocalProtocolsUpdated:
 				for pid := range phs {
 					select {
-					case phs[pid].deltaCh <- struct{}{}:
+					case phs[pid].pushCh <- struct{}{}:
 					default:
-						log.Debugf("dropping protocol updated message for %s as buffer full", pid.Pretty())
+						log.Debugf("dropping protocol updated message for %s as buffer full", pid)
 					}
 				}
 			}
-
 		case <-ids.ctx.Done():
 			return
 		}

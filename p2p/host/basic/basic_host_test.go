@@ -286,7 +286,6 @@ func TestHostProtoPreference(t *testing.T) {
 
 	// Prevent pushing identify information so this test works.
 	h1.RemoveStreamHandler(identify.IDPush)
-	h1.RemoveStreamHandler(identify.IDDelta)
 
 	h2.SetStreamHandler(protoOld, handler)
 
@@ -362,7 +361,6 @@ func TestHostProtoPreknowledge(t *testing.T) {
 	h2.SetStreamHandler("/super", handler)
 	// Prevent pushing identify information so this test actually _uses_ the super protocol.
 	h1.RemoveStreamHandler(identify.IDPush)
-	h1.RemoveStreamHandler(identify.IDDelta)
 
 	h2pi := h2.Peerstore().PeerInfo(h2.ID())
 	require.NoError(t, h1.Connect(ctx, h2pi))

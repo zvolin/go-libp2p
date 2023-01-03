@@ -11,9 +11,6 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/libp2p/go-libp2p/core/record"
-	pb "github.com/libp2p/go-libp2p/p2p/protocol/identify/pb"
-
-	"github.com/libp2p/go-msgio/protoio"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -35,8 +32,7 @@ type peerHandler struct {
 	snapshotMu sync.RWMutex
 	snapshot   *identifySnapshot
 
-	pushCh  chan struct{}
-	deltaCh chan struct{}
+	pushCh chan struct{}
 }
 
 func newPeerHandler(pid peer.ID, ids *idService) *peerHandler {
@@ -46,8 +42,7 @@ func newPeerHandler(pid peer.ID, ids *idService) *peerHandler {
 
 		snapshot: ids.getSnapshot(),
 
-		pushCh:  make(chan struct{}, 1),
-		deltaCh: make(chan struct{}, 1),
+		pushCh: make(chan struct{}, 1),
 	}
 
 	return ph
@@ -92,50 +87,10 @@ func (ph *peerHandler) loop(ctx context.Context, onExit func()) {
 			if err := ph.sendPush(ctx); err != nil {
 				log.Warnw("failed to send Identify Push", "peer", ph.pid, "error", err)
 			}
-
-		case <-ph.deltaCh:
-			if err := ph.sendDelta(ctx); err != nil {
-				log.Warnw("failed to send Identify Delta", "peer", ph.pid, "error", err)
-			}
-
 		case <-ctx.Done():
 			return
 		}
 	}
-}
-
-func (ph *peerHandler) sendDelta(ctx context.Context) error {
-	// send a push if the peer does not support the Delta protocol.
-	if !ph.peerSupportsProtos(ctx, []string{IDDelta}) {
-		log.Debugw("will send push as peer does not support delta", "peer", ph.pid)
-		if err := ph.sendPush(ctx); err != nil {
-			return fmt.Errorf("failed to send push on delta message: %w", err)
-		}
-		return nil
-	}
-
-	// extract a delta message, updating the last state.
-	mes := ph.nextDelta()
-	if mes == nil || (len(mes.AddedProtocols) == 0 && len(mes.RmProtocols) == 0) {
-		return nil
-	}
-
-	ds, err := ph.openStream(ctx, []string{IDDelta})
-	if err != nil {
-		return fmt.Errorf("failed to open delta stream: %w", err)
-	}
-
-	defer ds.Close()
-
-	c := ds.Conn()
-	if err := protoio.NewDelimitedWriter(ds).WriteMsg(&pb.Identify{Delta: mes}); err != nil {
-		_ = ds.Reset()
-		return fmt.Errorf("failed to send delta message, %w", err)
-	}
-	log.Debugw("sent identify update", "protocol", ds.Protocol(), "peer", c.RemotePeer(),
-		"peer address", c.RemoteMultiaddr())
-
-	return nil
 }
 
 func (ph *peerHandler) sendPush(ctx context.Context) error {
@@ -215,50 +170,4 @@ func (ph *peerHandler) peerSupportsProtos(ctx context.Context, protos []string) 
 		return false
 	}
 	return true
-}
-
-func (ph *peerHandler) nextDelta() *pb.Delta {
-	curr := ph.ids.Host.Mux().Protocols()
-
-	// Extract the old protocol list and replace the old snapshot with an
-	// updated one.
-	ph.snapshotMu.Lock()
-	snapshot := *ph.snapshot
-	old := snapshot.protocols
-	snapshot.protocols = curr
-	ph.snapshot = &snapshot
-	ph.snapshotMu.Unlock()
-
-	oldProtos := make(map[string]struct{}, len(old))
-	currProtos := make(map[string]struct{}, len(curr))
-
-	for _, proto := range old {
-		oldProtos[proto] = struct{}{}
-	}
-
-	for _, proto := range curr {
-		currProtos[proto] = struct{}{}
-	}
-
-	var added []string
-	var removed []string
-
-	// has it been added ?
-	for p := range currProtos {
-		if _, ok := oldProtos[p]; !ok {
-			added = append(added, p)
-		}
-	}
-
-	// has it been removed ?
-	for p := range oldProtos {
-		if _, ok := currProtos[p]; !ok {
-			removed = append(removed, p)
-		}
-	}
-
-	return &pb.Delta{
-		AddedProtocols: added,
-		RmProtocols:    removed,
-	}
 }
