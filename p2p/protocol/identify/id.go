@@ -16,16 +16,17 @@ import (
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/libp2p/go-libp2p/core/record"
 	"github.com/libp2p/go-libp2p/p2p/host/eventbus"
-	pb "github.com/libp2p/go-libp2p/p2p/protocol/identify/pb"
+	"github.com/libp2p/go-libp2p/p2p/protocol/identify/pb"
 
-	"github.com/libp2p/go-msgio/protoio"
-
-	"github.com/gogo/protobuf/proto"
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/libp2p/go-msgio/pbio"
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 	msmux "github.com/multiformats/go-multistream"
+	"google.golang.org/protobuf/proto"
 )
+
+//go:generate protoc --proto_path=$PWD:$PWD/../../.. --go_out=. --go_opt=Mpb/identify.proto=./pb pb/identify.proto
 
 var log = logging.Logger("net/identify")
 
@@ -422,7 +423,7 @@ func (ids *idService) handleIdentifyResponse(s network.Stream, isPush bool) erro
 
 	c := s.Conn()
 
-	r := protoio.NewDelimitedReader(s, signedIDSize)
+	r := pbio.NewDelimitedReader(s, signedIDSize)
 	mes := &pb.Identify{}
 
 	if err := readAllIDMessages(r, mes); err != nil {
@@ -440,7 +441,7 @@ func (ids *idService) handleIdentifyResponse(s network.Stream, isPush bool) erro
 	return nil
 }
 
-func readAllIDMessages(r protoio.Reader, finalMsg proto.Message) error {
+func readAllIDMessages(r pbio.Reader, finalMsg proto.Message) error {
 	mes := &pb.Identify{}
 	for i := 0; i < maxMessages; i++ {
 		switch err := r.ReadMsg(mes); err {
@@ -473,7 +474,7 @@ func (ids *idService) writeChunkedIdentifyMsg(c network.Conn, s network.Stream) 
 	mes := ids.createBaseIdentifyResponse(c, snapshot)
 	sr := ids.getSignedRecord(snapshot)
 	mes.SignedPeerRecord = sr
-	writer := protoio.NewDelimitedWriter(s)
+	writer := pbio.NewDelimitedWriter(s)
 
 	if sr == nil || proto.Size(mes) <= legacyIDSize {
 		return writer.WriteMsg(mes)

@@ -4,17 +4,18 @@ import (
 	"errors"
 	"io"
 
-	pb "github.com/libp2p/go-libp2p/p2p/protocol/internal/circuitv1-deprecated/pb"
-
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/p2p/protocol/internal/circuitv1-deprecated/pb"
 
 	pool "github.com/libp2p/go-buffer-pool"
-	"github.com/libp2p/go-msgio/protoio"
+	"github.com/libp2p/go-msgio/pbio"
 
-	"github.com/gogo/protobuf/proto"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/multiformats/go-varint"
+	"google.golang.org/protobuf/proto"
 )
+
+//go:generate protoc --proto_path=$PWD:$PWD/../../../.. --go_out=. --go_opt=Mpb/relay.proto=./pb pb/relay.proto
 
 func peerToPeerInfo(p *pb.CircuitRelay_Peer) (peer.AddrInfo, error) {
 	if p == nil {
@@ -67,7 +68,7 @@ type delimitedReader struct {
 	buf []byte
 }
 
-// The gogo protobuf NewDelimitedReader is buffered, which may eat up stream data.
+// The protobuf NewDelimitedReader is buffered, which may eat up stream data.
 // So we need to implement a compatible delimited reader that reads unbuffered.
 // There is a slowdown from unbuffered reading: when reading the message
 // it can take multiple single byte Reads to read the length and another Read
@@ -113,6 +114,6 @@ func (d *delimitedReader) ReadMsg(msg proto.Message) error {
 	return proto.Unmarshal(buf, msg)
 }
 
-func newDelimitedWriter(w io.Writer) protoio.WriteCloser {
-	return protoio.NewDelimitedWriter(w)
+func newDelimitedWriter(w io.Writer) pbio.WriteCloser {
+	return pbio.NewDelimitedWriter(w)
 }

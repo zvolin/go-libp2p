@@ -7,7 +7,6 @@ require (
 	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.1.0
 	github.com/flynn/noise v1.0.0
-	github.com/gogo/protobuf v1.3.2
 	github.com/golang/mock v1.6.0
 	github.com/google/gopacket v1.1.19
 	github.com/gorilla/websocket v1.5.0
@@ -24,7 +23,7 @@ require (
 	github.com/libp2p/go-libp2p-asn-util v0.2.0
 	github.com/libp2p/go-libp2p-testing v0.12.0
 	github.com/libp2p/go-mplex v0.7.0
-	github.com/libp2p/go-msgio v0.2.0
+	github.com/libp2p/go-msgio v0.3.0
 	github.com/libp2p/go-nat v0.1.0
 	github.com/libp2p/go-netroute v0.2.1
 	github.com/libp2p/go-reuseport v0.2.0
@@ -55,6 +54,7 @@ require (
 	golang.org/x/crypto v0.3.0
 	golang.org/x/sync v0.1.0
 	golang.org/x/sys v0.3.0
+	google.golang.org/protobuf v1.28.1
 )
 
 require (
@@ -74,6 +74,7 @@ require (
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
+	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
 	github.com/google/pprof v0.0.0-20221203041831-ce31453925ec // indirect
@@ -111,7 +112,6 @@ require (
 	golang.org/x/net v0.3.0 // indirect
 	golang.org/x/text v0.5.0 // indirect
 	golang.org/x/tools v0.3.0 // indirect
-	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.1.7 // indirect
 )

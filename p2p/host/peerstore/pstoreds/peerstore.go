@@ -15,6 +15,8 @@ import (
 	"github.com/multiformats/go-base32"
 )
 
+//go:generate protoc --proto_path=$PWD:$PWD/../../../.. --go_out=. --go_opt=Mpb/pstore.proto=./pb pb/pstore.proto
+
 // Configuration object for the peerstore.
 type Options struct {
 	// The size of the in-memory cache. A value of 0 or lower disables the cache.

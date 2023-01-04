@@ -18,8 +18,7 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/protocol/holepunch"
 	holepunch_pb "github.com/libp2p/go-libp2p/p2p/protocol/holepunch/pb"
 	"github.com/libp2p/go-libp2p/p2p/protocol/identify"
-	"github.com/libp2p/go-msgio/protoio"
-
+	"github.com/libp2p/go-msgio/pbio"
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 	"github.com/stretchr/testify/require"
@@ -170,7 +169,7 @@ func TestFailuresOnInitiator(t *testing.T) {
 	}{
 		"responder does NOT send a CONNECT message": {
 			rhandler: func(s network.Stream) {
-				wr := protoio.NewDelimitedWriter(s)
+				wr := pbio.NewDelimitedWriter(s)
 				wr.WriteMsg(&holepunch_pb.HolePunch{Type: holepunch_pb.HolePunch_SYNC.Enum()})
 			},
 			errMsg: "expect CONNECT message, got SYNC",
@@ -262,13 +261,13 @@ func TestFailuresOnResponder(t *testing.T) {
 	}{
 		"initiator does NOT send a CONNECT message": {
 			initiator: func(s network.Stream) {
-				protoio.NewDelimitedWriter(s).WriteMsg(&holepunch_pb.HolePunch{Type: holepunch_pb.HolePunch_SYNC.Enum()})
+				pbio.NewDelimitedWriter(s).WriteMsg(&holepunch_pb.HolePunch{Type: holepunch_pb.HolePunch_SYNC.Enum()})
 			},
 			errMsg: "expected CONNECT message",
 		},
 		"initiator does NOT send a SYNC message after a CONNECT message": {
 			initiator: func(s network.Stream) {
-				w := protoio.NewDelimitedWriter(s)
+				w := pbio.NewDelimitedWriter(s)
 				w.WriteMsg(&holepunch_pb.HolePunch{
 					Type:     holepunch_pb.HolePunch_CONNECT.Enum(),
 					ObsAddrs: addrsToBytes([]ma.Multiaddr{ma.StringCast("/ip4/127.0.0.1/tcp/1234")}),
@@ -280,7 +279,7 @@ func TestFailuresOnResponder(t *testing.T) {
 		"initiator does NOT reply within hole punch deadline": {
 			holePunchTimeout: 10 * time.Millisecond,
 			initiator: func(s network.Stream) {
-				protoio.NewDelimitedWriter(s).WriteMsg(&holepunch_pb.HolePunch{
+				pbio.NewDelimitedWriter(s).WriteMsg(&holepunch_pb.HolePunch{
 					Type:     holepunch_pb.HolePunch_CONNECT.Enum(),
 					ObsAddrs: addrsToBytes([]ma.Multiaddr{ma.StringCast("/ip4/127.0.0.1/tcp/1234")}),
 				})
@@ -291,7 +290,7 @@ func TestFailuresOnResponder(t *testing.T) {
 		"initiator does NOT send any addresses in CONNECT": {
 			holePunchTimeout: 10 * time.Millisecond,
 			initiator: func(s network.Stream) {
-				protoio.NewDelimitedWriter(s).WriteMsg(&holepunch_pb.HolePunch{Type: holepunch_pb.HolePunch_CONNECT.Enum()})
+				pbio.NewDelimitedWriter(s).WriteMsg(&holepunch_pb.HolePunch{Type: holepunch_pb.HolePunch_CONNECT.Enum()})
 				time.Sleep(10 * time.Second)
 			},
 			errMsg: "expected CONNECT message to contain at least one address",
@@ -299,7 +298,7 @@ func TestFailuresOnResponder(t *testing.T) {
 		"no addrs after filtering": {
 			errMsg: "rejecting hole punch request, as we don't have any public addresses",
 			initiator: func(s network.Stream) {
-				protoio.NewDelimitedWriter(s).WriteMsg(&holepunch_pb.HolePunch{
+				pbio.NewDelimitedWriter(s).WriteMsg(&holepunch_pb.HolePunch{
 					Type:     holepunch_pb.HolePunch_CONNECT.Enum(),
 					ObsAddrs: addrsToBytes([]ma.Multiaddr{ma.StringCast("/ip4/127.0.0.1/tcp/1234")}),
 				})

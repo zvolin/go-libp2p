@@ -11,7 +11,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	pstore "github.com/libp2p/go-libp2p/core/peerstore"
 	"github.com/libp2p/go-libp2p/core/record"
-	pb "github.com/libp2p/go-libp2p/p2p/host/peerstore/pstoreds/pb"
+	"github.com/libp2p/go-libp2p/p2p/host/peerstore/pstoreds/pb"
 	"github.com/libp2p/go-libp2p/p2p/host/peerstore/pstoremem"
 
 	lru "github.com/hashicorp/golang-lru/v2"
@@ -20,6 +20,7 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	b32 "github.com/multiformats/go-base32"
 	ma "github.com/multiformats/go-multiaddr"
+	"google.golang.org/protobuf/proto"
 )
 
 type ttlWriteMode int
@@ -56,7 +57,7 @@ func (r *addrsRecord) flush(write ds.Write) (err error) {
 		return err
 	}
 
-	data, err := r.Marshal()
+	data, err := proto.Marshal(r)
 	if err != nil {
 		return err
 	}
@@ -248,7 +249,7 @@ func (ab *dsAddrBook) loadRecord(id peer.ID, cache bool, update bool) (pr *addrs
 		err = nil
 		pr.Id = []byte(id)
 	case nil:
-		if err = pr.Unmarshal(data); err != nil {
+		if err := proto.Unmarshal(data, pr); err != nil {
 			return nil, err
 		}
 		// this record is new and local for now (not in cache), so we don't need to lock.

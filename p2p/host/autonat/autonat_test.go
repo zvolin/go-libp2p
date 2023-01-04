@@ -9,11 +9,12 @@ import (
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
-	pb "github.com/libp2p/go-libp2p/p2p/host/autonat/pb"
+	"github.com/libp2p/go-libp2p/p2p/host/autonat/pb"
 	bhost "github.com/libp2p/go-libp2p/p2p/host/blank"
 	swarmt "github.com/libp2p/go-libp2p/p2p/net/swarm/testing"
 
-	"github.com/libp2p/go-msgio/protoio"
+	"github.com/libp2p/go-msgio/pbio"
+
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/require"
 )
@@ -28,12 +29,12 @@ func makeAutoNATServicePrivate(t *testing.T) host.Host {
 func sayPrivateStreamHandler(t *testing.T) network.StreamHandler {
 	return func(s network.Stream) {
 		defer s.Close()
-		r := protoio.NewDelimitedReader(s, network.MessageSizeMax)
+		r := pbio.NewDelimitedReader(s, network.MessageSizeMax)
 		if err := r.ReadMsg(&pb.Message{}); err != nil {
 			t.Error(err)
 			return
 		}
-		w := protoio.NewDelimitedWriter(s)
+		w := pbio.NewDelimitedWriter(s)
 		res := pb.Message{
 			Type:         pb.Message_DIAL_RESPONSE.Enum(),
 			DialResponse: newDialResponseError(pb.Message_E_DIAL_ERROR, "dial failed"),
@@ -46,12 +47,12 @@ func makeAutoNATServicePublic(t *testing.T) host.Host {
 	h := bhost.NewBlankHost(swarmt.GenSwarm(t))
 	h.SetStreamHandler(AutoNATProto, func(s network.Stream) {
 		defer s.Close()
-		r := protoio.NewDelimitedReader(s, network.MessageSizeMax)
+		r := pbio.NewDelimitedReader(s, network.MessageSizeMax)
 		if err := r.ReadMsg(&pb.Message{}); err != nil {
 			t.Error(err)
 			return
 		}
-		w := protoio.NewDelimitedWriter(s)
+		w := pbio.NewDelimitedWriter(s)
 		res := pb.Message{
 			Type:         pb.Message_DIAL_RESPONSE.Enum(),
 			DialResponse: newDialResponseOK(s.Conn().RemoteMultiaddr()),

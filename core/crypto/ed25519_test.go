@@ -5,7 +5,9 @@ import (
 	"crypto/rand"
 	"testing"
 
-	pb "github.com/libp2p/go-libp2p/core/crypto/pb"
+	"github.com/libp2p/go-libp2p/core/crypto/pb"
+
+	"google.golang.org/protobuf/proto"
 )
 
 func TestBasicSignAndVerify(t *testing.T) {
@@ -79,15 +81,15 @@ func TestMarshalLoop(t *testing.T) {
 				// Ed25519 private keys used to contain the public key twice.
 				// For backwards-compatibility, we need to continue supporting
 				// that scenario.
-				pbmes := new(pb.PrivateKey)
-				pbmes.Type = priv.Type()
 				data, err := priv.Raw()
 				if err != nil {
 					t.Fatal(err)
 				}
-
-				pbmes.Data = append(data, data[len(data)-ed25519.PublicKeySize:]...)
-				return pbmes.Marshal()
+				data = append(data, data[len(data)-ed25519.PublicKeySize:]...)
+				return proto.Marshal(&pb.PrivateKey{
+					Type: priv.Type().Enum(),
+					Data: data,
+				})
 			},
 		} {
 			t.Run(name, func(t *testing.T) {
@@ -150,18 +152,14 @@ func TestMarshalLoop(t *testing.T) {
 func TestUnmarshalErrors(t *testing.T) {
 	t.Run("PublicKey", func(t *testing.T) {
 		t.Run("Invalid data length", func(t *testing.T) {
-			pbmes := &pb.PublicKey{
-				Type: pb.KeyType_Ed25519,
+			data, err := proto.Marshal(&pb.PublicKey{
+				Type: pb.KeyType_Ed25519.Enum(),
 				Data: []byte{42},
-			}
-
-			data, err := pbmes.Marshal()
+			})
 			if err != nil {
 				t.Fatal(err)
 			}
-
-			_, err = UnmarshalPublicKey(data)
-			if err == nil {
+			if _, err := UnmarshalPublicKey(data); err == nil {
 				t.Fatal("expected an error")
 			}
 		})
@@ -174,16 +172,17 @@ func TestUnmarshalErrors(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			pbmes := new(pb.PrivateKey)
-			pbmes.Type = priv.Type()
 			data, err := priv.Raw()
 			if err != nil {
 				t.Fatal(err)
 			}
-
 			// Append the private key instead of the public key.
-			pbmes.Data = append(data, data[:ed25519.PublicKeySize]...)
-			b, err := pbmes.Marshal()
+			data = append(data, data[:ed25519.PublicKeySize]...)
+
+			b, err := proto.Marshal(&pb.PrivateKey{
+				Type: priv.Type().Enum(),
+				Data: data,
+			})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -198,12 +197,10 @@ func TestUnmarshalErrors(t *testing.T) {
 		})
 
 		t.Run("Invalid data length", func(t *testing.T) {
-			pbmes := &pb.PrivateKey{
-				Type: pb.KeyType_Ed25519,
+			data, err := proto.Marshal(&pb.PrivateKey{
+				Type: pb.KeyType_Ed25519.Enum(),
 				Data: []byte{42},
-			}
-
-			data, err := pbmes.Marshal()
+			})
 			if err != nil {
 				t.Fatal(err)
 			}
