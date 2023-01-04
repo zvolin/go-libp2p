@@ -281,7 +281,7 @@ func (gc *dsAddrBookGc) purgeStore() {
 			continue
 		}
 
-		id := record.Id.ID
+		id := record.Id
 		if !record.clean(gc.ab.clock.Now()) {
 			continue
 		}
@@ -289,7 +289,7 @@ func (gc *dsAddrBookGc) purgeStore() {
 		if err := record.flush(batch); err != nil {
 			log.Warnf("failed to flush entry modified by GC for peer: &v, err: %v", id, err)
 		}
-		gc.ab.cache.Remove(id)
+		gc.ab.cache.Remove(peer.ID(id))
 	}
 
 	if err = batch.Commit(context.TODO()); err != nil {

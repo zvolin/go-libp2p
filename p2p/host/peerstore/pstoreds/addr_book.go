@@ -1,6 +1,7 @@
 package pstoreds
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"sort"
@@ -46,7 +47,7 @@ type addrsRecord struct {
 // flush writes the record to the datastore by calling ds.Put, unless the record is
 // marked for deletion, in which case we call ds.Delete. To be called within a lock.
 func (r *addrsRecord) flush(write ds.Write) (err error) {
-	key := addrBookBase.ChildString(b32.RawStdEncoding.EncodeToString([]byte(r.Id.ID)))
+	key := addrBookBase.ChildString(b32.RawStdEncoding.EncodeToString(r.Id))
 
 	if len(r.Addrs) == 0 {
 		if err = write.Delete(context.TODO(), key); err == nil {
@@ -245,7 +246,7 @@ func (ab *dsAddrBook) loadRecord(id peer.ID, cache bool, update bool) (pr *addrs
 	switch err {
 	case ds.ErrNotFound:
 		err = nil
-		pr.Id = &pb.ProtoPeerID{ID: id}
+		pr.Id = []byte(id)
 	case nil:
 		if err = pr.Unmarshal(data); err != nil {
 			return nil, err
@@ -430,7 +431,12 @@ func (ab *dsAddrBook) Addrs(p peer.ID) []ma.Multiaddr {
 
 	addrs := make([]ma.Multiaddr, len(pr.Addrs))
 	for i, a := range pr.Addrs {
-		addrs[i] = a.Addr
+		var err error
+		addrs[i], err = ma.NewMultiaddrBytes(a.Addr)
+		if err != nil {
+			log.Warn("failed to parse peerstore entry for peer %v while querying addrs, err: %v", p, err)
+			return nil
+		}
 	}
 	return addrs
 }
@@ -484,7 +490,7 @@ func (ab *dsAddrBook) setAddrs(p peer.ID, addrs []ma.Multiaddr, ttl time.Duratio
 	newExp := ab.clock.Now().Add(ttl).Unix()
 	addrsMap := make(map[string]*pb.AddrBookRecord_AddrEntry, len(pr.Addrs))
 	for _, addr := range pr.Addrs {
-		addrsMap[string(addr.Addr.Bytes())] = addr
+		addrsMap[string(addr.Addr)] = addr
 	}
 
 	updateExisting := func(incoming ma.Multiaddr) *pb.AddrBookRecord_AddrEntry {
@@ -521,7 +527,7 @@ func (ab *dsAddrBook) setAddrs(p peer.ID, addrs []ma.Multiaddr, ttl time.Duratio
 			// } else {
 			// new addr, add & broadcast
 			entry := &pb.AddrBookRecord_AddrEntry{
-				Addr:   &pb.ProtoAddr{Multiaddr: incoming},
+				Addr:   incoming.Bytes(),
 				Ttl:    int64(ttl),
 				Expiry: newExp,
 			}
@@ -555,7 +561,7 @@ func deleteInPlace(s []*pb.AddrBookRecord_AddrEntry, addrs []ma.Multiaddr) []*pb
 Outer:
 	for i, addr := range s {
 		for _, del := range addrs {
-			if !addr.Addr.Equal(del) {
+			if !bytes.Equal(del.Bytes(), addr.Addr) {
 				continue
 			}
 			survived--
