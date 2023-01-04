@@ -10,7 +10,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	pstore "github.com/libp2p/go-libp2p/core/peerstore"
 	"github.com/libp2p/go-libp2p/core/record"
-	pb "github.com/libp2p/go-libp2p/p2p/host/peerstore/pb"
+	pb "github.com/libp2p/go-libp2p/p2p/host/peerstore/pstoreds/pb"
 	"github.com/libp2p/go-libp2p/p2p/host/peerstore/pstoremem"
 
 	lru "github.com/hashicorp/golang-lru/v2"
