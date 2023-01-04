@@ -94,7 +94,7 @@ func (ph *peerHandler) loop(ctx context.Context, onExit func()) {
 }
 
 func (ph *peerHandler) sendPush(ctx context.Context) error {
-	dp, err := ph.openStream(ctx, []string{IDPush})
+	dp, err := ph.openStream(ctx, IDPush)
 	if err == errProtocolNotSupported {
 		log.Debugw("not sending push as peer does not support protocol", "peer", ph.pid)
 		return nil
@@ -112,14 +112,13 @@ func (ph *peerHandler) sendPush(ctx context.Context) error {
 		_ = dp.Reset()
 		return fmt.Errorf("failed to send push message: %w", err)
 	}
-
 	return nil
 }
 
-func (ph *peerHandler) openStream(ctx context.Context, protos []string) (network.Stream, error) {
+func (ph *peerHandler) openStream(ctx context.Context, proto string) (network.Stream, error) {
 	// wait for the other peer to send us an Identify response on "all" connections we have with it
 	// so we can look at it's supported protocols and avoid a multistream-select roundtrip to negotiate the protocol
-	// if we know for a fact that it dosen't support the protocol.
+	// if we know for a fact that it doesn't support the protocol.
 	conns := ph.ids.Host.Network().ConnsToPeer(ph.pid)
 	for _, c := range conns {
 		select {
@@ -129,45 +128,16 @@ func (ph *peerHandler) openStream(ctx context.Context, protos []string) (network
 		}
 	}
 
-	if !ph.peerSupportsProtos(ctx, protos) {
+	if sup, err := ph.ids.Host.Peerstore().SupportsProtocols(ph.pid, proto); err != nil || len(sup) == 0 {
 		return nil, errProtocolNotSupported
 	}
-
 	ph.ids.pushSemaphore <- struct{}{}
 	defer func() {
 		<-ph.ids.pushSemaphore
 	}()
 
 	// negotiate a stream without opening a new connection as we "should" already have a connection.
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	ctx, cancel := context.WithTimeout(network.WithNoDial(ctx, "should already have connection"), 30*time.Second)
 	defer cancel()
-	ctx = network.WithNoDial(ctx, "should already have connection")
-
-	// newstream will open a stream on the first protocol the remote peer supports from the among
-	// the list of protocols passed to it.
-	s, err := ph.ids.Host.NewStream(ctx, ph.pid, protocol.ConvertFromStrings(protos)...)
-	if err != nil {
-		return nil, err
-	}
-
-	return s, err
-}
-
-// returns true if the peer supports atleast one of the given protocols
-func (ph *peerHandler) peerSupportsProtos(ctx context.Context, protos []string) bool {
-	conns := ph.ids.Host.Network().ConnsToPeer(ph.pid)
-	for _, c := range conns {
-		select {
-		case <-ph.ids.IdentifyWait(c):
-		case <-ctx.Done():
-			return false
-		}
-	}
-
-	pstore := ph.ids.Host.Peerstore()
-
-	if sup, err := pstore.SupportsProtocols(ph.pid, protos...); err == nil && len(sup) == 0 {
-		return false
-	}
-	return true
+	return ph.ids.Host.NewStream(ctx, ph.pid, protocol.ID(proto))
 }
