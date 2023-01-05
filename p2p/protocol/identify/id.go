@@ -400,10 +400,7 @@ func (ids *idService) sendIdentifyResp(s network.Stream) {
 		return
 	}
 
-	ph.snapshotMu.RLock()
-	snapshot := ph.snapshot
-	ph.snapshotMu.RUnlock()
-	ids.writeChunkedIdentifyMsg(c, snapshot, s)
+	ids.writeChunkedIdentifyMsg(c, s)
 	log.Debugf("%s sent message to %s %s", ID, c.RemotePeer(), c.RemoteMultiaddr())
 }
 
@@ -471,7 +468,8 @@ func (ids *idService) getSnapshot() *identifySnapshot {
 	return snapshot
 }
 
-func (ids *idService) writeChunkedIdentifyMsg(c network.Conn, snapshot *identifySnapshot, s network.Stream) error {
+func (ids *idService) writeChunkedIdentifyMsg(c network.Conn, s network.Stream) error {
+	snapshot := ids.getSnapshot()
 	mes := ids.createBaseIdentifyResponse(c, snapshot)
 	sr := ids.getSignedRecord(snapshot)
 	mes.SignedPeerRecord = sr

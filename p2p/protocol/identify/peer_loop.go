@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/libp2p/go-libp2p/core/network"
@@ -29,23 +28,15 @@ type peerHandler struct {
 
 	pid peer.ID
 
-	snapshotMu sync.RWMutex
-	snapshot   *identifySnapshot
-
 	pushCh chan struct{}
 }
 
 func newPeerHandler(pid peer.ID, ids *idService) *peerHandler {
-	ph := &peerHandler{
-		ids: ids,
-		pid: pid,
-
-		snapshot: ids.getSnapshot(),
-
+	return &peerHandler{
+		ids:    ids,
+		pid:    pid,
 		pushCh: make(chan struct{}, 1),
 	}
-
-	return ph
 }
 
 // start starts a handler. This may only be called on a stopped handler, and must
@@ -63,7 +54,10 @@ func (ph *peerHandler) start(ctx context.Context, onExit func()) {
 	ctx, cancel := context.WithCancel(ctx)
 	ph.cancel = cancel
 
-	go ph.loop(ctx, onExit)
+	go func() {
+		ph.loop(ctx)
+		onExit()
+	}()
 }
 
 // stop stops a handler. This may not be called concurrently with any
@@ -77,9 +71,7 @@ func (ph *peerHandler) stop() error {
 }
 
 // per peer loop for pushing updates
-func (ph *peerHandler) loop(ctx context.Context, onExit func()) {
-	defer onExit()
-
+func (ph *peerHandler) loop(ctx context.Context) {
 	for {
 		select {
 		// our listen addresses have changed, send an IDPush.
@@ -104,11 +96,7 @@ func (ph *peerHandler) sendPush(ctx context.Context) error {
 	}
 	defer dp.Close()
 
-	snapshot := ph.ids.getSnapshot()
-	ph.snapshotMu.Lock()
-	ph.snapshot = snapshot
-	ph.snapshotMu.Unlock()
-	if err := ph.ids.writeChunkedIdentifyMsg(dp.Conn(), snapshot, dp); err != nil {
+	if err := ph.ids.writeChunkedIdentifyMsg(dp.Conn(), dp); err != nil {
 		_ = dp.Reset()
 		return fmt.Errorf("failed to send push message: %w", err)
 	}
