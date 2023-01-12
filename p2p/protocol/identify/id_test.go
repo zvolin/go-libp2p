@@ -24,11 +24,11 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/net/swarm"
 	swarmt "github.com/libp2p/go-libp2p/p2p/net/swarm/testing"
 	"github.com/libp2p/go-libp2p/p2p/protocol/identify"
-	pb "github.com/libp2p/go-libp2p/p2p/protocol/identify/pb"
+	"github.com/libp2p/go-libp2p/p2p/protocol/identify/pb"
 
 	mockClock "github.com/benbjohnson/clock"
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/libp2p/go-msgio/protoio"
+	"github.com/libp2p/go-msgio/pbio"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -382,7 +382,7 @@ func TestIdentifyPushWhileIdentifyingConn(t *testing.T) {
 	block := make(chan struct{})
 	handler := func(s network.Stream) {
 		<-block
-		w := protoio.NewDelimitedWriter(s)
+		w := pbio.NewDelimitedWriter(s)
 		w.WriteMsg(&pb.Identify{Protocols: h1.Mux().Protocols()})
 		s.Close()
 	}
