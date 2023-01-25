@@ -238,11 +238,16 @@ func (mab *memoryAddrBook) addAddrsUnlocked(s *addrSegment, p peer.ID, addrs []m
 
 	exp := mab.clock.Now().Add(ttl)
 	for _, addr := range addrs {
+		// Remove suffix of /p2p/peer-id from address
+		addr, addrPid := peer.SplitAddr(addr)
 		if addr == nil {
-			log.Warnw("was passed nil multiaddr", "peer", p)
+			log.Warnw("Was passed nil multiaddr", "peer", p)
 			continue
 		}
-
+		if addrPid != "" && addrPid != p {
+			log.Warnf("Was passed p2p address with a different peerId. found: %s, expected: %s", addrPid, p)
+			continue
+		}
 		// find the highest TTL and Expiry time between
 		// existing records and function args
 		a, found := amap[string(addr.Bytes())] // won't allocate.
@@ -283,8 +288,13 @@ func (mab *memoryAddrBook) SetAddrs(p peer.ID, addrs []ma.Multiaddr, ttl time.Du
 
 	exp := mab.clock.Now().Add(ttl)
 	for _, addr := range addrs {
+		addr, addrPid := peer.SplitAddr(addr)
 		if addr == nil {
 			log.Warnw("was passed nil multiaddr", "peer", p)
+			continue
+		}
+		if addrPid != "" && addrPid != p {
+			log.Warnf("was passed p2p address with a different peerId, found: %s wanted: %s", addrPid, p)
 			continue
 		}
 		aBytes := addr.Bytes()
