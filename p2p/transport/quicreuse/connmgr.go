@@ -54,7 +54,7 @@ func NewConnManager(statelessResetKey quic.StatelessResetKey, opts ...Option) (*
 		tracers = append(tracers, qlogTracer)
 	}
 	if cm.enableMetrics {
-		tracers = append(tracers, &metricsTracer{})
+		tracers = append(tracers, newMetricsTracer())
 	}
 	if len(tracers) > 0 {
 		quicConf.Tracer = quiclogging.NewMultiplexedTracer(tracers...)
