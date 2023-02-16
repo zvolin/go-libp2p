@@ -143,6 +143,9 @@ func (as *AmbientAutoNAT) Status() network.Reachability {
 func (as *AmbientAutoNAT) emitStatus() {
 	status := as.status.Load()
 	as.emitReachabilityChanged.Emit(event.EvtLocalReachabilityChanged{Reachability: status.Reachability})
+	if as.metricsTracer != nil {
+		as.metricsTracer.ReachabilityStatus(status.Reachability)
+	}
 }
 
 // PublicAddr returns the publicly connectable Multiaddr of this node if one is known.
@@ -279,7 +282,9 @@ func (as *AmbientAutoNAT) scheduleProbe() time.Duration {
 			nextProbe = as.lastProbe.Add(untilNext)
 		}
 	}
-
+	if as.metricsTracer != nil {
+		as.metricsTracer.NextProbeTime(nextProbe)
+	}
 	return nextProbe.Sub(fixedNow)
 }
 
@@ -337,6 +342,9 @@ func (as *AmbientAutoNAT) recordObservation(observation autoNATResult) {
 			as.emitStatus()
 		}
 	}
+	if as.metricsTracer != nil {
+		as.metricsTracer.ReachabilityStatusConfidence(as.confidence)
+	}
 }
 
 func (as *AmbientAutoNAT) tryProbe(p peer.ID) bool {
@@ -364,7 +372,7 @@ func (as *AmbientAutoNAT) tryProbe(p peer.ID) bool {
 }
 
 func (as *AmbientAutoNAT) probe(pi *peer.AddrInfo) {
-	cli := NewAutoNATClient(as.host, as.config.addressFunc)
+	cli := NewAutoNATClient(as.host, as.config.addressFunc, as.metricsTracer)
 	ctx, cancel := context.WithTimeout(as.ctx, as.config.requestTimeout)
 	defer cancel()
 
