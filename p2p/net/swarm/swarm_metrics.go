@@ -25,7 +25,7 @@ var (
 			Name:      "connections_opened_total",
 			Help:      "Connections Opened",
 		},
-		[]string{"dir", "transport", "security", "muxer", "ip_version"},
+		[]string{"dir", "transport", "security", "muxer", "early_muxer", "ip_version"},
 	)
 	keyTypes = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -41,7 +41,7 @@ var (
 			Name:      "connections_closed_total",
 			Help:      "Connections Closed",
 		},
-		[]string{"dir", "transport", "security", "muxer", "ip_version"},
+		[]string{"dir", "transport", "security", "muxer", "early_muxer", "ip_version"},
 	)
 	dialError = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -58,7 +58,7 @@ var (
 			Help:      "Duration of a Connection",
 			Buckets:   prometheus.ExponentialBuckets(1.0/16, 2, 25), // up to 24 days
 		},
-		[]string{"dir", "transport", "security", "muxer", "ip_version"},
+		[]string{"dir", "transport", "security", "muxer", "early_muxer", "ip_version"},
 	)
 	connHandshakeLatency = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
@@ -67,7 +67,7 @@ var (
 			Help:      "Duration of the libp2p Handshake",
 			Buckets:   prometheus.ExponentialBuckets(0.001, 1.3, 35),
 		},
-		[]string{"transport", "security", "muxer", "ip_version"},
+		[]string{"transport", "security", "muxer", "early_muxer", "ip_version"},
 	)
 	collectors = []prometheus.Collector{
 		connsOpened,
@@ -124,6 +124,12 @@ func appendConnectionState(tags []string, cs network.ConnectionState) []string {
 	// For example, QUIC doesn't set security nor muxer.
 	tags = append(tags, string(cs.Security))
 	tags = append(tags, string(cs.StreamMultiplexer))
+
+	earlyMuxer := "false"
+	if cs.UsedEarlyMuxerNegotiation {
+		earlyMuxer = "true"
+	}
+	tags = append(tags, earlyMuxer)
 	return tags
 }
 
