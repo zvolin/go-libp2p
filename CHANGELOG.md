@@ -29,6 +29,10 @@ Metrics were added to:
 * Swarm:
   - [Early Muxer Selection](https://github.com/libp2p/go-libp2p/pull/2119): Added early_muxer label indicating whether a connection was established using early muxer selection. 
   - [IP Version](https://github.com/libp2p/go-libp2p/pull/2114): Added ip_version label to connection metrics
+* Identify:
+  - Metrics for Identify, IdentifyPush, PushesTriggered (https://github.com/libp2p/go-libp2p/pull/2069)
+  - Address Count, Protocol Count, Connection IDPush Support (https://github.com/libp2p/go-libp2p/pull/2126)
+
 
 We also migrated the metric dashboards to a top-level [dashboards](https://github.com/libp2p/go-libp2p/tree/master/dashboards) directory.
 

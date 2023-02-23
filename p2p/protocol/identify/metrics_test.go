@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/libp2p/go-libp2p/core/event"
-	"github.com/libp2p/go-libp2p/core/network"
 )
 
 func TestMetricsNoAllocNoCover(t *testing.T) {
@@ -16,12 +15,19 @@ func TestMetricsNoAllocNoCover(t *testing.T) {
 		event.EvtLocalProtocolsUpdated{},
 		event.EvtNATDeviceTypeChanged{},
 	}
-	dirs := []network.Direction{network.DirInbound, network.DirOutbound, network.DirUnknown}
+
+	pushSupport := []identifyPushSupport{
+		identifyPushSupportUnknown,
+		identifyPushSupported,
+		identifyPushUnsupported,
+	}
+
 	tr := NewMetricsTracer()
 	tests := map[string]func(){
-		"TriggeredPushes": func() { tr.TriggeredPushes(events[rand.Intn(len(events))]) },
-		"Identify":        func() { tr.Identify(dirs[rand.Intn(len(dirs))]) },
-		"IdentifyPush":    func() { tr.IdentifyPush(dirs[rand.Intn(len(dirs))]) },
+		"TriggeredPushes":  func() { tr.TriggeredPushes(events[rand.Intn(len(events))]) },
+		"ConnPushSupport":  func() { tr.ConnPushSupport(pushSupport[rand.Intn(len(pushSupport))]) },
+		"IdentifyReceived": func() { tr.IdentifyReceived(rand.Intn(2) == 0, rand.Intn(20), rand.Intn(20)) },
+		"IdentifySent":     func() { tr.IdentifySent(rand.Intn(2) == 0, rand.Intn(20), rand.Intn(20)) },
 	}
 	for method, f := range tests {
 		allocs := testing.AllocsPerRun(1000, f)
