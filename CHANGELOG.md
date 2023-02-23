@@ -7,6 +7,20 @@
 
 ## 🔦 Highlights <!-- omit in toc -->
 
+### Circuit Relay Changes <!-- omit in toc -->
+
+#### [Removed Circuit Relay v1](https://github.com/libp2p/go-libp2p/pull/2107) <!-- omit in toc -->
+
+We've decided to remove support for Circuit Relay v1 in this release. v1 Relays have been retired a few months ago. Notably, running the Relay v1 protocol was expensive and resulted in only a small number of nodes in the network. Users had to either manually configure these nodes as static relays, or discover them from the DHT.
+Furthermore, rust-libp2p [has dropped support](https://github.com/libp2p/rust-libp2p/pull/2549) and js-libp2p [is dropping support](https://github.com/libp2p/js-libp2p/pull/1533) for Relay v1.
+
+Support for Relay v2 was first added in [late 2021 in v0.16.0](https://github.com/libp2p/go-libp2p/releases/tag/v0.16.0). With Circuit Relay v2 it became cheap to run (limited) relays. Public nodes also started the relay service by default. There's now a massive number of Relay v2 nodes on the IPFS network, and they don't advertise their service to the DHT any more. Because there's now so many of these nodes, connecting to just a small number of nodes (e.g. by joining the DHT), a node is statistically guaranteed to connect to some relays.
+
+#### [Unlimited Relay v2](https://github.com/libp2p/go-libp2p/pull/2125) <!-- omit in toc -->
+
+In conjunction with removing relay v1, we also added an option to Circuit Relay v2 to disable limits.
+This done by enabling `WithInfiniteLimits`. When enabled this allows for users to have a drop in replacement for Relay v1 with Relay v2.
+
 ### Additional metrics <!-- omit in toc -->
 
 Since the last release, we've added additional metrics to different components.
@@ -16,7 +30,25 @@ Metrics were added to:
   - [Early Muxer Selection](https://github.com/libp2p/go-libp2p/pull/2119): Added early_muxer label indicating whether a connection was established using early muxer selection. 
   - [IP Version](https://github.com/libp2p/go-libp2p/pull/2114): Added ip_version label to connection metrics
 
+We also migrated the metric dashboards to a top-level [dashboards](https://github.com/libp2p/go-libp2p/tree/master/dashboards) directory.
+
 ## 🐞 Bugfixes <!-- omit in toc -->
+
+### AutoNat <!-- omit in toc -->
+* [Fixed a bug](https://github.com/libp2p/go-libp2p/issues/2091) where AutoNat would emit events when the observed address has changed even though the node reachability hadn't changed.
+
+### Relay Manager <!-- omit in toc -->
+* [Fixed a bug](https://github.com/libp2p/go-libp2p/pull/2093) where the Relay Manager started a new relay even though the previous reachability was `Public` or if a relay already existed.
+
+### [Stop sending detailed error messages on closing QUIC connections](https://github.com/libp2p/go-libp2p/pull/2112) <!-- omit in toc -->
+
+Users reported seeing confusing error messages and could not determine the root cause or if the error was from a local or remote peer:
+
+```{12D... Application error 0x0: conn-27571160: system: cannot reserve inbound connection: resource limit exceeded}```
+
+This error occurred when a connection had been made with a remote peer but the remote peer dropped the connection (due to it exceeding limits).
+This was actually an `Application error` emitted by `quic-go` and it was a bug in go-libp2p that we sent the whole message.
+For now, we decided to stop sending this confusing error message. In the future, we will report such errors via [error codes](https://github.com/libp2p/specs/issues/479).
 
 **Full Changelog**: https://github.com/libp2p/go-libp2p/compare/v0.25.1...v0.26.0
 
