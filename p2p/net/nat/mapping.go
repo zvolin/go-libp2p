@@ -9,9 +9,6 @@ import (
 
 // Mapping represents a port mapping in a NAT.
 type Mapping interface {
-	// NAT returns the NAT object this Mapping belongs to.
-	NAT() *NAT
-
 	// Protocol returns the protocol of this port mapping. This is either
 	// "tcp" or "udp" as no other protocols are likely to be NAT-supported.
 	Protocol() string
@@ -44,12 +41,6 @@ type mapping struct {
 	cached    net.IP
 	cacheTime time.Time
 	cacheLk   sync.Mutex
-}
-
-func (m *mapping) NAT() *NAT {
-	m.Lock()
-	defer m.Unlock()
-	return m.nat
 }
 
 func (m *mapping) Protocol() string {
