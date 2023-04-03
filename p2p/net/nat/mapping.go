@@ -24,9 +24,6 @@ type Mapping interface {
 	// ExternalAddr returns the external facing address. If the mapping is not
 	// established, addr will be nil, and and ErrNoMapping will be returned.
 	ExternalAddr() (addr net.Addr, err error)
-
-	// Close closes the port mapping
-	Close() error
 }
 
 // keeps republishing
@@ -102,9 +99,4 @@ func (m *mapping) ExternalAddr() (net.Addr, error) {
 	default:
 		panic(fmt.Sprintf("invalid protocol %q", m.Protocol()))
 	}
-}
-
-func (m *mapping) Close() error {
-	m.nat.removeMapping(m)
-	return nil
 }
