@@ -92,23 +92,21 @@ func (nat *NAT) Mappings() []Mapping {
 	return maps2
 }
 
-// NewMapping attempts to construct a mapping on protocol and internal port
+// AddMapping attempts to construct a mapping on protocol and internal port
 // It will also periodically renew the mapping until the returned Mapping
 // -- or its parent NAT -- is Closed.
 //
 // May not succeed, and mappings may change over time;
 // NAT devices may not respect our port requests, and even lie.
-// Clients should not store the mapped results, but rather always
-// poll our object for the latest mappings.
-func (nat *NAT) NewMapping(protocol string, port int) (Mapping, error) {
+func (nat *NAT) AddMapping(protocol string, port int) error {
 	if nat == nil {
-		return nil, fmt.Errorf("no nat available")
+		return fmt.Errorf("no nat available")
 	}
 
 	switch protocol {
 	case "tcp", "udp":
 	default:
-		return nil, fmt.Errorf("invalid protocol: %s", protocol)
+		return fmt.Errorf("invalid protocol: %s", protocol)
 	}
 
 	m := &mapping{
@@ -120,7 +118,7 @@ func (nat *NAT) NewMapping(protocol string, port int) (Mapping, error) {
 	nat.mappingmu.Lock()
 	if nat.closed {
 		nat.mappingmu.Unlock()
-		return nil, errors.New("closed")
+		return errors.New("closed")
 	}
 	nat.mappings[m] = struct{}{}
 	nat.refCount.Add(1)
@@ -130,7 +128,7 @@ func (nat *NAT) NewMapping(protocol string, port int) (Mapping, error) {
 	// do it once synchronously, so first mapping is done right away, and before exiting,
 	// allowing users -- in the optimistic case -- to use results right after.
 	nat.establishMapping(m)
-	return m, nil
+	return nil
 }
 
 func (nat *NAT) removeMapping(m *mapping) {

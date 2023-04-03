@@ -203,8 +203,7 @@ func (nmgr *natManager) doSync() {
 			wg.Add(1)
 			go func(proto string, port int) {
 				defer wg.Done()
-				_, err := nmgr.nat.NewMapping(proto, port)
-				if err != nil {
+				if err := nmgr.nat.AddMapping(proto, port); err != nil {
 					log.Errorf("failed to port-map %s port %d: %s", proto, port, err)
 				}
 			}(proto, port)
