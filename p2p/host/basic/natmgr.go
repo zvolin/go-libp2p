@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net"
+	"net/netip"
 	"strconv"
 	"sync"
 	"time"
@@ -12,27 +13,36 @@ import (
 	inat "github.com/libp2p/go-libp2p/p2p/net/nat"
 
 	ma "github.com/multiformats/go-multiaddr"
+	manet "github.com/multiformats/go-multiaddr/net"
 )
 
 // NATManager is a simple interface to manage NAT devices.
 // It listens Listen and ListenClose notifications from the network.Network,
 // and tries to obtain port mappings for those.
 type NATManager interface {
-	// NAT gets the NAT device managed by the NAT manager.
-	NAT() *inat.NAT
-
+	GetMapping(ma.Multiaddr) ma.Multiaddr
 	io.Closer
 }
 
 // NewNATManager creates a NAT manager.
 func NewNATManager(net network.Network) NATManager {
-	return newNatManager(net)
+	return newNATManager(net)
 }
 
 type entry struct {
 	protocol string
 	port     int
 }
+
+type nat interface {
+	AddMapping(protocol string, port int) error
+	RemoveMapping(protocol string, port int) error
+	GetMapping(protocol string, port int) (netip.AddrPort, bool)
+	io.Closer
+}
+
+// so we can mock it in tests
+var discoverNAT = func(ctx context.Context) (nat, error) { return inat.DiscoverNAT(ctx) }
 
 // natManager takes care of adding + removing port mappings to the nat.
 // Initialized with the host if it has a NATPortMap option enabled.
@@ -43,7 +53,7 @@ type entry struct {
 type natManager struct {
 	net   network.Network
 	natMx sync.RWMutex
-	nat   *inat.NAT
+	nat   nat
 
 	syncFlag chan struct{} // cap: 1
 
@@ -53,7 +63,7 @@ type natManager struct {
 	ctxCancel context.CancelFunc
 }
 
-func newNatManager(net network.Network) *natManager {
+func newNATManager(net network.Network) *natManager {
 	ctx, cancel := context.WithCancel(context.Background())
 	nmgr := &natManager{
 		net:       net,
@@ -88,7 +98,7 @@ func (nmgr *natManager) background(ctx context.Context) {
 
 	discoverCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-	natInstance, err := inat.DiscoverNAT(discoverCtx)
+	natInstance, err := discoverNAT(discoverCtx)
 	if err != nil {
 		log.Info("DiscoverNAT error:", err)
 		return
@@ -196,28 +206,85 @@ func (nmgr *natManager) doSync() {
 	}
 }
 
-// NAT returns the natManager's nat object. this may be nil, if
-// (a) the search process is still ongoing, or (b) the search process
-// found no nat. Clients must check whether the return value is nil.
-func (nmgr *natManager) NAT() *inat.NAT {
+func (nmgr *natManager) GetMapping(addr ma.Multiaddr) ma.Multiaddr {
 	nmgr.natMx.Lock()
 	defer nmgr.natMx.Unlock()
-	return nmgr.nat
+
+	if nmgr.nat == nil { // NAT not yet initialized
+		return nil
+	}
+
+	var found bool
+	var proto int // ma.P_TCP or ma.P_UDP
+	transport, rest := ma.SplitFunc(addr, func(c ma.Component) bool {
+		if found {
+			return true
+		}
+		proto = c.Protocol().Code
+		found = proto == ma.P_TCP || proto == ma.P_UDP
+		return false
+	})
+	if !manet.IsThinWaist(transport) {
+		return nil
+	}
+
+	naddr, err := manet.ToNetAddr(transport)
+	if err != nil {
+		log.Error("error parsing net multiaddr %q: %s", transport, err)
+		return nil
+	}
+
+	var (
+		ip       net.IP
+		port     int
+		protocol string
+	)
+	switch naddr := naddr.(type) {
+	case *net.TCPAddr:
+		ip = naddr.IP
+		port = naddr.Port
+		protocol = "tcp"
+	case *net.UDPAddr:
+		ip = naddr.IP
+		port = naddr.Port
+		protocol = "udp"
+	default:
+		return nil
+	}
+
+	if !ip.IsGlobalUnicast() && !ip.IsUnspecified() {
+		// We only map global unicast & unspecified addresses ports, not broadcast, multicast, etc.
+		return nil
+	}
+
+	extAddr, ok := nmgr.nat.GetMapping(protocol, port)
+	if !ok {
+		return nil
+	}
+
+	var mappedAddr net.Addr
+	switch naddr.(type) {
+	case *net.TCPAddr:
+		mappedAddr = net.TCPAddrFromAddrPort(extAddr)
+	case *net.UDPAddr:
+		mappedAddr = net.UDPAddrFromAddrPort(extAddr)
+	}
+	mappedMaddr, err := manet.FromNetAddr(mappedAddr)
+	if err != nil {
+		log.Errorf("mapped addr can't be turned into a multiaddr %q: %s", mappedAddr, err)
+		return nil
+	}
+	extMaddr := mappedMaddr
+	if rest != nil {
+		extMaddr = ma.Join(extMaddr, rest)
+	}
+	return extMaddr
 }
 
 type nmgrNetNotifiee natManager
 
-func (nn *nmgrNetNotifiee) natManager() *natManager {
-	return (*natManager)(nn)
-}
-
-func (nn *nmgrNetNotifiee) Listen(network.Network, ma.Multiaddr) {
-	nn.natManager().sync()
-}
-
-func (nn *nmgrNetNotifiee) ListenClose(network.Network, ma.Multiaddr) {
-	nn.natManager().sync()
-}
-
-func (nn *nmgrNetNotifiee) Connected(network.Network, network.Conn)    {}
-func (nn *nmgrNetNotifiee) Disconnected(network.Network, network.Conn) {}
+func (nn *nmgrNetNotifiee) natManager() *natManager                          { return (*natManager)(nn) }
+func (nn *nmgrNetNotifiee) Listen(network.Network, ma.Multiaddr)             { nn.natManager().sync() }
+func (nn *nmgrNetNotifiee) ListenClose(n network.Network, addr ma.Multiaddr) { nn.natManager().sync() }
+func (nn *nmgrNetNotifiee) Connected(network.Network, network.Conn)          {}
+func (nn *nmgrNetNotifiee) Disconnected(network.Network, network.Conn)       {}

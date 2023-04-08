@@ -858,78 +858,16 @@ func (h *BasicHost) AllAddrs() []ma.Multiaddr {
 	finalAddrs = dedupAddrs(finalAddrs)
 
 	// natmgr is nil if we do not use nat option;
-	// h.natmgr.NAT() is nil if not ready, or no nat is available.
-	if h.natmgr != nil && h.natmgr.NAT() != nil {
+	if h.natmgr != nil {
 		// We have successfully mapped ports on our NAT. Use those
 		// instead of observed addresses (mostly).
 
 		// Next, apply this mapping to our addresses.
 		for _, listen := range listenAddrs {
-			found := false
-			transport, rest := ma.SplitFunc(listen, func(c ma.Component) bool {
-				if found {
-					return true
-				}
-				switch c.Protocol().Code {
-				case ma.P_TCP, ma.P_UDP:
-					found = true
-				}
-				return false
-			})
-			if !manet.IsThinWaist(transport) {
-				continue
-			}
-
-			naddr, err := manet.ToNetAddr(transport)
-			if err != nil {
-				log.Error("error parsing net multiaddr %q: %s", transport, err)
-				continue
-			}
-
-			var (
-				ip       net.IP
-				iport    int
-				protocol string
-			)
-			switch naddr := naddr.(type) {
-			case *net.TCPAddr:
-				ip = naddr.IP
-				iport = naddr.Port
-				protocol = "tcp"
-			case *net.UDPAddr:
-				ip = naddr.IP
-				iport = naddr.Port
-				protocol = "udp"
-			default:
-				continue
-			}
-
-			if !ip.IsGlobalUnicast() && !ip.IsUnspecified() {
-				// We only map global unicast & unspecified addresses ports, not broadcast, multicast, etc.
-				continue
-			}
-
-			extAddr, ok := h.natmgr.NAT().GetMapping(protocol, iport)
-			if !ok {
+			extMaddr := h.natmgr.GetMapping(listen)
+			if extMaddr == nil {
 				// not mapped
 				continue
-			}
-
-			var mappedAddr net.Addr
-			switch naddr.(type) {
-			case *net.TCPAddr:
-				mappedAddr = net.TCPAddrFromAddrPort(extAddr)
-			case *net.UDPAddr:
-				mappedAddr = net.UDPAddrFromAddrPort(extAddr)
-			}
-			mappedMaddr, err := manet.FromNetAddr(mappedAddr)
-			if err != nil {
-				log.Errorf("mapped addr can't be turned into a multiaddr %q: %s", mappedAddr, err)
-				continue
-			}
-			extMaddr := mappedMaddr
-			if rest != nil {
-				extMaddr = ma.Join(extMaddr, rest)
 			}
 
 			// if the router reported a sane address
