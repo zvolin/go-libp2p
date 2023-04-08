@@ -29,8 +29,7 @@ type entry struct {
 	port     int
 }
 
-// DiscoverNAT looks for a NAT device in the network and
-// returns an object that can manage port mappings.
+// DiscoverNAT looks for a NAT device in the network and returns an object that can manage port mappings.
 func DiscoverNAT(ctx context.Context) (*NAT, error) {
 	natInstance, err := nat.DiscoverGateway(ctx)
 	if err != nil {
@@ -92,6 +91,7 @@ func (nat *NAT) Close() error {
 func (nat *NAT) Mappings() []Mapping {
 	nat.mappingmu.Lock()
 	defer nat.mappingmu.Unlock()
+
 	maps2 := make([]Mapping, 0, len(nat.mappings))
 	for e, extPort := range nat.mappings {
 		maps2 = append(maps2, &mapping{
@@ -104,8 +104,8 @@ func (nat *NAT) Mappings() []Mapping {
 	return maps2
 }
 
-// AddMapping attempts to construct a mapping on protocol and internal port
-// It will also periodically renew the mapping.
+// AddMapping attempts to construct a mapping on protocol and internal port.
+// It blocks until a mapping was established. Once added, it periodically renews the mapping.
 //
 // May not succeed, and mappings may change over time;
 // NAT devices may not respect our port requests, and even lie.
@@ -117,8 +117,9 @@ func (nat *NAT) AddMapping(protocol string, port int) error {
 	}
 
 	nat.mappingmu.Lock()
+	defer nat.mappingmu.Unlock()
+
 	if nat.closed {
-		nat.mappingmu.Unlock()
 		return errors.New("closed")
 	}
 
@@ -126,21 +127,22 @@ func (nat *NAT) AddMapping(protocol string, port int) error {
 	// allowing users -- in the optimistic case -- to use results right after.
 	extPort := nat.establishMapping(protocol, port)
 	nat.mappings[entry{protocol: protocol, port: port}] = extPort
-	nat.mappingmu.Unlock()
-
 	return nil
 }
 
+// RemoveMapping removes a port mapping.
+// It blocks until the NAT has removed the mapping.
 func (nat *NAT) RemoveMapping(protocol string, port int) error {
 	nat.mappingmu.Lock()
 	defer nat.mappingmu.Unlock()
+
 	switch protocol {
 	case "tcp", "udp":
 		delete(nat.mappings, entry{protocol: protocol, port: port})
 	default:
 		return fmt.Errorf("invalid protocol: %s", protocol)
 	}
-	return nil
+	return nat.nat.DeletePortMapping(protocol, port)
 }
 
 func (nat *NAT) background() {
@@ -178,6 +180,7 @@ func (nat *NAT) background() {
 			nat.mappingmu.Lock()
 			for e := range nat.mappings {
 				delete(nat.mappings, e)
+				nat.nat.DeletePortMapping(e.protocol, e.port)
 			}
 			nat.mappingmu.Unlock()
 			return
