@@ -15,12 +15,11 @@ import (
 )
 
 // NATManager is a simple interface to manage NAT devices.
+// It listens Listen and ListenClose notifications from the network.Network,
+// and tries to obtain port mappings for those.
 type NATManager interface {
 	// NAT gets the NAT device managed by the NAT manager.
 	NAT() *inat.NAT
-
-	// Ready receives a notification when the NAT device is ready for use.
-	Ready() <-chan struct{}
 
 	io.Closer
 }
@@ -46,7 +45,6 @@ type natManager struct {
 	natMx sync.RWMutex
 	nat   *inat.NAT
 
-	ready    chan struct{} // closed once the nat is ready to process port mappings
 	syncFlag chan struct{} // cap: 1
 
 	tracked map[entry]bool // the bool is only used in doSync and has no meaning outside of that function
@@ -59,7 +57,6 @@ func newNatManager(net network.Network) *natManager {
 	ctx, cancel := context.WithCancel(context.Background())
 	nmgr := &natManager{
 		net:       net,
-		ready:     make(chan struct{}),
 		syncFlag:  make(chan struct{}, 1),
 		ctxCancel: cancel,
 		tracked:   make(map[entry]bool),
@@ -77,21 +74,16 @@ func (nmgr *natManager) Close() error {
 	return nil
 }
 
-// Ready returns a channel which will be closed when the NAT has been found
-// and is ready to be used, or the search process is done.
-func (nmgr *natManager) Ready() <-chan struct{} {
-	return nmgr.ready
-}
-
 func (nmgr *natManager) background(ctx context.Context) {
 	defer nmgr.refCount.Done()
 
 	defer func() {
 		nmgr.natMx.Lock()
+		defer nmgr.natMx.Unlock()
+
 		if nmgr.nat != nil {
 			nmgr.nat.Close()
 		}
-		nmgr.natMx.Unlock()
 	}()
 
 	discoverCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -99,14 +91,12 @@ func (nmgr *natManager) background(ctx context.Context) {
 	natInstance, err := inat.DiscoverNAT(discoverCtx)
 	if err != nil {
 		log.Info("DiscoverNAT error:", err)
-		close(nmgr.ready)
 		return
 	}
 
 	nmgr.natMx.Lock()
 	nmgr.nat = natInstance
 	nmgr.natMx.Unlock()
-	close(nmgr.ready)
 
 	// sign natManager up for network notifications
 	// we need to sign up here to avoid missing some notifs
@@ -152,10 +142,9 @@ func (nmgr *natManager) doSync() {
 			continue
 		}
 
-		// Only bother if we're listening on a
-		// unicast/unspecified IP.
+		// Only bother if we're listening on an unicast / unspecified IP.
 		ip := net.IP(maIP.RawValue())
-		if !(ip.IsGlobalUnicast() || ip.IsUnspecified()) {
+		if !ip.IsGlobalUnicast() && !ip.IsUnspecified() {
 			continue
 		}
 
@@ -222,11 +211,11 @@ func (nn *nmgrNetNotifiee) natManager() *natManager {
 	return (*natManager)(nn)
 }
 
-func (nn *nmgrNetNotifiee) Listen(n network.Network, addr ma.Multiaddr) {
+func (nn *nmgrNetNotifiee) Listen(network.Network, ma.Multiaddr) {
 	nn.natManager().sync()
 }
 
-func (nn *nmgrNetNotifiee) ListenClose(n network.Network, addr ma.Multiaddr) {
+func (nn *nmgrNetNotifiee) ListenClose(network.Network, ma.Multiaddr) {
 	nn.natManager().sync()
 }
 
