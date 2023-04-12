@@ -15,12 +15,10 @@ import (
 	"github.com/golang/mock/gomock"
 )
 
-//go:generate sh -c "./mockgen_private.sh basichost mock_nat_test.go github.com/libp2p/go-libp2p/p2p/host/basic nat"
-
-func setupMockNAT(t *testing.T) (mockNAT *MockNat, reset func()) {
+func setupMockNAT(t *testing.T) (mockNAT *MockNAT, reset func()) {
 	t.Helper()
 	ctrl := gomock.NewController(t)
-	mockNAT = NewMockNat(ctrl)
+	mockNAT = NewMockNAT(ctrl)
 	origDiscoverNAT := discoverNAT
 	discoverNAT = func(ctx context.Context) (nat, error) { return mockNAT, nil }
 	return mockNAT, func() {
