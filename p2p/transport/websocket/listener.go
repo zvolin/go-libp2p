@@ -113,7 +113,7 @@ func (l *listener) Accept() (manet.Conn, error) {
 	select {
 	case c, ok := <-l.incoming:
 		if !ok {
-			return nil, fmt.Errorf("listener is closed")
+			return nil, transport.ErrListenerClosed
 		}
 
 		mnc, err := manet.WrapNetConn(c)
@@ -124,7 +124,7 @@ func (l *listener) Accept() (manet.Conn, error) {
 
 		return mnc, nil
 	case <-l.closed:
-		return nil, fmt.Errorf("listener is closed")
+		return nil, transport.ErrListenerClosed
 	}
 }
 
