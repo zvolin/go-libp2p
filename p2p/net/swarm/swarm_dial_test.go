@@ -14,8 +14,11 @@ import (
 	"github.com/libp2p/go-libp2p/core/test"
 	"github.com/libp2p/go-libp2p/p2p/host/eventbus"
 	"github.com/libp2p/go-libp2p/p2p/host/peerstore/pstoremem"
+	quic "github.com/libp2p/go-libp2p/p2p/transport/quic"
+	"github.com/libp2p/go-libp2p/p2p/transport/quicreuse"
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
 	"github.com/libp2p/go-libp2p/p2p/transport/websocket"
+	webtransport "github.com/libp2p/go-libp2p/p2p/transport/webtransport"
 
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
@@ -239,26 +242,35 @@ func TestAddrResolutionRecursive(t *testing.T) {
 	require.Contains(t, addrs2, addr1)
 }
 
-func TestRemoveWebTransportAddrs(t *testing.T) {
-	tcpAddr := ma.StringCast("/ip4/9.5.6.4/tcp/1234")
-	quicAddr := ma.StringCast("/ip4/1.2.3.4/udp/443/quic")
-	webtransportAddr := ma.StringCast("/ip4/1.2.3.4/udp/443/quic-v1/webtransport")
+func TestLocalHostWebTransportRemoved(t *testing.T) {
+	resolver, err := madns.NewResolver()
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	require.Equal(t, []ma.Multiaddr{tcpAddr, quicAddr}, maybeRemoveWebTransportAddrs([]ma.Multiaddr{tcpAddr, quicAddr}))
-	require.Equal(t, []ma.Multiaddr{tcpAddr, webtransportAddr}, maybeRemoveWebTransportAddrs([]ma.Multiaddr{tcpAddr, webtransportAddr}))
-	require.Equal(t, []ma.Multiaddr{tcpAddr, quicAddr}, maybeRemoveWebTransportAddrs([]ma.Multiaddr{tcpAddr, webtransportAddr, quicAddr}))
-	require.Equal(t, []ma.Multiaddr{quicAddr}, maybeRemoveWebTransportAddrs([]ma.Multiaddr{quicAddr, webtransportAddr}))
-	require.Equal(t, []ma.Multiaddr{webtransportAddr}, maybeRemoveWebTransportAddrs([]ma.Multiaddr{webtransportAddr}))
-}
+	s := newTestSwarmWithResolver(t, resolver)
+	p, err := test.RandPeerID()
+	if err != nil {
+		t.Error(err)
+	}
+	reuse, err := quicreuse.NewConnManager([32]byte{})
+	require.NoError(t, err)
+	defer reuse.Close()
 
-func TestRemoveQuicDraft29(t *testing.T) {
-	tcpAddr := ma.StringCast("/ip4/9.5.6.4/tcp/1234")
-	quicDraft29Addr := ma.StringCast("/ip4/1.2.3.4/udp/443/quic")
-	quicV1Addr := ma.StringCast("/ip4/1.2.3.4/udp/443/quic-v1")
+	quicTr, err := quic.NewTransport(s.Peerstore().PrivKey(s.LocalPeer()), reuse, nil, nil, nil)
+	require.NoError(t, err)
+	require.NoError(t, s.AddTransport(quicTr))
 
-	require.Equal(t, []ma.Multiaddr{tcpAddr, quicV1Addr}, maybeRemoveQUICDraft29([]ma.Multiaddr{tcpAddr, quicV1Addr}))
-	require.Equal(t, []ma.Multiaddr{tcpAddr, quicDraft29Addr}, maybeRemoveQUICDraft29([]ma.Multiaddr{tcpAddr, quicDraft29Addr}))
-	require.Equal(t, []ma.Multiaddr{tcpAddr, quicV1Addr}, maybeRemoveQUICDraft29([]ma.Multiaddr{tcpAddr, quicDraft29Addr, quicV1Addr}))
-	require.Equal(t, []ma.Multiaddr{quicV1Addr}, maybeRemoveQUICDraft29([]ma.Multiaddr{quicV1Addr, quicDraft29Addr}))
-	require.Equal(t, []ma.Multiaddr{quicDraft29Addr}, maybeRemoveQUICDraft29([]ma.Multiaddr{quicDraft29Addr}))
+	webtransportTr, err := webtransport.New(s.Peerstore().PrivKey(s.LocalPeer()), nil, reuse, nil, nil)
+	require.NoError(t, err)
+	s.AddTransport(webtransportTr)
+
+	err = s.AddListenAddr(ma.StringCast("/ip4/127.0.0.1/udp/10000/quic-v1/"))
+	require.NoError(t, err)
+
+	res := s.filterKnownUndialables(p, []ma.Multiaddr{ma.StringCast("/ip4/127.0.0.1/udp/10000/quic-v1/webtransport")})
+	if len(res) != 0 {
+		t.Errorf("failed to filter localhost webtransport address")
+	}
+	s.Close()
 }
