@@ -24,8 +24,8 @@ const (
 	RelayDelay = 250 * time.Millisecond
 )
 
-// noDelayRanker ranks addresses with no delay. This is useful for simultaneous connect requests.
-func noDelayRanker(addrs []ma.Multiaddr) []network.AddrDelay {
+// NoDelayDialRanker ranks addresses with no delay. This is useful for simultaneous connect requests.
+func NoDelayDialRanker(addrs []ma.Multiaddr) []network.AddrDelay {
 	return getAddrDelay(addrs, 0, 0, 0)
 }
 
