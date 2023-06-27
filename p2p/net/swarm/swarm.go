@@ -173,6 +173,8 @@ type Swarm struct {
 	metricsTracer MetricsTracer
 
 	dialRanker network.DialRanker
+
+	bhd *blackHoleDetector
 }
 
 // NewSwarm constructs a Swarm.
@@ -209,8 +211,12 @@ func NewSwarm(local peer.ID, peers peerstore.Peerstore, eventBus event.Bus, opts
 	}
 
 	s.dsync = newDialSync(s.dialWorkerLoop)
+
 	s.limiter = newDialLimiter(s.dialAddr)
 	s.backf.init(s.ctx)
+
+	s.bhd = newBlackHoleDetector(true, true, s.metricsTracer)
+
 	return s, nil
 }
 
