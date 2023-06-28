@@ -37,10 +37,12 @@ const (
 	DirOutbound
 )
 
+const unrecognized = "(unrecognized)"
+
 func (d Direction) String() string {
 	str := [...]string{"Unknown", "Inbound", "Outbound"}
 	if d < 0 || int(d) >= len(str) {
-		return "(unrecognized)"
+		return unrecognized
 	}
 	return str[d]
 }
@@ -67,7 +69,7 @@ const (
 func (c Connectedness) String() string {
 	str := [...]string{"NotConnected", "Connected", "CanConnect", "CannotConnect"}
 	if c < 0 || int(c) >= len(str) {
-		return "(unrecognized)"
+		return unrecognized
 	}
 	return str[c]
 }
@@ -94,7 +96,7 @@ const (
 func (r Reachability) String() string {
 	str := [...]string{"Unknown", "Public", "Private"}
 	if r < 0 || int(r) >= len(str) {
-		return "(unrecognized)"
+		return unrecognized
 	}
 	return str[r]
 }
