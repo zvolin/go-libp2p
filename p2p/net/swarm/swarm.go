@@ -108,6 +108,26 @@ func WithDialRanker(d network.DialRanker) Option {
 	}
 }
 
+// WithUDPBlackHoleConfig configures swarm to use c as the config for UDP black hole detection
+// n is the size of the sliding window used to evaluate black hole state
+// min is the minimum number of successes out of n required to not block requests
+func WithUDPBlackHoleConfig(enabled bool, n, min int) Option {
+	return func(s *Swarm) error {
+		s.udpBlackHoleConfig = blackHoleConfig{Enabled: enabled, N: n, MinSuccesses: min}
+		return nil
+	}
+}
+
+// WithIPv6BlackHoleConfig configures swarm to use c as the config for IPv6 black hole detection
+// n is the size of the sliding window used to evaluate black hole state
+// min is the minimum number of successes out of n required to not block requests
+func WithIPv6BlackHoleConfig(enabled bool, n, min int) Option {
+	return func(s *Swarm) error {
+		s.ipv6BlackHoleConfig = blackHoleConfig{Enabled: enabled, N: n, MinSuccesses: min}
+		return nil
+	}
+}
+
 // Swarm is a connection muxer, allowing connections to other peers to
 // be opened and closed, while still using the same Chan for all
 // communication. The Chan sends/receives Messages, which note the
@@ -174,7 +194,9 @@ type Swarm struct {
 
 	dialRanker network.DialRanker
 
-	bhd *blackHoleDetector
+	udpBlackHoleConfig  blackHoleConfig
+	ipv6BlackHoleConfig blackHoleConfig
+	bhd                 *blackHoleDetector
 }
 
 // NewSwarm constructs a Swarm.
@@ -194,6 +216,12 @@ func NewSwarm(local peer.ID, peers peerstore.Peerstore, eventBus event.Bus, opts
 		dialTimeoutLocal: defaultDialTimeoutLocal,
 		maResolver:       madns.DefaultResolver,
 		dialRanker:       DefaultDialRanker,
+
+		// A black hole is a binary property. On a network if UDP dials are blocked or there is
+		// no IPv6 connectivity, all dials will fail. So a low success rate of 5 out 100 dials
+		// is good enough.
+		udpBlackHoleConfig:  blackHoleConfig{Enabled: true, N: 100, MinSuccesses: 5},
+		ipv6BlackHoleConfig: blackHoleConfig{Enabled: true, N: 100, MinSuccesses: 5},
 	}
 
 	s.conns.m = make(map[peer.ID][]*Conn)
@@ -215,7 +243,7 @@ func NewSwarm(local peer.ID, peers peerstore.Peerstore, eventBus event.Bus, opts
 	s.limiter = newDialLimiter(s.dialAddr)
 	s.backf.init(s.ctx)
 
-	s.bhd = newBlackHoleDetector(true, true, s.metricsTracer)
+	s.bhd = newBlackHoleDetector(s.udpBlackHoleConfig, s.ipv6BlackHoleConfig, s.metricsTracer)
 
 	return s, nil
 }
