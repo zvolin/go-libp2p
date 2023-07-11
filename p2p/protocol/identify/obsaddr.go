@@ -375,6 +375,11 @@ func shouldRecordObservation(host addrsProvider, network listenAddrsProvider, co
 		return false
 	}
 
+	// Provided by NAT64 peers, these addresses are specific to the peer and not publicly routable
+	if manet.IsNAT64IPv4ConvertedIPv6Addr(observed) {
+		return false
+	}
+
 	// we should only use ObservedAddr when our connection's LocalAddr is one
 	// of our ListenAddrs. If we Dial out using an ephemeral addr, knowing that
 	// address's external mapping is not very useful because the port will not be
