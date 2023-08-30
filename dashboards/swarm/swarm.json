@@ -3332,7 +3332,7 @@
             "mode": "thresholds"
           },
           "mappings": [],
-          "max": 10,
+          "max": 100,
           "min": 0,
           "thresholds": {
             "mode": "absolute",
@@ -3343,7 +3343,7 @@
               },
               {
                 "color": "green",
-                "value": 1
+                "value": 5
               }
             ]
           }
@@ -3385,7 +3385,7 @@
           "refId": "A"
         }
       ],
-      "title": "Black Hole Filter Success Percentage",
+      "title": "Dial Success Rate",
       "type": "gauge"
     }
   ],
@@ -3425,7 +3425,7 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "libp2p Swarm",
+  "title": "go-libp2p Swarm",
   "uid": "a15PyhO4z",
   "version": 4,
   "weekStart": ""
