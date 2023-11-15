@@ -131,8 +131,10 @@ func (l *quicListener) Run() error {
 			if errors.Is(err, quic.ErrServerClosed) || strings.Contains(err.Error(), "use of closed network connection") {
 				return transport.ErrListenerClosed
 			}
+			log.Warnw("Error accepting webtransport conn:", err)
 			return err
 		}
+		log.Warnw("New webtransport conn", conn)
 		proto := conn.ConnectionState().TLS.NegotiatedProtocol
 
 		l.protocolsMu.Lock()

@@ -51,12 +51,14 @@ func (l *listener) Accept() (tpt.CapableConn, error) {
 		if err != nil {
 			return nil, err
 		}
+		log.Warnw("\nNew connection from", qconn.RemoteAddr().String())
 		c, err := l.setupConn(qconn)
 		if err != nil {
 			continue
 		}
 		l.transport.addConn(qconn, c)
 		if l.transport.gater != nil && !(l.transport.gater.InterceptAccept(c) && l.transport.gater.InterceptSecured(network.DirInbound, c.remotePeerID, c)) {
+			log.Warnw("\nConnection gated", qconn.RemoteAddr().String())
 			c.closeWithError(errorCodeConnectionGating, "connection gated")
 			continue
 		}
@@ -87,7 +89,7 @@ func (l *listener) setupConn(qconn quic.Connection) (*conn, error) {
 
 	connScope, err := l.rcmgr.OpenConnection(network.DirInbound, false, remoteMultiaddr)
 	if err != nil {
-		log.Debugw("resource manager blocked incoming connection", "addr", qconn.RemoteAddr(), "error", err)
+		log.Warnw("resource manager blocked incoming connection", "addr", qconn.RemoteAddr(), "error", err)
 		return nil, err
 	}
 	c, err := l.setupConnWithScope(qconn, connScope, remoteMultiaddr)
@@ -115,7 +117,7 @@ func (l *listener) setupConnWithScope(qconn quic.Connection, connScope network.C
 		return nil, err
 	}
 	if err := connScope.SetPeer(remotePeerID); err != nil {
-		log.Debugw("resource manager blocked incoming connection for peer", "peer", remotePeerID, "addr", qconn.RemoteAddr(), "error", err)
+		log.Warnw("resource manager blocked incoming connection for peer", "peer", remotePeerID, "addr", qconn.RemoteAddr(), "error", err)
 		return nil, err
 	}
 

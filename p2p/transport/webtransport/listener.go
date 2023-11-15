@@ -97,7 +97,7 @@ func (l *listener) httpHandler(w http.ResponseWriter, r *http.Request) {
 
 	connScope, err := l.transport.rcmgr.OpenConnection(network.DirInbound, false, remoteMultiaddr)
 	if err != nil {
-		log.Debugw("resource manager blocked incoming connection", "addr", r.RemoteAddr, "error", err)
+		log.Warnw("resource manager blocked incoming connection", "addr", r.RemoteAddr, "error", err)
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
 	}
@@ -110,7 +110,7 @@ func (l *listener) httpHandler(w http.ResponseWriter, r *http.Request) {
 func (l *listener) httpHandlerWithConnScope(w http.ResponseWriter, r *http.Request, connScope network.ConnManagementScope) error {
 	sess, err := l.server.Upgrade(w, r)
 	if err != nil {
-		log.Debugw("upgrade failed", "error", err)
+		log.Warnw("upgrade failed", "error", err)
 		// TODO: think about the status code to use here
 		w.WriteHeader(500)
 		return err
@@ -119,7 +119,7 @@ func (l *listener) httpHandlerWithConnScope(w http.ResponseWriter, r *http.Reque
 	sconn, err := l.handshake(ctx, sess)
 	if err != nil {
 		cancel()
-		log.Debugw("handshake failed", "error", err)
+		log.Warnw("handshake failed", "error", err)
 		sess.CloseWithError(1, "")
 		return err
 	}
@@ -127,12 +127,13 @@ func (l *listener) httpHandlerWithConnScope(w http.ResponseWriter, r *http.Reque
 
 	if l.transport.gater != nil && !l.transport.gater.InterceptSecured(network.DirInbound, sconn.RemotePeer(), sconn) {
 		// TODO: can we close with a specific error here?
+		log.Warnw("Gater closed conn")
 		sess.CloseWithError(errorCodeConnectionGating, "")
 		return errors.New("gater blocked connection")
 	}
 
 	if err := connScope.SetPeer(sconn.RemotePeer()); err != nil {
-		log.Debugw("resource manager blocked incoming connection for peer", "peer", sconn.RemotePeer(), "addr", r.RemoteAddr, "error", err)
+		log.Warnw("resource manager blocked incoming connection for peer", "peer", sconn.RemotePeer(), "addr", r.RemoteAddr, "error", err)
 		sess.CloseWithError(1, "")
 		return err
 	}
@@ -142,7 +143,7 @@ func (l *listener) httpHandlerWithConnScope(w http.ResponseWriter, r *http.Reque
 	select {
 	case l.queue <- conn:
 	default:
-		log.Debugw("accept queue full, dropping incoming connection", "peer", sconn.RemotePeer(), "addr", r.RemoteAddr, "error", err)
+		log.Warnw("accept queue full, dropping incoming connection", "peer", sconn.RemotePeer(), "addr", r.RemoteAddr, "error", err)
 		sess.CloseWithError(1, "")
 		return errors.New("accept queue full")
 	}
