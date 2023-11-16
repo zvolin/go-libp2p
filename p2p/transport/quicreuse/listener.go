@@ -193,6 +193,7 @@ func (l *listener) Accept(ctx context.Context) (quic.Connection, error) {
 	case <-l.acceptLoopRunning:
 		return nil, transport.ErrListenerClosed
 	case c, ok := <-l.queue:
+		log.Warnw("Accepted new webtransport conn", c)
 		if !ok {
 			return nil, transport.ErrListenerClosed
 		}
