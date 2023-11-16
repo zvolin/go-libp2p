@@ -3,6 +3,7 @@ package connmgr
 import (
 	"context"
 	"sort"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -375,7 +376,10 @@ func (cm *BasicConnMgr) doTrim() {
 func (cm *BasicConnMgr) trim() {
 	// do the actual trim.
 	for _, c := range cm.getConnsToClose() {
-		log.Warnw("closing conn", "peer", c.RemotePeer())
+		if strings.HasSuffix(string(c.RemotePeer()), "W7k") {
+			log.Warnw("closing conn", "peer", c.RemotePeer())
+		}
+		log.Debugw("closing conn", "peer", c.RemotePeer())
 		c.Close()
 	}
 }
