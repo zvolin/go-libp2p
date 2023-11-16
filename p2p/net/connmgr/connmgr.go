@@ -376,7 +376,7 @@ func (cm *BasicConnMgr) doTrim() {
 func (cm *BasicConnMgr) trim() {
 	// do the actual trim.
 	for _, c := range cm.getConnsToClose() {
-		if strings.HasSuffix(string(c.RemotePeer()), "W7k") {
+		if strings.HasSuffix(c.RemotePeer().String(), "W7k") {
 			log.Warnw("closing conn", "peer", c.RemotePeer())
 		}
 		log.Debugw("closing conn", "peer", c.RemotePeer())
